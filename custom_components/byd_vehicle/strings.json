@@ -1,0 +1,34 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to BYD",
+        "description": "Set up your BYD account.",
+        "data": {
+          "base_url": "Region",
+          "username": "Username",
+          "password": "Password",
+          "country_code": "Country code",
+          "poll_interval": "Polling interval (seconds)",
+          "gps_poll_interval": "GPS polling interval (seconds)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect",
+      "invalid_auth": "Invalid authentication",
+      "unknown": "Unexpected error"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Update polling",
+        "data": {
+          "poll_interval": "Polling interval (seconds)",
+          "gps_poll_interval": "GPS polling interval (seconds)"
+        }
+      }
+    }
+  }
+}
