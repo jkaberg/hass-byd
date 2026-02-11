@@ -107,12 +107,10 @@ class BydClimate(CoordinatorEntity, ClimateEntity):
 
     @property
     def available(self) -> bool:
-        """Available when coordinator has realtime or HVAC data."""
+        """Available when coordinator has data for this vehicle."""
         if not super().available:
             return False
-        realtime = self.coordinator.data.get("realtime", {}).get(self._vin)
-        hvac = self._get_hvac_status()
-        return realtime is not None or hvac is not None
+        return self._vin in self.coordinator.data.get("vehicles", {})
 
     @property
     def hvac_mode(self) -> HVACMode:

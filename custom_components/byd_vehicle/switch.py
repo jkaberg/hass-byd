@@ -63,10 +63,10 @@ class BydBatteryHeatSwitch(CoordinatorEntity, SwitchEntity):
 
     @property
     def available(self) -> bool:
-        """Available when coordinator has realtime data."""
+        """Available when coordinator has data for this vehicle."""
         if not super().available:
             return False
-        return self.coordinator.data.get("realtime", {}).get(self._vin) is not None
+        return self._vin in self.coordinator.data.get("vehicles", {})
 
     @property
     def is_on(self) -> bool | None:
@@ -172,7 +172,7 @@ class BydSteeringWheelHeatSwitch(CoordinatorEntity, SwitchEntity):
     def available(self) -> bool:
         if not super().available:
             return False
-        return self._get_hvac_status() is not None or self._get_realtime() is not None
+        return self._vin in self.coordinator.data.get("vehicles", {})
 
     @property
     def is_on(self) -> bool | None:

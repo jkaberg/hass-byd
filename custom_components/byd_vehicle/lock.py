@@ -58,10 +58,10 @@ class BydLock(CoordinatorEntity, LockEntity):
 
     @property
     def available(self) -> bool:
-        """Available when coordinator has realtime data."""
+        """Available when coordinator has data for this vehicle."""
         if not super().available:
             return False
-        return self.coordinator.data.get("realtime", {}).get(self._vin) is not None
+        return self._vin in self.coordinator.data.get("vehicles", {})
 
     def _get_realtime_locks(self) -> list[bool] | None:
         realtime_map = self.coordinator.data.get("realtime", {})

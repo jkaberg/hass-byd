@@ -137,10 +137,26 @@ class BydDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             async def _fetch_for_vin(
                 vin: str,
             ) -> tuple[str, Any, Any, Any, Any]:
-                realtime = await client.get_vehicle_realtime(vin)
-                energy = await client.get_energy_consumption(vin)
-                hvac = await client.get_hvac_status(vin)
-                charging = await client.get_charging_status(vin)
+                realtime = None
+                energy = None
+                hvac = None
+                charging = None
+                try:
+                    realtime = await client.get_vehicle_realtime(vin)
+                except Exception as exc:  # noqa: BLE001
+                    _LOGGER.warning("Realtime fetch failed for %s: %s", vin, exc)
+                try:
+                    energy = await client.get_energy_consumption(vin)
+                except Exception as exc:  # noqa: BLE001
+                    _LOGGER.warning("Energy fetch failed for %s: %s", vin, exc)
+                try:
+                    hvac = await client.get_hvac_status(vin)
+                except Exception as exc:  # noqa: BLE001
+                    _LOGGER.warning("HVAC fetch failed for %s: %s", vin, exc)
+                try:
+                    charging = await client.get_charging_status(vin)
+                except Exception as exc:  # noqa: BLE001
+                    _LOGGER.warning("Charging fetch failed for %s: %s", vin, exc)
                 return vin, realtime, energy, hvac, charging
 
             tasks = [_fetch_for_vin(vin) for vin in vehicle_map]
@@ -155,10 +171,21 @@ class BydDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     _LOGGER.warning("Telemetry update failed: %s", result)
                     continue
                 vin, realtime, energy, hvac, charging = result
-                realtime_map[vin] = realtime
-                energy_map[vin] = energy
-                hvac_map[vin] = hvac
-                charging_map[vin] = charging
+                if realtime is not None:
+                    realtime_map[vin] = realtime
+                if energy is not None:
+                    energy_map[vin] = energy
+                if hvac is not None:
+                    hvac_map[vin] = hvac
+                if charging is not None:
+                    charging_map[vin] = charging
+
+            if vehicle_map and not any(
+                [realtime_map, energy_map, hvac_map, charging_map]
+            ):
+                raise UpdateFailed(
+                    "All telemetry fetches failed for all vehicles"
+                )
 
             return {
                 "vehicles": vehicle_map,
@@ -246,7 +273,13 @@ class BydGpsUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     _LOGGER.warning("GPS update failed: %s", result)
                     continue
                 vin, gps = result
-                gps_map[vin] = gps
+                if gps is not None:
+                    gps_map[vin] = gps
+
+            if vehicle_map and not gps_map:
+                raise UpdateFailed(
+                    "GPS fetch failed for all vehicles"
+                )
 
             return {
                 "vehicles": vehicle_map,

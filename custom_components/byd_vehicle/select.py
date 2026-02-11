@@ -192,10 +192,7 @@ class BydSeatClimateSelect(CoordinatorEntity, SelectEntity):
     def available(self) -> bool:
         if not super().available:
             return False
-        return (
-            self._get_hvac_status() is not None
-            or self._get_realtime() is not None
-        )
+        return self._vin in self.coordinator.data.get("vehicles", {})
 
     @property
     def current_option(self) -> str | None:
