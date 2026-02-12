@@ -60,6 +60,7 @@ COUNTRY_OPTIONS: dict[str, tuple[str, str]] = {
     "Malaysia": ("MY", "ms"),
     "Mexico": ("MX", "es"),
     "Netherlands": ("NL", "nl"),
+    "New Zealand": ("NZ", "en"),
     "Norway": ("NO", "no"),
     "Pakistan": ("PK", "en"),
     "Philippines": ("PH", "en"),
