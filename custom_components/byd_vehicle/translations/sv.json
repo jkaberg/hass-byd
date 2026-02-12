@@ -5,12 +5,12 @@
         "title": "Anslut till BYD",
         "description": "Konfigurera ditt BYD-konto.",
         "data": {
-          "base_url": "Region",
+          "base_url": "Område",
           "username": "Användarnamn",
           "password": "Lösenord",
           "control_pin": "Kontroll PIN (valfritt, 6-siffrigt)",
           "country_code": "Land",
-          "poll_interval": "Avfrågningsintervall (sekunder)",
+          "poll_interval": "Pollingintervall (sekunder)",
           "gps_poll_interval": "GPS avfrågningsintervall (sekunder)",
           "smart_gps_polling": "Smart GPS polling",
           "gps_active_interval": "GPS aktivt intervall (sekunder)",
@@ -25,8 +25,8 @@
       "unknown": "Oväntat fel"
     },
     "abort": {
-      "already_configured": "Detta konto är redan konfigurerat",
-      "wrong_account": "Kontot matchar inte det som omautentiseras",
+      "already_configured": "Det här kontot är redan konfigurerat",
+      "wrong_account": "Kontot matchar inte det som återautentiseras",
       "reauth_successful": "Återautentiseringen lyckades"
     }
   },
@@ -35,7 +35,7 @@
       "init": {
         "title": "Uppdatera omröstning",
         "data": {
-          "poll_interval": "Avfrågningsintervall (sekunder)",
+          "poll_interval": "Pollingintervall (sekunder)",
           "gps_poll_interval": "GPS avfrågningsintervall (sekunder)",
           "smart_gps_polling": "Smart GPS polling",
           "gps_active_interval": "GPS aktivt intervall (sekunder)",
@@ -65,10 +65,10 @@
         "name": "Främre vänster däcktryck"
       },
       "right_front_tire_pressure": {
-        "name": "Däcktryck fram höger"
+        "name": "Fram höger däcktryck"
       },
       "left_rear_tire_pressure": {
-        "name": "Däcktryck vänster bak"
+        "name": "Däcktryck till vänster bak"
       },
       "right_rear_tire_pressure": {
         "name": "Höger bakre däcktryck"
@@ -86,7 +86,7 @@
         "name": "Genomsnittlig energiförbrukning"
       },
       "temp_out_car": {
-        "name": "Yttre temperatur"
+        "name": "Utetemperatur"
       },
       "pm": {
         "name": "PM2.5"
@@ -110,19 +110,19 @@
         "name": "Laddningsläge"
       },
       "charge_state": {
-        "name": "Debiteringstillstånd"
+        "name": "Laddningsläge"
       },
       "wait_status": {
-        "name": "Debiteringsväntestatus"
+        "name": "Laddningsväntestatus"
       },
       "full_hour": {
-        "name": "Timmar till full"
+        "name": "Timmar till fulla"
       },
       "full_minute": {
-        "name": "Minuter till full"
+        "name": "Minuter till fulla"
       },
       "charge_remaining_hours": {
-        "name": "Debitera återstående timmar"
+        "name": "Ladda återstående timmar"
       },
       "charge_remaining_minutes": {
         "name": "Ladda återstående minuter"
@@ -131,19 +131,19 @@
         "name": "Schemalagd laddning"
       },
       "booking_charging_hour": {
-        "name": "Schemalagd laddningstimme"
+        "name": "Schemalagd laddningstid"
       },
       "booking_charging_minute": {
-        "name": "Schemalagd debiteringsminut"
+        "name": "Schemalagd laddningsminut"
       },
       "left_front_tire_status": {
-        "name": "Vänster främre däckstatus"
+        "name": "Status för däck fram vänster"
       },
       "right_front_tire_status": {
         "name": "Fram höger däckstatus"
       },
       "left_rear_tire_status": {
-        "name": "Vänster bakre däckstatus"
+        "name": "Bakre vänstra däckstatus"
       },
       "right_rear_tire_status": {
         "name": "Bakre höger däckstatus"
@@ -155,7 +155,7 @@
         "name": "Snabbt däckläckage"
       },
       "total_power": {
-        "name": "Total effekt"
+        "name": "Total kraft"
       },
       "nearest_energy_consumption": {
         "name": "Senaste energiförbrukningen"
@@ -164,7 +164,7 @@
         "name": "Senaste 50 km energi"
       },
       "oil_endurance": {
-        "name": "Bränsleintervall"
+        "name": "Bränsle räckvidd"
       },
       "oil_percent": {
         "name": "Bränslenivå"
@@ -188,10 +188,10 @@
         "name": "ABS varning"
       },
       "svs": {
-        "name": "Servicefordon snart"
+        "name": "Servicebil snart"
       },
       "srs": {
-        "name": "Krockkuddevarning"
+        "name": "Airbag-varning"
       },
       "ect": {
         "name": "Varning för kylvätsketemperatur"
@@ -209,10 +209,10 @@
         "name": "OTA uppgraderingsstatus"
       },
       "charger_state": {
-        "name": "Laddningsstatus"
+        "name": "Laddarens tillstånd"
       },
       "charger_connection": {
-        "name": "Laddarens anslutningstillstånd"
+        "name": "Laddarens anslutningsläge"
       },
       "charging_update_time": {
         "name": "Laddar senaste uppdatering"
@@ -283,13 +283,13 @@
         "name": "Vänster bakruta"
       },
       "right_rear_window": {
-        "name": "Bakre höger fönster"
+        "name": "Höger bakruta"
       },
       "skylight": {
         "name": "Takfönster"
       },
       "left_front_door_lock": {
-        "name": "Främre vänster dörrlås"
+        "name": "Främre vänstra dörrlås"
       },
       "right_front_door_lock": {
         "name": "Främre höger dörrlås"
@@ -326,7 +326,7 @@
     },
     "select": {
       "driver_seat_heat": {
-        "name": "Förarstolsvärme",
+        "name": "Uppvärmning av förarstolen",
         "state": {
           "off": "Av",
           "low": "Låg",
@@ -334,7 +334,7 @@
         }
       },
       "driver_seat_ventilation": {
-        "name": "Förarstolsventilation",
+        "name": "Ventilation av förarstolen",
         "state": {
           "off": "Av",
           "low": "Låg",
@@ -342,7 +342,7 @@
         }
       },
       "passenger_seat_heat": {
-        "name": "Uppvärmning av passagerarsäten",
+        "name": "Passagerarstolsvärme",
         "state": {
           "off": "Av",
           "low": "Låg",
@@ -350,7 +350,7 @@
         }
       },
       "passenger_seat_ventilation": {
-        "name": "Passagerarsätesventilation",
+        "name": "Passenger seat ventilation",
         "state": {
           "off": "Av",
           "low": "Låg",
@@ -374,7 +374,7 @@
         }
       },
       "rear_right_seat_heat": {
-        "name": "Bakre höger sätesvärme",
+        "name": "Höger baksätesvärme",
         "state": {
           "off": "Av",
           "low": "Låg",
@@ -416,7 +416,7 @@
     },
     "lock": {
       "lock": {
-        "name": "Lås"
+        "name": "Låsa"
       }
     },
     "device_tracker": {

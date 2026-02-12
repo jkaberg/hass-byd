@@ -8,7 +8,7 @@
           "base_url": "지역",
           "username": "사용자 이름",
           "password": "비밀번호",
-          "control_pin": "제어 PIN(선택사항, 6자리)",
+          "control_pin": "제어 PIN(선택 사항, 6자리)",
           "country_code": "국가",
           "poll_interval": "폴링 간격(초)",
           "gps_poll_interval": "GPS 폴링 간격(초)",
@@ -20,7 +20,7 @@
     },
     "error": {
       "cannot_connect": "연결하지 못했습니다.",
-      "invalid_control_pin": "잘못된 제어 PIN 또는 클라우드 제어가 일시적으로 잠겨 있습니다.",
+      "invalid_control_pin": "잘못된 컨트롤 PIN 또는 클라우드 컨트롤이 일시적으로 잠겨 있습니다.",
       "invalid_auth": "잘못된 인증",
       "unknown": "예상치 못한 오류"
     },
@@ -74,7 +74,7 @@
         "name": "뒤 우측 타이어 공기압"
       },
       "soc": {
-        "name": "충전 SOC"
+        "name": "충전 중 SOC"
       },
       "time_to_full": {
         "name": "완전 충전 시간"
@@ -95,7 +95,7 @@
         "name": "전원 배터리 잔량"
       },
       "ev_endurance": {
-        "name": "EV 내구성"
+        "name": "EV 지구력"
       },
       "endurance_mileage_v2": {
         "name": "범위 V2"
@@ -328,65 +328,65 @@
       "driver_seat_heat": {
         "name": "운전석 난방",
         "state": {
-          "off": "끄다",
-          "low": "낮은",
-          "high": "높은"
+          "off": "끔",
+          "low": "낮음",
+          "high": "높음"
         }
       },
       "driver_seat_ventilation": {
         "name": "운전석 통풍",
         "state": {
-          "off": "끄다",
-          "low": "낮은",
-          "high": "높은"
+          "off": "끔",
+          "low": "낮음",
+          "high": "높음"
         }
       },
       "passenger_seat_heat": {
         "name": "조수석 난방",
         "state": {
-          "off": "끄다",
-          "low": "낮은",
-          "high": "높은"
+          "off": "끔",
+          "low": "낮음",
+          "high": "높음"
         }
       },
       "passenger_seat_ventilation": {
         "name": "조수석 환기",
         "state": {
-          "off": "끄다",
-          "low": "낮은",
-          "high": "높은"
+          "off": "끔",
+          "low": "낮음",
+          "high": "높음"
         }
       },
       "rear_left_seat_heat": {
         "name": "뒷좌석 난방",
         "state": {
-          "off": "끄다",
-          "low": "낮은",
-          "high": "높은"
+          "off": "끔",
+          "low": "낮음",
+          "high": "높음"
         }
       },
       "rear_left_seat_ventilation": {
         "name": "뒷좌석 통풍",
         "state": {
-          "off": "끄다",
-          "low": "낮은",
-          "high": "높은"
+          "off": "끔",
+          "low": "낮음",
+          "high": "높음"
         }
       },
       "rear_right_seat_heat": {
         "name": "뒷좌석 우측 시트 난방",
         "state": {
-          "off": "끄다",
-          "low": "낮은",
-          "high": "높은"
+          "off": "끔",
+          "low": "낮음",
+          "high": "높음"
         }
       },
       "rear_right_seat_ventilation": {
         "name": "뒷좌석 우측 통풍",
         "state": {
-          "off": "끄다",
-          "low": "낮은",
-          "high": "높은"
+          "off": "끔",
+          "low": "낮음",
+          "high": "높음"
         }
       }
     },

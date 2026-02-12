@@ -8,19 +8,19 @@
           "base_url": "ภูมิภาค",
           "username": "ชื่อผู้ใช้",
           "password": "รหัสผ่าน",
-          "control_pin": "ควบคุม PIN (เป็นทางเลือก 6 หลัก)",
+          "control_pin": "ควบคุม PIN (ตัวเลือก 6 หลัก)",
           "country_code": "ประเทศ",
           "poll_interval": "ช่วงเวลาการโพล (วินาที)",
           "gps_poll_interval": "GPS ช่วงเวลาการโพล (วินาที)",
           "smart_gps_polling": "การเลือกตั้งอัจฉริยะ GPS",
           "gps_active_interval": "GPS ช่วงเวลาที่ใช้งาน (วินาที)",
-          "gps_inactive_interval": "GPS ช่วงเวลาที่ไม่ได้ใช้งาน (วินาที)"
+          "gps_inactive_interval": "GPS ช่วงเวลาที่ไม่ใช้งาน (วินาที)"
         }
       }
     },
     "error": {
       "cannot_connect": "ไม่สามารถเชื่อมต่อได้",
-      "invalid_control_pin": "การควบคุมไม่ถูกต้อง PIN หรือการควบคุมคลาวด์ถูกล็อคชั่วคราว",
+      "invalid_control_pin": "การควบคุมไม่ถูกต้อง PIN หรือการควบคุมระบบคลาวด์ถูกล็อคชั่วคราว",
       "invalid_auth": "การรับรองความถูกต้องไม่ถูกต้อง",
       "unknown": "ข้อผิดพลาดที่ไม่คาดคิด"
     },
@@ -33,13 +33,13 @@
   "options": {
     "step": {
       "init": {
-        "title": "อัพเดตโพล",
+        "title": "อัพเดตการเลือกตั้ง",
         "data": {
           "poll_interval": "ช่วงเวลาการโพล (วินาที)",
           "gps_poll_interval": "GPS ช่วงเวลาการโพล (วินาที)",
           "smart_gps_polling": "การเลือกตั้งอัจฉริยะ GPS",
           "gps_active_interval": "GPS ช่วงเวลาที่ใช้งาน (วินาที)",
-          "gps_inactive_interval": "GPS ช่วงเวลาที่ไม่ได้ใช้งาน (วินาที)"
+          "gps_inactive_interval": "GPS ช่วงเวลาที่ไม่ใช้งาน (วินาที)"
         }
       }
     }
@@ -83,13 +83,13 @@
         "name": "การใช้พลังงานทั้งหมด"
       },
       "avg_energy_consumption": {
-        "name": "การใช้พลังงานเฉลี่ย"
+        "name": "การใช้พลังงานโดยเฉลี่ย"
       },
       "temp_out_car": {
         "name": "อุณหภูมิภายนอก"
       },
       "pm": {
-        "name": "PM2.5"
+        "name": "__เงื่อนไข0__"
       },
       "power_battery": {
         "name": "ระดับพลังงานแบตเตอรี่"
@@ -116,10 +116,10 @@
         "name": "สถานะรอการชาร์จ"
       },
       "full_hour": {
-        "name": "เต็มชั่วโมง"
+        "name": "ชั่วโมงให้เต็ม"
       },
       "full_minute": {
-        "name": "นาทีเต็ม"
+        "name": "นาทีให้เต็ม"
       },
       "charge_remaining_hours": {
         "name": "ชาร์จชั่วโมงที่เหลือ"
@@ -215,7 +215,7 @@
         "name": "สถานะการเชื่อมต่อเครื่องชาร์จ"
       },
       "charging_update_time": {
-        "name": "กำลังชาร์จอัปเดตล่าสุด"
+        "name": "กำลังชาร์จการอัปเดตครั้งล่าสุด"
       },
       "electricity_consumption": {
         "name": "ปริมาณการใช้ไฟฟ้า"
@@ -244,7 +244,7 @@
         "name": "หน้าต่าง"
       },
       "is_locked": {
-        "name": "ล็อค"
+        "name": "ล็อคแล้ว"
       },
       "charger_connected": {
         "name": "เชื่อมต่อเครื่องชาร์จแล้ว"
@@ -304,13 +304,13 @@
         "name": "ล็อคประตูบานเลื่อน"
       },
       "battery_heat_state": {
-        "name": "เครื่องทำความร้อนแบตเตอรี่"
+        "name": "ความร้อนของแบตเตอรี่"
       },
       "charge_heat_state": {
         "name": "ชาร์จความร้อน"
       },
       "vehicle_state": {
-        "name": "ยานพาหนะบน"
+        "name": "รถอยู่"
       }
     },
     "button": {
@@ -395,7 +395,7 @@
         "name": "ความร้อนของแบตเตอรี่"
       },
       "car_on": {
-        "name": "รถบน"
+        "name": "รถติด"
       },
       "steering_wheel_heat": {
         "name": "การทำความร้อนพวงมาลัย"

@@ -8,7 +8,7 @@
           "base_url": "Region",
           "username": "Nazwa użytkownika",
           "password": "Hasło",
-          "control_pin": "Kontrola PIN (opcjonalnie, 6-cyfrowa)",
+          "control_pin": "Kontrola PIN (opcjonalnie, 6-cyfrowy)",
           "country_code": "Kraj",
           "poll_interval": "Interwał odpytywania (sekundy)",
           "gps_poll_interval": "GPS interwał odpytywania (sekundy)",
@@ -33,7 +33,7 @@
   "options": {
     "step": {
       "init": {
-        "title": "Aktualizacja odpytywania",
+        "title": "Zaktualizuj ankietę",
         "data": {
           "poll_interval": "Interwał odpytywania (sekundy)",
           "gps_poll_interval": "GPS interwał odpytywania (sekundy)",
@@ -50,10 +50,10 @@
         "name": "Poziom baterii"
       },
       "endurance_mileage": {
-        "name": "Zasięg"
+        "name": "Zakres"
       },
       "total_mileage": {
-        "name": "Licznik"
+        "name": "Drogomierz"
       },
       "speed": {
         "name": "Prędkość"
@@ -62,22 +62,22 @@
         "name": "Temperatura w kabinie"
       },
       "left_front_tire_pressure": {
-        "name": "Ciśnienie w przedniej lewej oponie"
+        "name": "Ciśnienie w oponie przedniej lewej"
       },
       "right_front_tire_pressure": {
-        "name": "Ciśnienie w przedniej prawej oponie"
+        "name": "Ciśnienie w prawym przednim kole"
       },
       "left_rear_tire_pressure": {
-        "name": "Ciśnienie w tylnej lewej oponie"
+        "name": "Ciśnienie w oponie tylnej lewej"
       },
       "right_rear_tire_pressure": {
-        "name": "Ciśnienie w tylnej prawej oponie"
+        "name": "Ciśnienie w oponie tylnej prawej"
       },
       "soc": {
         "name": "Ładowanie SOC"
       },
       "time_to_full": {
-        "name": "Czas do pełnego naładowania"
+        "name": "Czas na pełne naładowanie"
       },
       "total_energy": {
         "name": "Całkowite zużycie energii"
@@ -104,7 +104,7 @@
         "name": "Licznik przebiegu V2"
       },
       "power_gear": {
-        "name": "Pozycja biegu"
+        "name": "Pozycja przekładni"
       },
       "charging_state": {
         "name": "Stan ładowania"
@@ -131,7 +131,7 @@
         "name": "Zaplanowane ładowanie"
       },
       "booking_charging_hour": {
-        "name": "Planowana godzina ładowania"
+        "name": "Zaplanowana godzina ładowania"
       },
       "booking_charging_minute": {
         "name": "Zaplanowana minuta ładowania"
@@ -149,7 +149,7 @@
         "name": "Stan tylnej prawej opony"
       },
       "tirepressure_system": {
-        "name": "TPMS stan"
+        "name": "Stan TPMS"
       },
       "rapid_tire_leak": {
         "name": "Szybki wyciek opony"
@@ -161,7 +161,7 @@
         "name": "Ostatnie zużycie energii"
       },
       "recent_50km_energy": {
-        "name": "Energia z ostatnich 50 km"
+        "name": "Ostatnie 50 km energii"
       },
       "oil_endurance": {
         "name": "Zasięg paliwa"
@@ -188,7 +188,7 @@
         "name": "ABS ostrzeżenie"
       },
       "svs": {
-        "name": "Pojazd serwisowy wkrótce"
+        "name": "Wkrótce pojazd serwisowy"
       },
       "srs": {
         "name": "Ostrzeżenie o poduszce powietrznej"
@@ -200,13 +200,13 @@
         "name": "Temperatura płynu chłodzącego"
       },
       "pwr": {
-        "name": "Ostrzeżenie o zasilaniu"
+        "name": "Ostrzeżenie dotyczące zasilania"
       },
       "power_system": {
         "name": "System zasilania"
       },
       "upgrade_status": {
-        "name": "OTA status aktualizacji"
+        "name": "OTA stan aktualizacji"
       },
       "charger_state": {
         "name": "Stan ładowarki"
@@ -244,7 +244,7 @@
         "name": "Okna"
       },
       "is_locked": {
-        "name": "Zablokowane"
+        "name": "Zamknięty"
       },
       "charger_connected": {
         "name": "Ładowarka podłączona"
@@ -253,16 +253,16 @@
         "name": "Tryb wartowniczy"
       },
       "left_front_door": {
-        "name": "Drzwi przednie lewe"
+        "name": "Przednie lewe drzwi"
       },
       "right_front_door": {
-        "name": "Drzwi przednie prawe"
+        "name": "Przednie prawe drzwi"
       },
       "left_rear_door": {
         "name": "Drzwi tylne lewe"
       },
       "right_rear_door": {
-        "name": "Drzwi tylne prawe"
+        "name": "Tylne prawe drzwi"
       },
       "trunk_lid": {
         "name": "Pień"
@@ -271,7 +271,7 @@
         "name": "Drzwi przesuwne"
       },
       "forehold": {
-        "name": "Frugo"
+        "name": "Frunk"
       },
       "left_front_window": {
         "name": "Przednie lewe okno"
@@ -289,10 +289,10 @@
         "name": "Świetlik"
       },
       "left_front_door_lock": {
-        "name": "Zamek drzwi przednich lewych"
+        "name": "Zamek przednich lewych drzwi"
       },
       "right_front_door_lock": {
-        "name": "Zamek drzwi przednich prawych"
+        "name": "Zamek przednich prawych drzwi"
       },
       "left_rear_door_lock": {
         "name": "Zamek tylnych lewych drzwi"
@@ -301,16 +301,16 @@
         "name": "Zamek tylnych prawych drzwi"
       },
       "sliding_door_lock": {
-        "name": "Zamek drzwi przesuwnych"
+        "name": "Zamek do drzwi przesuwnych"
       },
       "battery_heat_state": {
         "name": "Ogrzewanie akumulatora"
       },
       "charge_heat_state": {
-        "name": "Ogrzewanie wsadowe"
+        "name": "Ogrzewanie ładunku"
       },
       "vehicle_state": {
-        "name": "Pojazd na"
+        "name": "Pojazd włączony"
       }
     },
     "button": {
@@ -326,7 +326,7 @@
     },
     "select": {
       "driver_seat_heat": {
-        "name": "Ogrzewanie siedzenia kierowcy",
+        "name": "Ogrzewanie fotela kierowcy",
         "state": {
           "off": "Wył.",
           "low": "Niski",
@@ -350,7 +350,7 @@
         }
       },
       "passenger_seat_ventilation": {
-        "name": "Wentylacja siedzenia pasażera",
+        "name": "Wentylacja fotela pasażera",
         "state": {
           "off": "Wył.",
           "low": "Niski",
@@ -382,7 +382,7 @@
         }
       },
       "rear_right_seat_ventilation": {
-        "name": "Wentylacja prawego tylnego siedzenia",
+        "name": "Wentylacja tylnego prawego siedzenia",
         "state": {
           "off": "Wył.",
           "low": "Niski",
@@ -392,7 +392,7 @@
     },
     "switch": {
       "battery_heat": {
-        "name": "Ciepło baterii"
+        "name": "Ciepło akumulatora"
       },
       "car_on": {
         "name": "Samochód włączony"
@@ -408,7 +408,7 @@
           "preset_mode": {
             "state": {
               "max_heat": "Maksymalne ciepło",
-              "max_cool": "Maks Cool"
+              "max_cool": "Maks fajny"
             }
           }
         }
@@ -416,7 +416,7 @@
     },
     "lock": {
       "lock": {
-        "name": "Blokada"
+        "name": "Zamek"
       }
     },
     "device_tracker": {

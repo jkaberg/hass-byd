@@ -2,7 +2,7 @@
   "config": {
     "step": {
       "user": {
-        "title": "Maak verbinding met BYD",
+        "title": "Verbinding maken met BYD",
         "description": "Stel uw BYD-account in.",
         "data": {
           "base_url": "Regio",
@@ -59,7 +59,7 @@
         "name": "Snelheid"
       },
       "temp_in_car": {
-        "name": "Cabinetemperatuur"
+        "name": "Cabine temperatuur"
       },
       "left_front_tire_pressure": {
         "name": "Bandenspanning linksvoor"
@@ -104,7 +104,7 @@
         "name": "Kilometerteller V2"
       },
       "power_gear": {
-        "name": "Versnellingspositie"
+        "name": "Versnelling positie"
       },
       "charging_state": {
         "name": "Oplaadstatus"
@@ -167,7 +167,7 @@
         "name": "Brandstofbereik"
       },
       "oil_percent": {
-        "name": "Brandstofpeil"
+        "name": "Brandstofniveau"
       },
       "total_oil": {
         "name": "Totaal brandstofverbruik"
@@ -188,7 +188,7 @@
         "name": "ABS waarschuwing"
       },
       "svs": {
-        "name": "Servicevoertuig binnenkort"
+        "name": "Binnenkort servicewagen"
       },
       "srs": {
         "name": "Airbagwaarschuwing"
@@ -200,7 +200,7 @@
         "name": "Koelvloeistof temperatuur"
       },
       "pwr": {
-        "name": "Stroomwaarschuwing"
+        "name": "Waarschuwing voor stroom"
       },
       "power_system": {
         "name": "Voedingssysteem"
@@ -209,10 +209,10 @@
         "name": "OTA upgradestatus"
       },
       "charger_state": {
-        "name": "Staat van oplader"
+        "name": "Staat van de oplader"
       },
       "charger_connection": {
-        "name": "Verbindingsstatus lader"
+        "name": "Verbindingsstatus oplader"
       },
       "charging_update_time": {
         "name": "Laatste update opladen"
@@ -256,7 +256,7 @@
         "name": "Linkervoordeur"
       },
       "right_front_door": {
-        "name": "Rechtervoordeur"
+        "name": "Rechter voordeur"
       },
       "left_rear_door": {
         "name": "Linker achterdeur"
@@ -280,10 +280,10 @@
         "name": "Rechtsvoor raam"
       },
       "left_rear_window": {
-        "name": "Achterruit links"
+        "name": "Linker achterraam"
       },
       "right_rear_window": {
-        "name": "Achterruit rechts"
+        "name": "Rechter achterraam"
       },
       "skylight": {
         "name": "Dakraam"
@@ -304,7 +304,7 @@
         "name": "Schuifdeurslot"
       },
       "battery_heat_state": {
-        "name": "Batterijverwarming"
+        "name": "Batterij verwarming"
       },
       "charge_heat_state": {
         "name": "Verwarming opladen"
@@ -318,7 +318,7 @@
         "name": "Flitslichten"
       },
       "find_car": {
-        "name": "Zoek auto"
+        "name": "Vind auto"
       },
       "close_windows": {
         "name": "Sluit vensters"
@@ -366,7 +366,7 @@
         }
       },
       "rear_left_seat_ventilation": {
-        "name": "Ventilatie stoel links achterin",
+        "name": "Ventilatie stoel linksachter",
         "state": {
           "off": "Uit",
           "low": "Laag",
@@ -382,7 +382,7 @@
         }
       },
       "rear_right_seat_ventilation": {
-        "name": "Ventilatie stoel rechts achter",
+        "name": "Ventilatie stoel rechtsachter",
         "state": {
           "off": "Uit",
           "low": "Laag",
@@ -392,13 +392,13 @@
     },
     "switch": {
       "battery_heat": {
-        "name": "Batterijwarmte"
+        "name": "Batterij warmte"
       },
       "car_on": {
         "name": "Auto aan"
       },
       "steering_wheel_heat": {
-        "name": "Stuurwielverwarming"
+        "name": "Stuurverwarming"
       }
     },
     "climate": {
@@ -416,7 +416,7 @@
     },
     "lock": {
       "lock": {
-        "name": "Vergrendel"
+        "name": "Slot"
       }
     },
     "device_tracker": {

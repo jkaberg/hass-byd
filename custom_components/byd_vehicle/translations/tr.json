@@ -2,7 +2,7 @@
   "config": {
     "step": {
       "user": {
-        "title": "BYD'ye bağlanın",
+        "title": "BYD'e bağlanın",
         "description": "BYD hesabınızı kurun.",
         "data": {
           "base_url": "Bölge",
@@ -14,7 +14,7 @@
           "gps_poll_interval": "GPS yoklama aralığı (saniye)",
           "smart_gps_polling": "Akıllı GPS yoklama",
           "gps_active_interval": "GPS aktif aralık (saniye)",
-          "gps_inactive_interval": "GPS etkin olmayan aralık (saniye)"
+          "gps_inactive_interval": "GPS etkin olmayan süre (saniye)"
         }
       }
     },
@@ -39,7 +39,7 @@
           "gps_poll_interval": "GPS yoklama aralığı (saniye)",
           "smart_gps_polling": "Akıllı GPS yoklama",
           "gps_active_interval": "GPS aktif aralık (saniye)",
-          "gps_inactive_interval": "GPS etkin olmayan aralık (saniye)"
+          "gps_inactive_interval": "GPS etkin olmayan süre (saniye)"
         }
       }
     }
@@ -50,7 +50,7 @@
         "name": "Pil seviyesi"
       },
       "endurance_mileage": {
-        "name": "Aralık"
+        "name": "Menzil"
       },
       "total_mileage": {
         "name": "Kilometre sayacı"
@@ -92,7 +92,7 @@
         "name": "PM2.5"
       },
       "power_battery": {
-        "name": "Güç pil düzeyi"
+        "name": "Güç pil seviyesi"
       },
       "ev_endurance": {
         "name": "EV dayanıklılık"
@@ -116,10 +116,10 @@
         "name": "Şarj bekleme durumu"
       },
       "full_hour": {
-        "name": "Dolunaya saatler kaldı"
+        "name": "Dolunaya kadar saatler"
       },
       "full_minute": {
-        "name": "Tamamına dakikalar kaldı"
+        "name": "Dolu dakikalar kaldı"
       },
       "charge_remaining_hours": {
         "name": "Kalan saatleri şarj edin"
@@ -158,13 +158,13 @@
         "name": "Toplam güç"
       },
       "nearest_energy_consumption": {
-        "name": "Güncel enerji tüketimi"
+        "name": "Son enerji tüketimi"
       },
       "recent_50km_energy": {
         "name": "Son 50km enerji"
       },
       "oil_endurance": {
-        "name": "Yakıt menzili"
+        "name": "Yakıt aralığı"
       },
       "oil_percent": {
         "name": "Yakıt seviyesi"
@@ -185,7 +185,7 @@
         "name": "Elektronik stabilite"
       },
       "abs_warning": {
-        "name": "ABS uyarı"
+        "name": "ABS uyarısı"
       },
       "svs": {
         "name": "Servis aracı yakında"
@@ -194,7 +194,7 @@
         "name": "Hava yastığı uyarısı"
       },
       "ect": {
-        "name": "Soğutma suyu sıcaklığı uyarısı"
+        "name": "Soğutma suyu sıcaklık uyarısı"
       },
       "ect_value": {
         "name": "Soğutma suyu sıcaklığı"
@@ -215,7 +215,7 @@
         "name": "Şarj cihazı bağlantı durumu"
       },
       "charging_update_time": {
-        "name": "Son güncelleme yükleniyor"
+        "name": "Son güncellemeyi şarj etme"
       },
       "electricity_consumption": {
         "name": "Elektrik tüketimi"
@@ -235,7 +235,7 @@
         "name": "Çevrimiçi"
       },
       "is_charging": {
-        "name": "Şarj oluyor"
+        "name": "Şarj etme"
       },
       "is_any_door_open": {
         "name": "Kapılar"
@@ -247,7 +247,7 @@
         "name": "Kilitli"
       },
       "charger_connected": {
-        "name": "Şarj cihazı bağlandı"
+        "name": "Şarj cihazı bağlı"
       },
       "sentry_status": {
         "name": "Nöbetçi modu"
@@ -259,10 +259,10 @@
         "name": "Sağ ön kapı"
       },
       "left_rear_door": {
-        "name": "Sol arka kapı"
+        "name": "Arka sol kapı"
       },
       "right_rear_door": {
-        "name": "Sağ arka kapı"
+        "name": "Arka sağ kapı"
       },
       "trunk_lid": {
         "name": "Gövde"
@@ -274,7 +274,7 @@
         "name": "Frank"
       },
       "left_front_window": {
-        "name": "Sol ön pencere"
+        "name": "Ön sol pencere"
       },
       "right_front_window": {
         "name": "Sağ ön pencere"
@@ -286,7 +286,7 @@
         "name": "Sağ arka cam"
       },
       "skylight": {
-        "name": "Işıklık"
+        "name": "Tavan penceresi"
       },
       "left_front_door_lock": {
         "name": "Sol ön kapı kilidi"
@@ -307,7 +307,7 @@
         "name": "Pil ısıtma"
       },
       "charge_heat_state": {
-        "name": "Şarjlı ısıtma"
+        "name": "Şarj ısıtma"
       },
       "vehicle_state": {
         "name": "Araç açık"
@@ -408,7 +408,7 @@
           "preset_mode": {
             "state": {
               "max_heat": "Maksimum Isı",
-              "max_cool": "Maksimum Harika"
+              "max_cool": "Maksimum Soğuk"
             }
           }
         }

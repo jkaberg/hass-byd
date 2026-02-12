@@ -33,7 +33,7 @@
   "options": {
     "step": {
       "init": {
-        "title": "Kemas kini pengundian",
+        "title": "Kemas kini undian",
         "data": {
           "poll_interval": "Selang pengundian (saat)",
           "gps_poll_interval": "GPS selang pengundian (saat)",
@@ -47,7 +47,7 @@
   "entity": {
     "sensor": {
       "elec_percent": {
-        "name": "Paras bateri"
+        "name": "Tahap bateri"
       },
       "endurance_mileage": {
         "name": "Julat"
@@ -62,10 +62,10 @@
         "name": "Suhu kabin"
       },
       "left_front_tire_pressure": {
-        "name": "Tekanan tayar kiri hadapan"
+        "name": "Tekanan tayar kiri depan"
       },
       "right_front_tire_pressure": {
-        "name": "Tekanan tayar kanan hadapan"
+        "name": "Tekanan tayar depan kanan"
       },
       "left_rear_tire_pressure": {
         "name": "Tekanan tayar kiri belakang"
@@ -83,10 +83,10 @@
         "name": "Jumlah penggunaan tenaga"
       },
       "avg_energy_consumption": {
-        "name": "Purata penggunaan tenaga"
+        "name": "Penggunaan tenaga purata"
       },
       "temp_out_car": {
-        "name": "Suhu luar"
+        "name": "Suhu luaran"
       },
       "pm": {
         "name": "PM2.5"
@@ -107,7 +107,7 @@
         "name": "Kedudukan gear"
       },
       "charging_state": {
-        "name": "Keadaan mengecas"
+        "name": "Keadaan pengecasan"
       },
       "charge_state": {
         "name": "Keadaan caj"
@@ -116,7 +116,7 @@
         "name": "Caj status menunggu"
       },
       "full_hour": {
-        "name": "Jam hingga penuh"
+        "name": "Berjam-jam hingga penuh"
       },
       "full_minute": {
         "name": "Minit hingga penuh"
@@ -149,7 +149,7 @@
         "name": "Status tayar kanan belakang"
       },
       "tirepressure_system": {
-        "name": "TPMS keadaan"
+        "name": "TPMS negeri"
       },
       "rapid_tire_leak": {
         "name": "Tayar cepat bocor"
@@ -161,13 +161,13 @@
         "name": "Penggunaan tenaga terkini"
       },
       "recent_50km_energy": {
-        "name": "Tenaga 50km terbaru"
+        "name": "Tenaga 50km terkini"
       },
       "oil_endurance": {
         "name": "Julat bahan api"
       },
       "oil_percent": {
-        "name": "Paras bahan api"
+        "name": "Tahap bahan api"
       },
       "total_oil": {
         "name": "Jumlah penggunaan bahan api"
@@ -206,7 +206,7 @@
         "name": "Sistem kuasa"
       },
       "upgrade_status": {
-        "name": "OTA status peningkatan"
+        "name": "OTA status naik taraf"
       },
       "charger_state": {
         "name": "Keadaan pengecas"
@@ -224,45 +224,45 @@
         "name": "Penggunaan bahan api"
       },
       "refrigerator_state": {
-        "name": "Peti sejuk"
+        "name": "Peti ais"
       },
       "refrigerator_door_state": {
-        "name": "Pintu peti sejuk"
+        "name": "Pintu peti ais"
       }
     },
     "binary_sensor": {
       "is_online": {
-        "name": "Dalam talian"
+        "name": "dalam talian"
       },
       "is_charging": {
         "name": "Mengecas"
       },
       "is_any_door_open": {
-        "name": "Pintu"
+        "name": "pintu"
       },
       "is_any_window_open": {
         "name": "Windows"
       },
       "is_locked": {
-        "name": "Dikunci"
+        "name": "Terkunci"
       },
       "charger_connected": {
         "name": "Pengecas disambungkan"
       },
       "sentry_status": {
-        "name": "Mod pengawal"
+        "name": "Mod sentry"
       },
       "left_front_door": {
-        "name": "Pintu kiri hadapan"
+        "name": "Pintu kiri depan"
       },
       "right_front_door": {
-        "name": "Pintu kanan hadapan"
+        "name": "Pintu depan kanan"
       },
       "left_rear_door": {
         "name": "Pintu kiri belakang"
       },
       "right_rear_door": {
-        "name": "Pintu kanan belakang"
+        "name": "Pintu belakang kanan"
       },
       "trunk_lid": {
         "name": "Batang"
@@ -274,7 +274,7 @@
         "name": "Frunk"
       },
       "left_front_window": {
-        "name": "Tingkap kiri hadapan"
+        "name": "Tingkap kiri depan"
       },
       "right_front_window": {
         "name": "Tingkap depan kanan"
@@ -292,7 +292,7 @@
         "name": "Kunci pintu kiri hadapan"
       },
       "right_front_door_lock": {
-        "name": "Kunci pintu kanan hadapan"
+        "name": "Kunci pintu kanan depan"
       },
       "left_rear_door_lock": {
         "name": "Kunci pintu kiri belakang"
@@ -310,7 +310,7 @@
         "name": "Caj pemanasan"
       },
       "vehicle_state": {
-        "name": "Kenderaan di"
+        "name": "Kenderaan dihidupkan"
       }
     },
     "button": {
@@ -392,18 +392,18 @@
     },
     "switch": {
       "battery_heat": {
-        "name": "Haba bateri"
+        "name": "Panas bateri"
       },
       "car_on": {
         "name": "Kereta dihidupkan"
       },
       "steering_wheel_heat": {
-        "name": "Pemanasan stereng"
+        "name": "Pemanasan roda stereng"
       }
     },
     "climate": {
       "climate": {
-        "name": "Iklim",
+        "name": "iklim",
         "state_attributes": {
           "preset_mode": {
             "state": {

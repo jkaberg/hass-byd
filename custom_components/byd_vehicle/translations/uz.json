@@ -2,44 +2,44 @@
   "config": {
     "step": {
       "user": {
-        "title": "BYD",
+        "title": "BYD ga ulaning",
         "description": "BYD hisobingizni sozlang.",
         "data": {
-          "base_url": "Hudud",
+          "base_url": "Mintaqa",
           "username": "Foydalanuvchi nomi",
           "password": "Parol",
-          "control_pin": "ga ulaning Boshqarish PIN (ixtiyoriy, 6-raqamli)",
+          "control_pin": "Boshqarish PIN (ixtiyoriy, 6-raqamli)",
           "country_code": "Mamlakat",
           "poll_interval": "Ovoz berish oralig'i (sekundlar)",
           "gps_poll_interval": "GPS ovoz berish oralig'i (sekundlar)",
-          "smart_gps_polling": "Smart GPS so'rovi",
+          "smart_gps_polling": "Aqlli GPS so'rovi",
           "gps_active_interval": "GPS faol interval (sekundlar)",
-          "gps_inactive_interval": "GPS faol bo'lmagan interval (sekundlar)"
+          "gps_inactive_interval": "GPS nofaol interval (soniyalar)"
         }
       }
     },
     "error": {
-      "cannot_connect": "Ulanib bo'lmadi",
+      "cannot_connect": "Ulanib bo‘lmadi",
       "invalid_control_pin": "Yaroqsiz boshqaruv PIN yoki bulut boshqaruvi vaqtincha bloklangan",
       "invalid_auth": "Yaroqsiz autentifikatsiya",
       "unknown": "Kutilmagan xato"
     },
     "abort": {
-      "already_configured": "Bu hisob allaqachon",
-      "wrong_account": "Hisob qayta autentifikatsiya qilingan hisob bilan mos kelmaydi",
+      "already_configured": "Bu hisob allaqachon sozlangan",
+      "wrong_account": "Hisob qayta autentifikatsiya qilinayotgan hisob bilan mos kelmaydi",
       "reauth_successful": "Qayta autentifikatsiya muvaffaqiyatli o‘tdi"
     }
   },
   "options": {
     "step": {
       "init": {
-        "title": "So'rovnomani yangilash",
+        "title": "Ovoz berishni yangilash",
         "data": {
           "poll_interval": "Ovoz berish oralig'i (sekundlar)",
           "gps_poll_interval": "GPS ovoz berish oralig'i (sekundlar)",
-          "smart_gps_polling": "Smart GPS so'rovi",
+          "smart_gps_polling": "Aqlli GPS so'rovi",
           "gps_active_interval": "GPS faol interval (sekundlar)",
-          "gps_inactive_interval": "GPS faol bo'lmagan interval (sekundlar)"
+          "gps_inactive_interval": "GPS nofaol interval (soniyalar)"
         }
       }
     }
@@ -74,16 +74,16 @@
         "name": "Orqa o'ng g'ildirak bosimi"
       },
       "soc": {
-        "name": "Zaryadlash SOC"
+        "name": "SOC quvvatlanmoqda"
       },
       "time_to_full": {
-        "name": "sozlangan To'liq zaryadlash vaqti"
+        "name": "To'liq zaryadlash vaqti"
       },
       "total_energy": {
-        "name": "Umumiy energiya sarfi"
+        "name": "Umumiy energiya iste'moli"
       },
       "avg_energy_consumption": {
-        "name": "O'rtacha energiya sarfi"
+        "name": "O'rtacha energiya iste'moli"
       },
       "temp_out_car": {
         "name": "Tashqi harorat"
@@ -107,7 +107,7 @@
         "name": "Vites holati"
       },
       "charging_state": {
-        "name": "Zaryadlanish holati"
+        "name": "Zaryadlash holati"
       },
       "charge_state": {
         "name": "Zaryad holati"
@@ -122,7 +122,7 @@
         "name": "To'liq daqiqalar"
       },
       "charge_remaining_hours": {
-        "name": "Qolgan soatlarni zaryadlash"
+        "name": "Qolgan soatlarni zaryadlang"
       },
       "charge_remaining_minutes": {
         "name": "Qolgan daqiqalarni zaryadlang"
@@ -131,10 +131,10 @@
         "name": "Rejalashtirilgan zaryadlash"
       },
       "booking_charging_hour": {
-        "name": "Rejalashtirilgan to'lov soati"
+        "name": "Rejalashtirilgan zaryadlash soati"
       },
       "booking_charging_minute": {
-        "name": "Rejalashtirilgan to'lov daqiqasi"
+        "name": "Rejalashtirilgan zaryadlash daqiqasi"
       },
       "left_front_tire_status": {
         "name": "Old chap shina holati"
@@ -152,7 +152,7 @@
         "name": "TPMS holati"
       },
       "rapid_tire_leak": {
-        "name": "Shinaning tez oqishi"
+        "name": "Shinalarning tez oqishi"
       },
       "total_power": {
         "name": "Umumiy quvvat"
@@ -161,7 +161,7 @@
         "name": "Oxirgi energiya iste'moli"
       },
       "recent_50km_energy": {
-        "name": "Oxirgi 50 km energiya"
+        "name": "Yaqinda 50 km energiya"
       },
       "oil_endurance": {
         "name": "Yoqilg'i diapazoni"
@@ -194,7 +194,7 @@
         "name": "Havo yostig'i haqida ogohlantirish"
       },
       "ect": {
-        "name": "Sovutish suvi harorati haqida ogohlantirish"
+        "name": "Sovutgich harorati haqida ogohlantirish"
       },
       "ect_value": {
         "name": "Sovutish suvi harorati"
@@ -212,19 +212,19 @@
         "name": "Zaryadlovchi holati"
       },
       "charger_connection": {
-        "name": "Zaryadlovchiga ulanish holati"
+        "name": "Zaryadlovchining ulanish holati"
       },
       "charging_update_time": {
-        "name": "Oxirgi yangilanish quvvatlash"
+        "name": "Oxirgi yangilanish quvvatlanmoqda"
       },
       "electricity_consumption": {
         "name": "Elektr energiyasi iste'moli"
       },
       "fuel_consumption": {
-        "name": "Yoqilg'i sarfi"
+        "name": "Yoqilg'i iste'moli"
       },
       "refrigerator_state": {
-        "name": "Sovutgich"
+        "name": "Muzlatgich"
       },
       "refrigerator_door_state": {
         "name": "Sovutgich eshigi"
@@ -235,13 +235,13 @@
         "name": "Onlayn"
       },
       "is_charging": {
-        "name": "Zaryadlash"
+        "name": "Zaryadlanmoqda"
       },
       "is_any_door_open": {
         "name": "Eshiklar"
       },
       "is_any_window_open": {
-        "name": "da Windows"
+        "name": "Windows"
       },
       "is_locked": {
         "name": "Qulflangan"
@@ -250,7 +250,7 @@
         "name": "Zaryadlovchi ulangan"
       },
       "sentry_status": {
-        "name": "Qo'riqchi rejimi"
+        "name": "Kuzatuv rejimi"
       },
       "left_front_door": {
         "name": "Old chap eshik"
@@ -286,7 +286,7 @@
         "name": "Orqa o'ng oyna"
       },
       "skylight": {
-        "name": "Osmon nuri"
+        "name": "Osmon yoritgichi"
       },
       "left_front_door_lock": {
         "name": "Old chap eshik qulfi"
@@ -307,10 +307,10 @@
         "name": "Batareyani isitish"
       },
       "charge_heat_state": {
-        "name": "da Zaryadli isitish"
+        "name": "Zaryadli isitish"
       },
       "vehicle_state": {
-        "name": "Avtomobil"
+        "name": "Avtomobil yoqilgan"
       }
     },
     "button": {
@@ -318,17 +318,17 @@
         "name": "Chiroqlar"
       },
       "find_car": {
-        "name": "Avtomobilni toping"
+        "name": "Avtomobil toping"
       },
       "close_windows": {
-        "name": "Oynalarni yoping"
+        "name": "Derazalarni yoping"
       }
     },
     "select": {
       "driver_seat_heat": {
         "name": "Haydovchi o'rindig'ini isitish",
         "state": {
-          "off": "O'chiq",
+          "off": "O‘chiq",
           "low": "Past",
           "high": "Yuqori"
         }
@@ -336,7 +336,7 @@
       "driver_seat_ventilation": {
         "name": "Haydovchi o'rindig'ini shamollatish",
         "state": {
-          "off": "O'chiq",
+          "off": "O‘chiq",
           "low": "Past",
           "high": "Yuqori"
         }
@@ -344,15 +344,15 @@
       "passenger_seat_heat": {
         "name": "Yo'lovchi o'rindiqlarini isitish",
         "state": {
-          "off": "O'chiq",
+          "off": "O‘chiq",
           "low": "Past",
           "high": "Yuqori"
         }
       },
       "passenger_seat_ventilation": {
-        "name": "Yo'lovchi o'rindiqlarini shamollatish",
+        "name": "Yo'lovchi o'rindiqlarini ventilyatsiya qilish",
         "state": {
-          "off": "O'chiq",
+          "off": "O‘chiq",
           "low": "Past",
           "high": "Yuqori"
         }
@@ -360,15 +360,15 @@
       "rear_left_seat_heat": {
         "name": "Orqa chap o'rindiqni isitish",
         "state": {
-          "off": "O'chiq",
+          "off": "O‘chiq",
           "low": "Past",
           "high": "Yuqori"
         }
       },
       "rear_left_seat_ventilation": {
-        "name": "Orqa chap o'rindiq ventilyatsiyasi",
+        "name": "Orqa chap o'rindiqning ventilyatsiyasi",
         "state": {
-          "off": "O'chiq",
+          "off": "O‘chiq",
           "low": "Past",
           "high": "Yuqori"
         }
@@ -376,7 +376,7 @@
       "rear_right_seat_heat": {
         "name": "Orqa o'ng o'rindiqni isitish",
         "state": {
-          "off": "O'chiq",
+          "off": "O‘chiq",
           "low": "Past",
           "high": "Yuqori"
         }
@@ -384,7 +384,7 @@
       "rear_right_seat_ventilation": {
         "name": "Orqa o'ng o'rindiqning ventilyatsiyasi",
         "state": {
-          "off": "O'chiq",
+          "off": "O‘chiq",
           "low": "Past",
           "high": "Yuqori"
         }
@@ -392,13 +392,13 @@
     },
     "switch": {
       "battery_heat": {
-        "name": "Batareyaning qizishi"
+        "name": "Batareya isishi"
       },
       "car_on": {
-        "name": "Avtomobil"
+        "name": "Mashina yoqilgan"
       },
       "steering_wheel_heat": {
-        "name": "Rulda isitish"
+        "name": "Rulni isitish"
       }
     },
     "climate": {
@@ -408,7 +408,7 @@
           "preset_mode": {
             "state": {
               "max_heat": "Maksimal issiqlik",
-              "max_cool": "Max Cool"
+              "max_cool": "Maks salqin"
             }
           }
         }
@@ -416,12 +416,12 @@
     },
     "lock": {
       "lock": {
-        "name": "Bloklash"
+        "name": "Qulflash"
       }
     },
     "device_tracker": {
       "location": {
-        "name": "Manzil"
+        "name": "Joylashuv"
       }
     }
   }
