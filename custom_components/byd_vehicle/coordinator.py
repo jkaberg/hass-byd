@@ -9,6 +9,7 @@ from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from pybyd import (
     BydApiError,
@@ -136,6 +137,23 @@ class BydApi:
             if isinstance(result, RemoteControlResult) and vin and command:
                 self._store_remote_result(vin, command, result)
             return result
+        except BydSessionExpiredError:
+            # Session invalidated elsewhere; reconnect and retry once.
+            await self._invalidate_client()
+            try:
+                client = await self._ensure_client()
+                result = await handler(client)
+                if isinstance(result, RemoteControlResult) and vin and command:
+                    self._store_remote_result(vin, command, result)
+                return result
+            except BydAuthenticationError as exc:
+                if vin and command:
+                    self._store_remote_result(vin, command, None, exc)
+                raise ConfigEntryAuthFailed(str(exc)) from exc
+            except BydSessionExpiredError as exc:
+                if vin and command:
+                    self._store_remote_result(vin, command, None, exc)
+                raise ConfigEntryAuthFailed(str(exc)) from exc
         except BydRemoteControlError as exc:
             if vin and command:
                 self._store_remote_result(vin, command, None, exc)
@@ -146,7 +164,11 @@ class BydApi:
             # Hard transport error — tear down so next call reconnects
             await self._invalidate_client()
             raise UpdateFailed(str(exc)) from exc
-        except (BydAuthenticationError, BydApiError) as exc:
+        except BydAuthenticationError as exc:
+            if vin and command:
+                self._store_remote_result(vin, command, None, exc)
+            raise ConfigEntryAuthFailed(str(exc)) from exc
+        except BydApiError as exc:
             if vin and command:
                 self._store_remote_result(vin, command, None, exc)
             raise UpdateFailed(str(exc)) from exc

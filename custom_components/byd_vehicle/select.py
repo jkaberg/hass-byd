@@ -21,6 +21,36 @@ SEAT_LEVEL_OPTIONS = ["Off", "Low", "Medium", "High"]
 SEAT_LEVEL_TO_INT = {"Off": 0, "Low": 1, "Medium": 2, "High": 3}
 INT_TO_SEAT_LEVEL = {v: k for k, v in SEAT_LEVEL_TO_INT.items()}
 
+
+def _seat_status_to_command_level(value: Any) -> int:
+    """Normalize seat status values to the command scale.
+
+    Status scale observed from the API is 0=off, 2=low, 3=high, with 1
+    reported as "available but inactive". Command scale is 0=off, 1-3
+    for intensity.
+    """
+    try:
+        level = int(value)
+    except (TypeError, ValueError):
+        return 0
+    if level <= 0:
+        return 0
+    if level == 1:
+        return 0
+    if level == 2:
+        return 1
+    if level >= 3:
+        return 3
+    return level
+
+
+def _seat_status_to_option(value: Any) -> str | None:
+    """Map raw seat status values to a UI option."""
+    if value is None:
+        return None
+    level = _seat_status_to_command_level(value)
+    return INT_TO_SEAT_LEVEL.get(level, "Off")
+
 # Mapping from param_key → HvacStatus attribute name
 _PARAM_TO_HVAC_ATTR: dict[str, str] = {
     "main_heat": "main_seat_heat_state",
@@ -120,7 +150,7 @@ def _gather_seat_climate_state(
             val = getattr(hvac, hvac_attr, None)
         if val is None and realtime is not None:
             val = getattr(realtime, hvac_attr, None)
-        values[param_key] = int(val) if val is not None else 0
+        values[param_key] = _seat_status_to_command_level(val)
 
     # Steering wheel heat is part of set_seat_climate too
     sw_val = None
@@ -128,7 +158,7 @@ def _gather_seat_climate_state(
         sw_val = getattr(hvac, "steering_wheel_heat_state", None)
     if sw_val is None and realtime is not None:
         sw_val = getattr(realtime, "steering_wheel_heat_state", None)
-    values["steering_wheel_heat"] = int(sw_val) if sw_val is not None else 0
+    values["steering_wheel_heat"] = 1 if _seat_status_to_command_level(sw_val) > 0 else 0
 
     return values
 
@@ -205,9 +235,7 @@ class BydSeatClimateSelect(CoordinatorEntity, SelectEntity):
             val = getattr(hvac, self.entity_description.hvac_attr, None)
         if val is None and realtime is not None:
             val = getattr(realtime, self.entity_description.hvac_attr, None)
-        if val is not None:
-            return INT_TO_SEAT_LEVEL.get(int(val), "Off")
-        return None
+        return _seat_status_to_option(val)
 
     async def async_select_option(self, option: str) -> None:
         """Set the seat climate level."""
