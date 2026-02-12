@@ -14,7 +14,8 @@
           "gps_poll_interval": "GPS 폴링 간격(초)",
           "smart_gps_polling": "스마트 GPS 폴링",
           "gps_active_interval": "GPS 활성 간격(초)",
-          "gps_inactive_interval": "GPS 비활성 간격(초)"
+          "gps_inactive_interval": "GPS 비활성 간격(초)",
+          "climate_duration": "에어컨 작동 시간 (time_span)"
         }
       }
     },
@@ -39,7 +40,8 @@
           "gps_poll_interval": "GPS 폴링 간격(초)",
           "smart_gps_polling": "스마트 GPS 폴링",
           "gps_active_interval": "GPS 활성 간격(초)",
-          "gps_inactive_interval": "GPS 비활성 간격(초)"
+          "gps_inactive_interval": "GPS 비활성 간격(초)",
+          "climate_duration": "에어컨 작동 시간 (time_span)"
         }
       }
     }

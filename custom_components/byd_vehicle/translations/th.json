@@ -14,7 +14,8 @@
           "gps_poll_interval": "GPS ช่วงเวลาการโพล (วินาที)",
           "smart_gps_polling": "โพลลิ่ง GPS อัจฉริยะ",
           "gps_active_interval": "GPS ช่วงเวลาที่ใช้งาน (วินาที)",
-          "gps_inactive_interval": "GPS ช่วงเวลาที่ไม่ใช้งาน (วินาที)"
+          "gps_inactive_interval": "GPS ช่วงเวลาที่ไม่ใช้งาน (วินาที)",
+          "climate_duration": "ระยะเวลาเครื่องปรับอากาศ (time_span)"
         }
       }
     },
@@ -39,7 +40,8 @@
           "gps_poll_interval": "GPS ช่วงเวลาการโพล (วินาที)",
           "smart_gps_polling": "โพลลิ่ง GPS อัจฉริยะ",
           "gps_active_interval": "GPS ช่วงเวลาที่ใช้งาน (วินาที)",
-          "gps_inactive_interval": "GPS ช่วงเวลาที่ไม่ใช้งาน (วินาที)"
+          "gps_inactive_interval": "GPS ช่วงเวลาที่ไม่ใช้งาน (วินาที)",
+          "climate_duration": "ระยะเวลาเครื่องปรับอากาศ (time_span)"
         }
       }
     }

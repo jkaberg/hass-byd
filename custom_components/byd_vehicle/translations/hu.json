@@ -14,7 +14,8 @@
           "gps_poll_interval": "GPS lekérdezési intervallum (másodperc)",
           "smart_gps_polling": "Intelligens GPS lekérdezés",
           "gps_active_interval": "GPS aktív intervallum (másodperc)",
-          "gps_inactive_interval": "GPS inaktív intervallum (másodperc)"
+          "gps_inactive_interval": "GPS inaktív intervallum (másodperc)",
+          "climate_duration": "Klíma időtartam (time_span)"
         }
       }
     },
@@ -39,7 +40,8 @@
           "gps_poll_interval": "GPS lekérdezési intervallum (másodperc)",
           "smart_gps_polling": "Intelligens GPS lekérdezés",
           "gps_active_interval": "GPS aktív intervallum (másodperc)",
-          "gps_inactive_interval": "GPS inaktív intervallum (másodperc)"
+          "gps_inactive_interval": "GPS inaktív intervallum (másodperc)",
+          "climate_duration": "Klíma időtartam (time_span)"
         }
       }
     }

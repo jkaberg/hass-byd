@@ -15,7 +15,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from pybyd.models.hvac import HvacStatus
 
-from .const import DOMAIN
+from .const import CONF_CLIMATE_DURATION, DEFAULT_CLIMATE_DURATION, DOMAIN
 from .coordinator import BydApi, BydDataUpdateCoordinator, get_vehicle_display
 
 
@@ -27,12 +27,13 @@ async def async_setup_entry(
     data = hass.data[DOMAIN][entry.entry_id]
     coordinator: BydDataUpdateCoordinator = data["coordinator"]
     api: BydApi = data["api"]
+    climate_duration = entry.options.get(CONF_CLIMATE_DURATION, DEFAULT_CLIMATE_DURATION)
 
     entities: list[ClimateEntity] = []
 
     vehicle_map = coordinator.data.get("vehicles", {})
     for vin, vehicle in vehicle_map.items():
-        entities.append(BydClimate(coordinator, api, vin, vehicle))
+        entities.append(BydClimate(coordinator, api, vin, vehicle, climate_duration))
 
     async_add_entities(entities)
 
@@ -70,11 +71,13 @@ class BydClimate(CoordinatorEntity, ClimateEntity):
         api: BydApi,
         vin: str,
         vehicle: Any,
+        climate_duration: int = DEFAULT_CLIMATE_DURATION,
     ) -> None:
         super().__init__(coordinator)
         self._api = api
         self._vin = vin
         self._vehicle = vehicle
+        self._climate_duration = climate_duration
         self._attr_unique_id = f"{vin}_climate"
         self._last_mode = HVACMode.OFF
         self._last_command: str | None = None
@@ -162,6 +165,7 @@ class BydClimate(CoordinatorEntity, ClimateEntity):
             kwargs: dict[str, Any] = {}
             if temp is not None:
                 kwargs["temperature"] = self._celsius_to_scale(temp)
+            kwargs["time_span"] = self._climate_duration
             return await client.start_climate(self._vin, **kwargs)
 
         try:
@@ -187,7 +191,9 @@ class BydClimate(CoordinatorEntity, ClimateEntity):
         if self.hvac_mode != HVACMode.OFF:
 
             async def _call(client: Any) -> Any:
-                return await client.start_climate(self._vin, temperature=scale)
+                return await client.start_climate(
+                    self._vin, temperature=scale, time_span=self._climate_duration
+                )
 
             try:
                 self._last_command = "start_climate"
@@ -224,7 +230,9 @@ class BydClimate(CoordinatorEntity, ClimateEntity):
         self._pending_target_temp = self._scale_to_celsius(scale)
 
         async def _call(client: Any) -> Any:
-            return await client.start_climate(self._vin, temperature=scale)
+            return await client.start_climate(
+                self._vin, temperature=scale, time_span=self._climate_duration
+            )
 
         try:
             self._last_command = "start_climate"

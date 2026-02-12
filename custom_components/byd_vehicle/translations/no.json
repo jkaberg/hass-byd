@@ -14,7 +14,8 @@
           "gps_poll_interval": "GPS pollingintervall (sekunder)",
           "smart_gps_polling": "Smart GPS-spørring",
           "gps_active_interval": "GPS aktivt intervall (sekunder)",
-          "gps_inactive_interval": "GPS inaktivt intervall (sekunder)"
+          "gps_inactive_interval": "GPS inaktivt intervall (sekunder)",
+          "climate_duration": "Klimavarighet (time_span)"
         }
       }
     },
@@ -39,7 +40,8 @@
           "gps_poll_interval": "GPS pollingintervall (sekunder)",
           "smart_gps_polling": "Smart GPS-spørring",
           "gps_active_interval": "GPS aktivt intervall (sekunder)",
-          "gps_inactive_interval": "GPS inaktivt intervall (sekunder)"
+          "gps_inactive_interval": "GPS inaktivt intervall (sekunder)",
+          "climate_duration": "Klimavarighet (time_span)"
         }
       }
     }

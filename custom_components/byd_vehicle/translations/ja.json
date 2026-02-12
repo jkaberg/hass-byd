@@ -14,7 +14,8 @@
           "gps_poll_interval": "GPS ポーリング間隔 (秒)",
           "smart_gps_polling": "スマート GPS ポーリング",
           "gps_active_interval": "GPS アクティブな間隔 (秒)",
-          "gps_inactive_interval": "GPS 非アクティブな間隔 (秒)"
+          "gps_inactive_interval": "GPS 非アクティブな間隔 (秒)",
+          "climate_duration": "エアコン作動時間 (time_span)"
         }
       }
     },
@@ -39,7 +40,8 @@
           "gps_poll_interval": "GPS ポーリング間隔 (秒)",
           "smart_gps_polling": "スマート GPS ポーリング",
           "gps_active_interval": "GPS アクティブな間隔 (秒)",
-          "gps_inactive_interval": "GPS 非アクティブな間隔 (秒)"
+          "gps_inactive_interval": "GPS 非アクティブな間隔 (秒)",
+          "climate_duration": "エアコン作動時間 (time_span)"
         }
       }
     }

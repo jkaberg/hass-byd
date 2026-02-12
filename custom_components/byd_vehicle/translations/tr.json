@@ -14,7 +14,8 @@
           "gps_poll_interval": "GPS yoklama aralığı (saniye)",
           "smart_gps_polling": "Akıllı GPS yoklama",
           "gps_active_interval": "GPS aktif aralık (saniye)",
-          "gps_inactive_interval": "GPS etkin olmayan süre (saniye)"
+          "gps_inactive_interval": "GPS etkin olmayan süre (saniye)",
+          "climate_duration": "Klima süresi (time_span)"
         }
       }
     },
@@ -39,7 +40,8 @@
           "gps_poll_interval": "GPS yoklama aralığı (saniye)",
           "smart_gps_polling": "Akıllı GPS yoklama",
           "gps_active_interval": "GPS aktif aralık (saniye)",
-          "gps_inactive_interval": "GPS etkin olmayan süre (saniye)"
+          "gps_inactive_interval": "GPS etkin olmayan süre (saniye)",
+          "climate_duration": "Klima süresi (time_span)"
         }
       }
     }

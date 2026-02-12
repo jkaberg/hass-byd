@@ -14,7 +14,8 @@
           "gps_poll_interval": "GPS interwał odpytywania (sekundy)",
           "smart_gps_polling": "Inteligentne odpytywanie GPS",
           "gps_active_interval": "GPS aktywny interwał (sekundy)",
-          "gps_inactive_interval": "GPS nieaktywny interwał (sekundy)"
+          "gps_inactive_interval": "GPS nieaktywny interwał (sekundy)",
+          "climate_duration": "Czas klimatyzacji (time_span)"
         }
       }
     },
@@ -39,7 +40,8 @@
           "gps_poll_interval": "GPS interwał odpytywania (sekundy)",
           "smart_gps_polling": "Inteligentne odpytywanie GPS",
           "gps_active_interval": "GPS aktywny interwał (sekundy)",
-          "gps_inactive_interval": "GPS nieaktywny interwał (sekundy)"
+          "gps_inactive_interval": "GPS nieaktywny interwał (sekundy)",
+          "climate_duration": "Czas klimatyzacji (time_span)"
         }
       }
     }

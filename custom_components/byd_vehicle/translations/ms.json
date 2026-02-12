@@ -14,7 +14,8 @@
           "gps_poll_interval": "GPS selang polling (saat)",
           "smart_gps_polling": "Polling GPS pintar",
           "gps_active_interval": "GPS selang aktif (saat)",
-          "gps_inactive_interval": "GPS selang tidak aktif (saat)"
+          "gps_inactive_interval": "GPS selang tidak aktif (saat)",
+          "climate_duration": "Tempoh iklim (time_span)"
         }
       }
     },
@@ -39,7 +40,8 @@
           "gps_poll_interval": "GPS selang polling (saat)",
           "smart_gps_polling": "Polling GPS pintar",
           "gps_active_interval": "GPS selang aktif (saat)",
-          "gps_inactive_interval": "GPS selang tidak aktif (saat)"
+          "gps_inactive_interval": "GPS selang tidak aktif (saat)",
+          "climate_duration": "Tempoh iklim (time_span)"
         }
       }
     }

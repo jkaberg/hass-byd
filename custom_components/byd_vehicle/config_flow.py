@@ -22,6 +22,7 @@ from pybyd.config import BydConfig
 from .const import (
     BASE_URLS,
     CONF_BASE_URL,
+    CONF_CLIMATE_DURATION,
     CONF_CONTROL_PIN,
     CONF_COUNTRY_CODE,
     CONF_DEVICE_PROFILE,
@@ -32,6 +33,7 @@ from .const import (
     CONF_POLL_INTERVAL,
     CONF_SMART_GPS_POLLING,
     COUNTRY_OPTIONS,
+    DEFAULT_CLIMATE_DURATION,
     DEFAULT_COUNTRY,
     DEFAULT_GPS_ACTIVE_INTERVAL,
     DEFAULT_GPS_INACTIVE_INTERVAL,
@@ -131,6 +133,13 @@ class BydVehicleConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         DEFAULT_GPS_INACTIVE_INTERVAL,
                     ),
                 ): int,
+                vol.Optional(
+                    CONF_CLIMATE_DURATION,
+                    default=defaults.get(
+                        CONF_CLIMATE_DURATION,
+                        DEFAULT_CLIMATE_DURATION,
+                    ),
+                ): int,
             }
         )
 
@@ -166,6 +175,10 @@ class BydVehicleConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             CONF_GPS_INACTIVE_INTERVAL: options.get(
                 CONF_GPS_INACTIVE_INTERVAL,
                 DEFAULT_GPS_INACTIVE_INTERVAL,
+            ),
+            CONF_CLIMATE_DURATION: options.get(
+                CONF_CLIMATE_DURATION,
+                DEFAULT_CLIMATE_DURATION,
             ),
         }
 
@@ -225,6 +238,7 @@ class BydVehicleConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         CONF_GPS_INACTIVE_INTERVAL: user_input[
                             CONF_GPS_INACTIVE_INTERVAL
                         ],
+                        CONF_CLIMATE_DURATION: user_input[CONF_CLIMATE_DURATION],
                     }
 
                     self.hass.config_entries.async_update_entry(
@@ -256,6 +270,7 @@ class BydVehicleConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         CONF_GPS_INACTIVE_INTERVAL: user_input[
                             CONF_GPS_INACTIVE_INTERVAL
                         ],
+                        CONF_CLIMATE_DURATION: user_input[CONF_CLIMATE_DURATION],
                     },
                 )
 
@@ -319,6 +334,12 @@ class BydVehicleOptionsFlow(config_entries.OptionsFlow):
                     CONF_GPS_INACTIVE_INTERVAL,
                     default=self._config_entry.options.get(
                         CONF_GPS_INACTIVE_INTERVAL, DEFAULT_GPS_INACTIVE_INTERVAL
+                    ),
+                ): int,
+                vol.Optional(
+                    CONF_CLIMATE_DURATION,
+                    default=self._config_entry.options.get(
+                        CONF_CLIMATE_DURATION, DEFAULT_CLIMATE_DURATION
                     ),
                 ): int,
             }

@@ -14,7 +14,8 @@
           "gps_poll_interval": "GPS Abfrageintervall (Sekunden)",
           "smart_gps_polling": "Intelligente GPS-Abfrage",
           "gps_active_interval": "GPS aktives Intervall (Sekunden)",
-          "gps_inactive_interval": "GPS inaktives Intervall (Sekunden)"
+          "gps_inactive_interval": "GPS inaktives Intervall (Sekunden)",
+          "climate_duration": "Klimadauer (time_span)"
         }
       }
     },
@@ -39,7 +40,8 @@
           "gps_poll_interval": "GPS Abfrageintervall (Sekunden)",
           "smart_gps_polling": "Intelligente GPS-Abfrage",
           "gps_active_interval": "GPS aktives Intervall (Sekunden)",
-          "gps_inactive_interval": "GPS inaktives Intervall (Sekunden)"
+          "gps_inactive_interval": "GPS inaktives Intervall (Sekunden)",
+          "climate_duration": "Klimadauer (time_span)"
         }
       }
     }
