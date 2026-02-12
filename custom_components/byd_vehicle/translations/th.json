@@ -1,0 +1,428 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "เชื่อมต่อกับ BYD",
+        "description": "ตั้งค่าบัญชี BYD ของคุณ",
+        "data": {
+          "base_url": "ภูมิภาค",
+          "username": "ชื่อผู้ใช้",
+          "password": "รหัสผ่าน",
+          "control_pin": "ควบคุม PIN (เป็นทางเลือก 6 หลัก)",
+          "country_code": "ประเทศ",
+          "poll_interval": "ช่วงเวลาการโพล (วินาที)",
+          "gps_poll_interval": "GPS ช่วงเวลาการโพล (วินาที)",
+          "smart_gps_polling": "การเลือกตั้งอัจฉริยะ GPS",
+          "gps_active_interval": "GPS ช่วงเวลาที่ใช้งาน (วินาที)",
+          "gps_inactive_interval": "GPS ช่วงเวลาที่ไม่ได้ใช้งาน (วินาที)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "ไม่สามารถเชื่อมต่อได้",
+      "invalid_control_pin": "การควบคุมไม่ถูกต้อง PIN หรือการควบคุมคลาวด์ถูกล็อคชั่วคราว",
+      "invalid_auth": "การรับรองความถูกต้องไม่ถูกต้อง",
+      "unknown": "ข้อผิดพลาดที่ไม่คาดคิด"
+    },
+    "abort": {
+      "already_configured": "บัญชีนี้ได้รับการกำหนดค่าแล้ว",
+      "wrong_account": "บัญชีไม่ตรงกับบัญชีที่ได้รับการตรวจสอบสิทธิ์อีกครั้ง",
+      "reauth_successful": "การตรวจสอบสิทธิ์ซ้ำสำเร็จแล้ว"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "อัพเดตโพล",
+        "data": {
+          "poll_interval": "ช่วงเวลาการโพล (วินาที)",
+          "gps_poll_interval": "GPS ช่วงเวลาการโพล (วินาที)",
+          "smart_gps_polling": "การเลือกตั้งอัจฉริยะ GPS",
+          "gps_active_interval": "GPS ช่วงเวลาที่ใช้งาน (วินาที)",
+          "gps_inactive_interval": "GPS ช่วงเวลาที่ไม่ได้ใช้งาน (วินาที)"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "elec_percent": {
+        "name": "ระดับแบตเตอรี่"
+      },
+      "endurance_mileage": {
+        "name": "พิสัย"
+      },
+      "total_mileage": {
+        "name": "มาตรวัดระยะทาง"
+      },
+      "speed": {
+        "name": "ความเร็ว"
+      },
+      "temp_in_car": {
+        "name": "อุณหภูมิห้องโดยสาร"
+      },
+      "left_front_tire_pressure": {
+        "name": "แรงดันลมยางหน้าซ้าย"
+      },
+      "right_front_tire_pressure": {
+        "name": "แรงดันลมยางหน้าขวา"
+      },
+      "left_rear_tire_pressure": {
+        "name": "แรงดันลมยางด้านหลังซ้าย"
+      },
+      "right_rear_tire_pressure": {
+        "name": "แรงดันลมยางด้านหลังขวา"
+      },
+      "soc": {
+        "name": "กำลังชาร์จ SOC"
+      },
+      "time_to_full": {
+        "name": "ถึงเวลาชาร์จเต็มแล้ว"
+      },
+      "total_energy": {
+        "name": "การใช้พลังงานทั้งหมด"
+      },
+      "avg_energy_consumption": {
+        "name": "การใช้พลังงานเฉลี่ย"
+      },
+      "temp_out_car": {
+        "name": "อุณหภูมิภายนอก"
+      },
+      "pm": {
+        "name": "PM2.5"
+      },
+      "power_battery": {
+        "name": "ระดับพลังงานแบตเตอรี่"
+      },
+      "ev_endurance": {
+        "name": "EV ความอดทน"
+      },
+      "endurance_mileage_v2": {
+        "name": "ช่วง V2"
+      },
+      "total_mileage_v2": {
+        "name": "มาตรวัดระยะทาง V2"
+      },
+      "power_gear": {
+        "name": "ตำแหน่งเกียร์"
+      },
+      "charging_state": {
+        "name": "สถานะการชาร์จ"
+      },
+      "charge_state": {
+        "name": "สถานะการชาร์จ"
+      },
+      "wait_status": {
+        "name": "สถานะรอการชาร์จ"
+      },
+      "full_hour": {
+        "name": "เต็มชั่วโมง"
+      },
+      "full_minute": {
+        "name": "นาทีเต็ม"
+      },
+      "charge_remaining_hours": {
+        "name": "ชาร์จชั่วโมงที่เหลือ"
+      },
+      "charge_remaining_minutes": {
+        "name": "ชาร์จนาทีที่เหลือ"
+      },
+      "booking_charge_state": {
+        "name": "การชาร์จตามกำหนดเวลา"
+      },
+      "booking_charging_hour": {
+        "name": "ชั่วโมงการชาร์จตามกำหนดเวลา"
+      },
+      "booking_charging_minute": {
+        "name": "นาทีการเรียกเก็บเงินตามกำหนดเวลา"
+      },
+      "left_front_tire_status": {
+        "name": "สถานะยางหน้าซ้าย"
+      },
+      "right_front_tire_status": {
+        "name": "สถานะยางหน้าขวา"
+      },
+      "left_rear_tire_status": {
+        "name": "สถานะยางหลังซ้าย"
+      },
+      "right_rear_tire_status": {
+        "name": "สถานะยางด้านหลังขวา"
+      },
+      "tirepressure_system": {
+        "name": "TPMS สถานะ"
+      },
+      "rapid_tire_leak": {
+        "name": "ยางรั่วอย่างรวดเร็ว"
+      },
+      "total_power": {
+        "name": "กำลังทั้งหมด"
+      },
+      "nearest_energy_consumption": {
+        "name": "การใช้พลังงานล่าสุด"
+      },
+      "recent_50km_energy": {
+        "name": "พลังงาน 50 กม. ล่าสุด"
+      },
+      "oil_endurance": {
+        "name": "ช่วงน้ำมันเชื้อเพลิง"
+      },
+      "oil_percent": {
+        "name": "ระดับน้ำมันเชื้อเพลิง"
+      },
+      "total_oil": {
+        "name": "ปริมาณการใช้เชื้อเพลิงทั้งหมด"
+      },
+      "engine_status": {
+        "name": "สถานะเครื่องยนต์"
+      },
+      "epb": {
+        "name": "เบรกจอดรถแบบอิเล็กทรอนิกส์"
+      },
+      "eps": {
+        "name": "พวงมาลัยเพาเวอร์ไฟฟ้า"
+      },
+      "esp": {
+        "name": "เสถียรภาพทางอิเล็กทรอนิกส์"
+      },
+      "abs_warning": {
+        "name": "ABS คำเตือน"
+      },
+      "svs": {
+        "name": "รถบริการเร็วๆ นี้"
+      },
+      "srs": {
+        "name": "คำเตือนถุงลมนิรภัย"
+      },
+      "ect": {
+        "name": "คำเตือนอุณหภูมิน้ำหล่อเย็น"
+      },
+      "ect_value": {
+        "name": "อุณหภูมิน้ำหล่อเย็น"
+      },
+      "pwr": {
+        "name": "คำเตือนเกี่ยวกับพลังงาน"
+      },
+      "power_system": {
+        "name": "ระบบไฟฟ้า"
+      },
+      "upgrade_status": {
+        "name": "OTA สถานะการอัพเกรด"
+      },
+      "charger_state": {
+        "name": "สถานะเครื่องชาร์จ"
+      },
+      "charger_connection": {
+        "name": "สถานะการเชื่อมต่อเครื่องชาร์จ"
+      },
+      "charging_update_time": {
+        "name": "กำลังชาร์จอัปเดตล่าสุด"
+      },
+      "electricity_consumption": {
+        "name": "ปริมาณการใช้ไฟฟ้า"
+      },
+      "fuel_consumption": {
+        "name": "ปริมาณการใช้เชื้อเพลิง"
+      },
+      "refrigerator_state": {
+        "name": "ตู้เย็น"
+      },
+      "refrigerator_door_state": {
+        "name": "ประตูตู้เย็น"
+      }
+    },
+    "binary_sensor": {
+      "is_online": {
+        "name": "ออนไลน์"
+      },
+      "is_charging": {
+        "name": "กำลังชาร์จ"
+      },
+      "is_any_door_open": {
+        "name": "ประตู"
+      },
+      "is_any_window_open": {
+        "name": "หน้าต่าง"
+      },
+      "is_locked": {
+        "name": "ล็อค"
+      },
+      "charger_connected": {
+        "name": "เชื่อมต่อเครื่องชาร์จแล้ว"
+      },
+      "sentry_status": {
+        "name": "โหมดยาม"
+      },
+      "left_front_door": {
+        "name": "ประตูหน้าซ้าย"
+      },
+      "right_front_door": {
+        "name": "ประตูหน้าขวา"
+      },
+      "left_rear_door": {
+        "name": "ประตูหลังซ้าย"
+      },
+      "right_rear_door": {
+        "name": "ประตูหลังขวา"
+      },
+      "trunk_lid": {
+        "name": "กระโปรงหลังรถ"
+      },
+      "sliding_door": {
+        "name": "ประตูบานเลื่อน"
+      },
+      "forehold": {
+        "name": "ฟรังค์"
+      },
+      "left_front_window": {
+        "name": "หน้าต่างด้านหน้าซ้าย"
+      },
+      "right_front_window": {
+        "name": "หน้าต่างด้านหน้าขวา"
+      },
+      "left_rear_window": {
+        "name": "หน้าต่างด้านหลังซ้าย"
+      },
+      "right_rear_window": {
+        "name": "หน้าต่างด้านหลังขวา"
+      },
+      "skylight": {
+        "name": "สกายไลท์"
+      },
+      "left_front_door_lock": {
+        "name": "ล็อคประตูหน้าซ้าย"
+      },
+      "right_front_door_lock": {
+        "name": "ล็อคประตูหน้าขวา"
+      },
+      "left_rear_door_lock": {
+        "name": "ล็อคประตูด้านหลังซ้าย"
+      },
+      "right_rear_door_lock": {
+        "name": "ล็อคประตูหลังขวา"
+      },
+      "sliding_door_lock": {
+        "name": "ล็อคประตูบานเลื่อน"
+      },
+      "battery_heat_state": {
+        "name": "เครื่องทำความร้อนแบตเตอรี่"
+      },
+      "charge_heat_state": {
+        "name": "ชาร์จความร้อน"
+      },
+      "vehicle_state": {
+        "name": "ยานพาหนะบน"
+      }
+    },
+    "button": {
+      "flash_lights": {
+        "name": "ไฟแฟลช"
+      },
+      "find_car": {
+        "name": "ค้นหารถ"
+      },
+      "close_windows": {
+        "name": "ปิดหน้าต่าง"
+      }
+    },
+    "select": {
+      "driver_seat_heat": {
+        "name": "ระบบอุ่นที่นั่งคนขับ",
+        "state": {
+          "off": "ปิด",
+          "low": "ต่ำ",
+          "high": "สูง"
+        }
+      },
+      "driver_seat_ventilation": {
+        "name": "การระบายอากาศที่นั่งคนขับ",
+        "state": {
+          "off": "ปิด",
+          "low": "ต่ำ",
+          "high": "สูง"
+        }
+      },
+      "passenger_seat_heat": {
+        "name": "การอุ่นที่นั่งผู้โดยสาร",
+        "state": {
+          "off": "ปิด",
+          "low": "ต่ำ",
+          "high": "สูง"
+        }
+      },
+      "passenger_seat_ventilation": {
+        "name": "การระบายอากาศที่นั่งผู้โดยสาร",
+        "state": {
+          "off": "ปิด",
+          "low": "ต่ำ",
+          "high": "สูง"
+        }
+      },
+      "rear_left_seat_heat": {
+        "name": "ระบบอุ่นที่นั่งด้านหลังซ้าย",
+        "state": {
+          "off": "ปิด",
+          "low": "ต่ำ",
+          "high": "สูง"
+        }
+      },
+      "rear_left_seat_ventilation": {
+        "name": "ช่องระบายอากาศเบาะหลังซ้าย",
+        "state": {
+          "off": "ปิด",
+          "low": "ต่ำ",
+          "high": "สูง"
+        }
+      },
+      "rear_right_seat_heat": {
+        "name": "ระบบอุ่นที่นั่งด้านหลังขวา",
+        "state": {
+          "off": "ปิด",
+          "low": "ต่ำ",
+          "high": "สูง"
+        }
+      },
+      "rear_right_seat_ventilation": {
+        "name": "ช่องระบายอากาศเบาะหลังขวา",
+        "state": {
+          "off": "ปิด",
+          "low": "ต่ำ",
+          "high": "สูง"
+        }
+      }
+    },
+    "switch": {
+      "battery_heat": {
+        "name": "ความร้อนของแบตเตอรี่"
+      },
+      "car_on": {
+        "name": "รถบน"
+      },
+      "steering_wheel_heat": {
+        "name": "การทำความร้อนพวงมาลัย"
+      }
+    },
+    "climate": {
+      "climate": {
+        "name": "ภูมิอากาศ",
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "max_heat": "ความร้อนสูงสุด",
+              "max_cool": "แม็กซ์ คูล"
+            }
+          }
+        }
+      }
+    },
+    "lock": {
+      "lock": {
+        "name": "ล็อค"
+      }
+    },
+    "device_tracker": {
+      "location": {
+        "name": "ที่ตั้ง"
+      }
+    }
+  }
+}

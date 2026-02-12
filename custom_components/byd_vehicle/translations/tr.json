@@ -1,0 +1,428 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "BYD'ye bağlanın",
+        "description": "BYD hesabınızı kurun.",
+        "data": {
+          "base_url": "Bölge",
+          "username": "Kullanıcı adı",
+          "password": "Şifre",
+          "control_pin": "Kontrol PIN (isteğe bağlı, 6 haneli)",
+          "country_code": "Ülke",
+          "poll_interval": "Yoklama aralığı (saniye)",
+          "gps_poll_interval": "GPS yoklama aralığı (saniye)",
+          "smart_gps_polling": "Akıllı GPS yoklama",
+          "gps_active_interval": "GPS aktif aralık (saniye)",
+          "gps_inactive_interval": "GPS etkin olmayan aralık (saniye)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Bağlantı başarısız oldu",
+      "invalid_control_pin": "Geçersiz kontrol PIN veya bulut kontrolü geçici olarak kilitlendi",
+      "invalid_auth": "Geçersiz kimlik doğrulama",
+      "unknown": "Beklenmeyen hata"
+    },
+    "abort": {
+      "already_configured": "Bu hesap zaten yapılandırılmış",
+      "wrong_account": "Hesap, yeniden kimliği doğrulanan hesapla eşleşmiyor",
+      "reauth_successful": "Yeniden kimlik doğrulama başarılı oldu"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Anketi güncelle",
+        "data": {
+          "poll_interval": "Yoklama aralığı (saniye)",
+          "gps_poll_interval": "GPS yoklama aralığı (saniye)",
+          "smart_gps_polling": "Akıllı GPS yoklama",
+          "gps_active_interval": "GPS aktif aralık (saniye)",
+          "gps_inactive_interval": "GPS etkin olmayan aralık (saniye)"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "elec_percent": {
+        "name": "Pil seviyesi"
+      },
+      "endurance_mileage": {
+        "name": "Aralık"
+      },
+      "total_mileage": {
+        "name": "Kilometre sayacı"
+      },
+      "speed": {
+        "name": "Hız"
+      },
+      "temp_in_car": {
+        "name": "Kabin sıcaklığı"
+      },
+      "left_front_tire_pressure": {
+        "name": "Sol ön lastik basıncı"
+      },
+      "right_front_tire_pressure": {
+        "name": "Sağ ön lastik basıncı"
+      },
+      "left_rear_tire_pressure": {
+        "name": "Sol arka lastik basıncı"
+      },
+      "right_rear_tire_pressure": {
+        "name": "Sağ arka lastik basıncı"
+      },
+      "soc": {
+        "name": "Şarj oluyor SOC"
+      },
+      "time_to_full": {
+        "name": "Tam şarj olma süresi"
+      },
+      "total_energy": {
+        "name": "Toplam enerji tüketimi"
+      },
+      "avg_energy_consumption": {
+        "name": "Ortalama enerji tüketimi"
+      },
+      "temp_out_car": {
+        "name": "Dış sıcaklık"
+      },
+      "pm": {
+        "name": "PM2.5"
+      },
+      "power_battery": {
+        "name": "Güç pil düzeyi"
+      },
+      "ev_endurance": {
+        "name": "EV dayanıklılık"
+      },
+      "endurance_mileage_v2": {
+        "name": "Aralık V2"
+      },
+      "total_mileage_v2": {
+        "name": "Kilometre sayacı V2"
+      },
+      "power_gear": {
+        "name": "Vites konumu"
+      },
+      "charging_state": {
+        "name": "Şarj durumu"
+      },
+      "charge_state": {
+        "name": "Şarj durumu"
+      },
+      "wait_status": {
+        "name": "Şarj bekleme durumu"
+      },
+      "full_hour": {
+        "name": "Dolunaya saatler kaldı"
+      },
+      "full_minute": {
+        "name": "Tamamına dakikalar kaldı"
+      },
+      "charge_remaining_hours": {
+        "name": "Kalan saatleri şarj edin"
+      },
+      "charge_remaining_minutes": {
+        "name": "Kalan dakikaları şarj edin"
+      },
+      "booking_charge_state": {
+        "name": "Planlı şarj"
+      },
+      "booking_charging_hour": {
+        "name": "Planlanan şarj saati"
+      },
+      "booking_charging_minute": {
+        "name": "Planlanan şarj dakikası"
+      },
+      "left_front_tire_status": {
+        "name": "Sol ön lastik durumu"
+      },
+      "right_front_tire_status": {
+        "name": "Sağ ön lastik durumu"
+      },
+      "left_rear_tire_status": {
+        "name": "Sol arka lastik durumu"
+      },
+      "right_rear_tire_status": {
+        "name": "Sağ arka lastik durumu"
+      },
+      "tirepressure_system": {
+        "name": "TPMS durumu"
+      },
+      "rapid_tire_leak": {
+        "name": "Hızlı lastik sızıntısı"
+      },
+      "total_power": {
+        "name": "Toplam güç"
+      },
+      "nearest_energy_consumption": {
+        "name": "Güncel enerji tüketimi"
+      },
+      "recent_50km_energy": {
+        "name": "Son 50km enerji"
+      },
+      "oil_endurance": {
+        "name": "Yakıt menzili"
+      },
+      "oil_percent": {
+        "name": "Yakıt seviyesi"
+      },
+      "total_oil": {
+        "name": "Toplam yakıt tüketimi"
+      },
+      "engine_status": {
+        "name": "Motor durumu"
+      },
+      "epb": {
+        "name": "Elektronik park freni"
+      },
+      "eps": {
+        "name": "Elektrikli hidrolik direksiyon"
+      },
+      "esp": {
+        "name": "Elektronik stabilite"
+      },
+      "abs_warning": {
+        "name": "ABS uyarı"
+      },
+      "svs": {
+        "name": "Servis aracı yakında"
+      },
+      "srs": {
+        "name": "Hava yastığı uyarısı"
+      },
+      "ect": {
+        "name": "Soğutma suyu sıcaklığı uyarısı"
+      },
+      "ect_value": {
+        "name": "Soğutma suyu sıcaklığı"
+      },
+      "pwr": {
+        "name": "Güç uyarısı"
+      },
+      "power_system": {
+        "name": "Güç sistemi"
+      },
+      "upgrade_status": {
+        "name": "OTA yükseltme durumu"
+      },
+      "charger_state": {
+        "name": "Şarj cihazı durumu"
+      },
+      "charger_connection": {
+        "name": "Şarj cihazı bağlantı durumu"
+      },
+      "charging_update_time": {
+        "name": "Son güncelleme yükleniyor"
+      },
+      "electricity_consumption": {
+        "name": "Elektrik tüketimi"
+      },
+      "fuel_consumption": {
+        "name": "Yakıt tüketimi"
+      },
+      "refrigerator_state": {
+        "name": "Buzdolabı"
+      },
+      "refrigerator_door_state": {
+        "name": "Buzdolabı kapısı"
+      }
+    },
+    "binary_sensor": {
+      "is_online": {
+        "name": "Çevrimiçi"
+      },
+      "is_charging": {
+        "name": "Şarj oluyor"
+      },
+      "is_any_door_open": {
+        "name": "Kapılar"
+      },
+      "is_any_window_open": {
+        "name": "Windows"
+      },
+      "is_locked": {
+        "name": "Kilitli"
+      },
+      "charger_connected": {
+        "name": "Şarj cihazı bağlandı"
+      },
+      "sentry_status": {
+        "name": "Nöbetçi modu"
+      },
+      "left_front_door": {
+        "name": "Ön sol kapı"
+      },
+      "right_front_door": {
+        "name": "Sağ ön kapı"
+      },
+      "left_rear_door": {
+        "name": "Sol arka kapı"
+      },
+      "right_rear_door": {
+        "name": "Sağ arka kapı"
+      },
+      "trunk_lid": {
+        "name": "Gövde"
+      },
+      "sliding_door": {
+        "name": "Sürgülü kapı"
+      },
+      "forehold": {
+        "name": "Frank"
+      },
+      "left_front_window": {
+        "name": "Sol ön pencere"
+      },
+      "right_front_window": {
+        "name": "Sağ ön pencere"
+      },
+      "left_rear_window": {
+        "name": "Sol arka cam"
+      },
+      "right_rear_window": {
+        "name": "Sağ arka cam"
+      },
+      "skylight": {
+        "name": "Işıklık"
+      },
+      "left_front_door_lock": {
+        "name": "Sol ön kapı kilidi"
+      },
+      "right_front_door_lock": {
+        "name": "Sağ ön kapı kilidi"
+      },
+      "left_rear_door_lock": {
+        "name": "Sol arka kapı kilidi"
+      },
+      "right_rear_door_lock": {
+        "name": "Sağ arka kapı kilidi"
+      },
+      "sliding_door_lock": {
+        "name": "Sürgülü kapı kilidi"
+      },
+      "battery_heat_state": {
+        "name": "Pil ısıtma"
+      },
+      "charge_heat_state": {
+        "name": "Şarjlı ısıtma"
+      },
+      "vehicle_state": {
+        "name": "Araç açık"
+      }
+    },
+    "button": {
+      "flash_lights": {
+        "name": "Flaş ışıkları"
+      },
+      "find_car": {
+        "name": "Araba bul"
+      },
+      "close_windows": {
+        "name": "Pencereleri kapat"
+      }
+    },
+    "select": {
+      "driver_seat_heat": {
+        "name": "Sürücü koltuğu ısıtması",
+        "state": {
+          "off": "Kapalı",
+          "low": "Düşük",
+          "high": "Yüksek"
+        }
+      },
+      "driver_seat_ventilation": {
+        "name": "Sürücü koltuğu havalandırması",
+        "state": {
+          "off": "Kapalı",
+          "low": "Düşük",
+          "high": "Yüksek"
+        }
+      },
+      "passenger_seat_heat": {
+        "name": "Yolcu koltuğu ısıtması",
+        "state": {
+          "off": "Kapalı",
+          "low": "Düşük",
+          "high": "Yüksek"
+        }
+      },
+      "passenger_seat_ventilation": {
+        "name": "Yolcu koltuğu havalandırması",
+        "state": {
+          "off": "Kapalı",
+          "low": "Düşük",
+          "high": "Yüksek"
+        }
+      },
+      "rear_left_seat_heat": {
+        "name": "Sol arka koltuk ısıtması",
+        "state": {
+          "off": "Kapalı",
+          "low": "Düşük",
+          "high": "Yüksek"
+        }
+      },
+      "rear_left_seat_ventilation": {
+        "name": "Sol arka koltuk havalandırması",
+        "state": {
+          "off": "Kapalı",
+          "low": "Düşük",
+          "high": "Yüksek"
+        }
+      },
+      "rear_right_seat_heat": {
+        "name": "Sağ arka koltuk ısıtması",
+        "state": {
+          "off": "Kapalı",
+          "low": "Düşük",
+          "high": "Yüksek"
+        }
+      },
+      "rear_right_seat_ventilation": {
+        "name": "Sağ arka koltuk havalandırması",
+        "state": {
+          "off": "Kapalı",
+          "low": "Düşük",
+          "high": "Yüksek"
+        }
+      }
+    },
+    "switch": {
+      "battery_heat": {
+        "name": "Pil ısısı"
+      },
+      "car_on": {
+        "name": "Araba açık"
+      },
+      "steering_wheel_heat": {
+        "name": "Direksiyon ısıtması"
+      }
+    },
+    "climate": {
+      "climate": {
+        "name": "İklim",
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "max_heat": "Maksimum Isı",
+              "max_cool": "Maksimum Harika"
+            }
+          }
+        }
+      }
+    },
+    "lock": {
+      "lock": {
+        "name": "Kilit"
+      }
+    },
+    "device_tracker": {
+      "location": {
+        "name": "Konum"
+      }
+    }
+  }
+}

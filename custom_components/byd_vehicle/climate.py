@@ -45,11 +45,12 @@ class BydClimate(CoordinatorEntity, ClimateEntity):
     _TEMP_MIN_C = 15
     _TEMP_MAX_C = 31
     _TEMP_OFFSET_C = 14
-    _PRESET_MAX_HEAT = "Max Heat"
-    _PRESET_MAX_COOL = "Max Cool"
+    _PRESET_MAX_HEAT = "max_heat"
+    _PRESET_MAX_COOL = "max_cool"
 
     _attr_has_entity_name = True
-    _attr_name = "Climate"
+    _attr_name = None
+    _attr_translation_key = "climate"
     _attr_hvac_modes = [HVACMode.OFF, HVACMode.HEAT_COOL]
     _attr_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_supported_features = (
@@ -110,7 +111,9 @@ class BydClimate(CoordinatorEntity, ClimateEntity):
         """Available when coordinator has data for this vehicle."""
         if not super().available:
             return False
-        return self._vin in self.coordinator.data.get("vehicles", {})
+        if self._vin not in self.coordinator.data.get("vehicles", {}):
+            return False
+        return self._api.is_remote_command_supported(self._vin, "start_climate")
 
     @property
     def hvac_mode(self) -> HVACMode:

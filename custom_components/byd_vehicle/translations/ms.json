@@ -1,0 +1,428 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Sambung ke BYD",
+        "description": "Sediakan akaun BYD anda.",
+        "data": {
+          "base_url": "Wilayah",
+          "username": "Nama pengguna",
+          "password": "Kata laluan",
+          "control_pin": "Kawalan PIN (pilihan, 6 digit)",
+          "country_code": "Negara",
+          "poll_interval": "Selang pengundian (saat)",
+          "gps_poll_interval": "GPS selang pengundian (saat)",
+          "smart_gps_polling": "Undian pintar GPS",
+          "gps_active_interval": "GPS selang aktif (saat)",
+          "gps_inactive_interval": "GPS selang tidak aktif (saat)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Gagal menyambung",
+      "invalid_control_pin": "Kawalan tidak sah PIN atau kawalan awan dikunci buat sementara waktu",
+      "invalid_auth": "Pengesahan tidak sah",
+      "unknown": "Ralat yang tidak dijangka"
+    },
+    "abort": {
+      "already_configured": "Akaun ini telah dikonfigurasikan",
+      "wrong_account": "Akaun tidak sepadan dengan akaun yang disahkan semula",
+      "reauth_successful": "Pengesahan semula berjaya"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Kemas kini pengundian",
+        "data": {
+          "poll_interval": "Selang pengundian (saat)",
+          "gps_poll_interval": "GPS selang pengundian (saat)",
+          "smart_gps_polling": "Undian pintar GPS",
+          "gps_active_interval": "GPS selang aktif (saat)",
+          "gps_inactive_interval": "GPS selang tidak aktif (saat)"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "elec_percent": {
+        "name": "Paras bateri"
+      },
+      "endurance_mileage": {
+        "name": "Julat"
+      },
+      "total_mileage": {
+        "name": "Odometer"
+      },
+      "speed": {
+        "name": "Kelajuan"
+      },
+      "temp_in_car": {
+        "name": "Suhu kabin"
+      },
+      "left_front_tire_pressure": {
+        "name": "Tekanan tayar kiri hadapan"
+      },
+      "right_front_tire_pressure": {
+        "name": "Tekanan tayar kanan hadapan"
+      },
+      "left_rear_tire_pressure": {
+        "name": "Tekanan tayar kiri belakang"
+      },
+      "right_rear_tire_pressure": {
+        "name": "Tekanan tayar kanan belakang"
+      },
+      "soc": {
+        "name": "Mengecas SOC"
+      },
+      "time_to_full": {
+        "name": "Masa untuk mengecas penuh"
+      },
+      "total_energy": {
+        "name": "Jumlah penggunaan tenaga"
+      },
+      "avg_energy_consumption": {
+        "name": "Purata penggunaan tenaga"
+      },
+      "temp_out_car": {
+        "name": "Suhu luar"
+      },
+      "pm": {
+        "name": "PM2.5"
+      },
+      "power_battery": {
+        "name": "Tahap bateri kuasa"
+      },
+      "ev_endurance": {
+        "name": "EV ketahanan"
+      },
+      "endurance_mileage_v2": {
+        "name": "Julat V2"
+      },
+      "total_mileage_v2": {
+        "name": "Odometer V2"
+      },
+      "power_gear": {
+        "name": "Kedudukan gear"
+      },
+      "charging_state": {
+        "name": "Keadaan mengecas"
+      },
+      "charge_state": {
+        "name": "Keadaan caj"
+      },
+      "wait_status": {
+        "name": "Caj status menunggu"
+      },
+      "full_hour": {
+        "name": "Jam hingga penuh"
+      },
+      "full_minute": {
+        "name": "Minit hingga penuh"
+      },
+      "charge_remaining_hours": {
+        "name": "Caj baki jam"
+      },
+      "charge_remaining_minutes": {
+        "name": "Caj baki minit"
+      },
+      "booking_charge_state": {
+        "name": "Pengecasan berjadual"
+      },
+      "booking_charging_hour": {
+        "name": "Jam caj yang dijadualkan"
+      },
+      "booking_charging_minute": {
+        "name": "Minit caj yang dijadualkan"
+      },
+      "left_front_tire_status": {
+        "name": "Status tayar kiri depan"
+      },
+      "right_front_tire_status": {
+        "name": "Status tayar kanan hadapan"
+      },
+      "left_rear_tire_status": {
+        "name": "Status tayar kiri belakang"
+      },
+      "right_rear_tire_status": {
+        "name": "Status tayar kanan belakang"
+      },
+      "tirepressure_system": {
+        "name": "TPMS keadaan"
+      },
+      "rapid_tire_leak": {
+        "name": "Tayar cepat bocor"
+      },
+      "total_power": {
+        "name": "Jumlah kuasa"
+      },
+      "nearest_energy_consumption": {
+        "name": "Penggunaan tenaga terkini"
+      },
+      "recent_50km_energy": {
+        "name": "Tenaga 50km terbaru"
+      },
+      "oil_endurance": {
+        "name": "Julat bahan api"
+      },
+      "oil_percent": {
+        "name": "Paras bahan api"
+      },
+      "total_oil": {
+        "name": "Jumlah penggunaan bahan api"
+      },
+      "engine_status": {
+        "name": "Status enjin"
+      },
+      "epb": {
+        "name": "Brek letak kereta elektronik"
+      },
+      "eps": {
+        "name": "Stereng kuasa elektrik"
+      },
+      "esp": {
+        "name": "Kestabilan elektronik"
+      },
+      "abs_warning": {
+        "name": "ABS amaran"
+      },
+      "svs": {
+        "name": "Kenderaan servis tidak lama lagi"
+      },
+      "srs": {
+        "name": "Amaran beg udara"
+      },
+      "ect": {
+        "name": "Amaran suhu penyejuk"
+      },
+      "ect_value": {
+        "name": "Suhu penyejuk"
+      },
+      "pwr": {
+        "name": "Amaran kuasa"
+      },
+      "power_system": {
+        "name": "Sistem kuasa"
+      },
+      "upgrade_status": {
+        "name": "OTA status peningkatan"
+      },
+      "charger_state": {
+        "name": "Keadaan pengecas"
+      },
+      "charger_connection": {
+        "name": "Keadaan sambungan pengecas"
+      },
+      "charging_update_time": {
+        "name": "Mengecas kemas kini terakhir"
+      },
+      "electricity_consumption": {
+        "name": "Penggunaan elektrik"
+      },
+      "fuel_consumption": {
+        "name": "Penggunaan bahan api"
+      },
+      "refrigerator_state": {
+        "name": "Peti sejuk"
+      },
+      "refrigerator_door_state": {
+        "name": "Pintu peti sejuk"
+      }
+    },
+    "binary_sensor": {
+      "is_online": {
+        "name": "Dalam talian"
+      },
+      "is_charging": {
+        "name": "Mengecas"
+      },
+      "is_any_door_open": {
+        "name": "Pintu"
+      },
+      "is_any_window_open": {
+        "name": "Windows"
+      },
+      "is_locked": {
+        "name": "Dikunci"
+      },
+      "charger_connected": {
+        "name": "Pengecas disambungkan"
+      },
+      "sentry_status": {
+        "name": "Mod pengawal"
+      },
+      "left_front_door": {
+        "name": "Pintu kiri hadapan"
+      },
+      "right_front_door": {
+        "name": "Pintu kanan hadapan"
+      },
+      "left_rear_door": {
+        "name": "Pintu kiri belakang"
+      },
+      "right_rear_door": {
+        "name": "Pintu kanan belakang"
+      },
+      "trunk_lid": {
+        "name": "Batang"
+      },
+      "sliding_door": {
+        "name": "Pintu gelangsar"
+      },
+      "forehold": {
+        "name": "Frunk"
+      },
+      "left_front_window": {
+        "name": "Tingkap kiri hadapan"
+      },
+      "right_front_window": {
+        "name": "Tingkap depan kanan"
+      },
+      "left_rear_window": {
+        "name": "Tingkap kiri belakang"
+      },
+      "right_rear_window": {
+        "name": "Tingkap kanan belakang"
+      },
+      "skylight": {
+        "name": "Skylight"
+      },
+      "left_front_door_lock": {
+        "name": "Kunci pintu kiri hadapan"
+      },
+      "right_front_door_lock": {
+        "name": "Kunci pintu kanan hadapan"
+      },
+      "left_rear_door_lock": {
+        "name": "Kunci pintu kiri belakang"
+      },
+      "right_rear_door_lock": {
+        "name": "Kunci pintu kanan belakang"
+      },
+      "sliding_door_lock": {
+        "name": "Kunci pintu gelangsar"
+      },
+      "battery_heat_state": {
+        "name": "Pemanasan bateri"
+      },
+      "charge_heat_state": {
+        "name": "Caj pemanasan"
+      },
+      "vehicle_state": {
+        "name": "Kenderaan di"
+      }
+    },
+    "button": {
+      "flash_lights": {
+        "name": "Lampu kilat"
+      },
+      "find_car": {
+        "name": "Cari kereta"
+      },
+      "close_windows": {
+        "name": "Tutup tingkap"
+      }
+    },
+    "select": {
+      "driver_seat_heat": {
+        "name": "Pemanasan tempat duduk pemandu",
+        "state": {
+          "off": "Mati",
+          "low": "Rendah",
+          "high": "Tinggi"
+        }
+      },
+      "driver_seat_ventilation": {
+        "name": "Pengudaraan tempat duduk pemandu",
+        "state": {
+          "off": "Mati",
+          "low": "Rendah",
+          "high": "Tinggi"
+        }
+      },
+      "passenger_seat_heat": {
+        "name": "Pemanasan tempat duduk penumpang",
+        "state": {
+          "off": "Mati",
+          "low": "Rendah",
+          "high": "Tinggi"
+        }
+      },
+      "passenger_seat_ventilation": {
+        "name": "Pengudaraan tempat duduk penumpang",
+        "state": {
+          "off": "Mati",
+          "low": "Rendah",
+          "high": "Tinggi"
+        }
+      },
+      "rear_left_seat_heat": {
+        "name": "Pemanasan tempat duduk kiri belakang",
+        "state": {
+          "off": "Mati",
+          "low": "Rendah",
+          "high": "Tinggi"
+        }
+      },
+      "rear_left_seat_ventilation": {
+        "name": "Pengudaraan tempat duduk kiri belakang",
+        "state": {
+          "off": "Mati",
+          "low": "Rendah",
+          "high": "Tinggi"
+        }
+      },
+      "rear_right_seat_heat": {
+        "name": "Pemanasan tempat duduk kanan belakang",
+        "state": {
+          "off": "Mati",
+          "low": "Rendah",
+          "high": "Tinggi"
+        }
+      },
+      "rear_right_seat_ventilation": {
+        "name": "Pengudaraan tempat duduk kanan belakang",
+        "state": {
+          "off": "Mati",
+          "low": "Rendah",
+          "high": "Tinggi"
+        }
+      }
+    },
+    "switch": {
+      "battery_heat": {
+        "name": "Haba bateri"
+      },
+      "car_on": {
+        "name": "Kereta dihidupkan"
+      },
+      "steering_wheel_heat": {
+        "name": "Pemanasan stereng"
+      }
+    },
+    "climate": {
+      "climate": {
+        "name": "Iklim",
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "max_heat": "Haba Maks",
+              "max_cool": "Max Cool"
+            }
+          }
+        }
+      }
+    },
+    "lock": {
+      "lock": {
+        "name": "Kunci"
+      }
+    },
+    "device_tracker": {
+      "location": {
+        "name": "Lokasi"
+      }
+    }
+  }
+}

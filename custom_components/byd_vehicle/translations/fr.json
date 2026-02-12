@@ -1,0 +1,428 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connectez-vous à BYD",
+        "description": "Créez votre compte BYD.",
+        "data": {
+          "base_url": "Région",
+          "username": "Nom d'utilisateur",
+          "password": "Mot de passe",
+          "control_pin": "Contrôle PIN (facultatif, 6 chiffres)",
+          "country_code": "Pays",
+          "poll_interval": "Intervalle d'interrogation (secondes)",
+          "gps_poll_interval": "GPS intervalle d'interrogation (secondes)",
+          "smart_gps_polling": "Sondage intelligent GPS",
+          "gps_active_interval": "GPS intervalle actif (secondes)",
+          "gps_inactive_interval": "GPS intervalle d'inactivité (secondes)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Échec de la connexion",
+      "invalid_control_pin": "Le contrôle invalide PIN ou le contrôle cloud est temporairement verrouillé",
+      "invalid_auth": "Authentification invalide",
+      "unknown": "Erreur inattendue"
+    },
+    "abort": {
+      "already_configured": "Ce compte est déjà configuré",
+      "wrong_account": "Le compte ne correspond pas à celui en cours de réauthentification",
+      "reauth_successful": "La réauthentification a réussi"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Mettre à jour le sondage",
+        "data": {
+          "poll_interval": "Intervalle d'interrogation (secondes)",
+          "gps_poll_interval": "GPS intervalle d'interrogation (secondes)",
+          "smart_gps_polling": "Sondage intelligent GPS",
+          "gps_active_interval": "GPS intervalle actif (secondes)",
+          "gps_inactive_interval": "GPS intervalle d'inactivité (secondes)"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "elec_percent": {
+        "name": "Niveau de batterie"
+      },
+      "endurance_mileage": {
+        "name": "Gamme"
+      },
+      "total_mileage": {
+        "name": "Odomètre"
+      },
+      "speed": {
+        "name": "Vitesse"
+      },
+      "temp_in_car": {
+        "name": "Température de la cabine"
+      },
+      "left_front_tire_pressure": {
+        "name": "Pression des pneus avant gauche"
+      },
+      "right_front_tire_pressure": {
+        "name": "Pression des pneus avant droit"
+      },
+      "left_rear_tire_pressure": {
+        "name": "Pression pneu arrière gauche"
+      },
+      "right_rear_tire_pressure": {
+        "name": "Pression pneu arrière droit"
+      },
+      "soc": {
+        "name": "Chargement SOC"
+      },
+      "time_to_full": {
+        "name": "Temps de charge complète"
+      },
+      "total_energy": {
+        "name": "Consommation totale d'énergie"
+      },
+      "avg_energy_consumption": {
+        "name": "Consommation énergétique moyenne"
+      },
+      "temp_out_car": {
+        "name": "Température extérieure"
+      },
+      "pm": {
+        "name": "PM2.5"
+      },
+      "power_battery": {
+        "name": "Niveau de batterie"
+      },
+      "ev_endurance": {
+        "name": "EV endurance"
+      },
+      "endurance_mileage_v2": {
+        "name": "Gamme V2"
+      },
+      "total_mileage_v2": {
+        "name": "Compteur kilométrique V2"
+      },
+      "power_gear": {
+        "name": "Position du rapport"
+      },
+      "charging_state": {
+        "name": "État de charge"
+      },
+      "charge_state": {
+        "name": "État de charge"
+      },
+      "wait_status": {
+        "name": "Statut d'attente de facturation"
+      },
+      "full_hour": {
+        "name": "Heures pleines"
+      },
+      "full_minute": {
+        "name": "Minutes pleines"
+      },
+      "charge_remaining_hours": {
+        "name": "Facturer les heures restantes"
+      },
+      "charge_remaining_minutes": {
+        "name": "Charger les minutes restantes"
+      },
+      "booking_charge_state": {
+        "name": "Chargement programmé"
+      },
+      "booking_charging_hour": {
+        "name": "Heure de recharge programmée"
+      },
+      "booking_charging_minute": {
+        "name": "Minute de facturation programmée"
+      },
+      "left_front_tire_status": {
+        "name": "État du pneu avant gauche"
+      },
+      "right_front_tire_status": {
+        "name": "État du pneu avant droit"
+      },
+      "left_rear_tire_status": {
+        "name": "État du pneu arrière gauche"
+      },
+      "right_rear_tire_status": {
+        "name": "État du pneu arrière droit"
+      },
+      "tirepressure_system": {
+        "name": "État TPMS"
+      },
+      "rapid_tire_leak": {
+        "name": "Fuite rapide des pneus"
+      },
+      "total_power": {
+        "name": "Puissance totale"
+      },
+      "nearest_energy_consumption": {
+        "name": "Consommation d'énergie récente"
+      },
+      "recent_50km_energy": {
+        "name": "Énergie récente de 50 km"
+      },
+      "oil_endurance": {
+        "name": "Gamme de carburant"
+      },
+      "oil_percent": {
+        "name": "Niveau de carburant"
+      },
+      "total_oil": {
+        "name": "Consommation totale de carburant"
+      },
+      "engine_status": {
+        "name": "État du moteur"
+      },
+      "epb": {
+        "name": "Frein de stationnement électronique"
+      },
+      "eps": {
+        "name": "Direction assistée électrique"
+      },
+      "esp": {
+        "name": "Stabilité électronique"
+      },
+      "abs_warning": {
+        "name": "ABS avertissement"
+      },
+      "svs": {
+        "name": "Véhicule de service bientôt"
+      },
+      "srs": {
+        "name": "Avertissement d'airbag"
+      },
+      "ect": {
+        "name": "Avertissement de température du liquide de refroidissement"
+      },
+      "ect_value": {
+        "name": "Température du liquide de refroidissement"
+      },
+      "pwr": {
+        "name": "Avertissement de puissance"
+      },
+      "power_system": {
+        "name": "Système d'alimentation"
+      },
+      "upgrade_status": {
+        "name": "État de la mise à niveau OTA"
+      },
+      "charger_state": {
+        "name": "État du chargeur"
+      },
+      "charger_connection": {
+        "name": "État de connexion du chargeur"
+      },
+      "charging_update_time": {
+        "name": "Chargement de la dernière mise à jour"
+      },
+      "electricity_consumption": {
+        "name": "Consommation d'électricité"
+      },
+      "fuel_consumption": {
+        "name": "Consommation de carburant"
+      },
+      "refrigerator_state": {
+        "name": "Réfrigérateur"
+      },
+      "refrigerator_door_state": {
+        "name": "Porte du réfrigérateur"
+      }
+    },
+    "binary_sensor": {
+      "is_online": {
+        "name": "En ligne"
+      },
+      "is_charging": {
+        "name": "Chargement"
+      },
+      "is_any_door_open": {
+        "name": "Portes"
+      },
+      "is_any_window_open": {
+        "name": "Fenêtres"
+      },
+      "is_locked": {
+        "name": "Fermé"
+      },
+      "charger_connected": {
+        "name": "Chargeur connecté"
+      },
+      "sentry_status": {
+        "name": "Mode sentinelle"
+      },
+      "left_front_door": {
+        "name": "Porte avant gauche"
+      },
+      "right_front_door": {
+        "name": "Porte avant droite"
+      },
+      "left_rear_door": {
+        "name": "Porte arrière gauche"
+      },
+      "right_rear_door": {
+        "name": "Porte arrière droite"
+      },
+      "trunk_lid": {
+        "name": "Tronc"
+      },
+      "sliding_door": {
+        "name": "Porte coulissante"
+      },
+      "forehold": {
+        "name": "Frunk"
+      },
+      "left_front_window": {
+        "name": "Fenêtre avant gauche"
+      },
+      "right_front_window": {
+        "name": "Fenêtre avant droite"
+      },
+      "left_rear_window": {
+        "name": "Lunette arrière gauche"
+      },
+      "right_rear_window": {
+        "name": "Lunette arrière droite"
+      },
+      "skylight": {
+        "name": "Lucarne"
+      },
+      "left_front_door_lock": {
+        "name": "Serrure de porte avant gauche"
+      },
+      "right_front_door_lock": {
+        "name": "Serrure de porte avant droite"
+      },
+      "left_rear_door_lock": {
+        "name": "Serrure de porte arrière gauche"
+      },
+      "right_rear_door_lock": {
+        "name": "Serrure de porte arrière droite"
+      },
+      "sliding_door_lock": {
+        "name": "Serrure de porte coulissante"
+      },
+      "battery_heat_state": {
+        "name": "Chauffage de la batterie"
+      },
+      "charge_heat_state": {
+        "name": "Chargement du chauffage"
+      },
+      "vehicle_state": {
+        "name": "Véhicule allumé"
+      }
+    },
+    "button": {
+      "flash_lights": {
+        "name": "Lampes de poche"
+      },
+      "find_car": {
+        "name": "Trouver une voiture"
+      },
+      "close_windows": {
+        "name": "Fermer les fenêtres"
+      }
+    },
+    "select": {
+      "driver_seat_heat": {
+        "name": "Chauffage du siège conducteur",
+        "state": {
+          "off": "Désactivé",
+          "low": "Faible",
+          "high": "Élevé"
+        }
+      },
+      "driver_seat_ventilation": {
+        "name": "Ventilation du siège conducteur",
+        "state": {
+          "off": "Désactivé",
+          "low": "Faible",
+          "high": "Élevé"
+        }
+      },
+      "passenger_seat_heat": {
+        "name": "Chauffage du siège passager",
+        "state": {
+          "off": "Désactivé",
+          "low": "Faible",
+          "high": "Élevé"
+        }
+      },
+      "passenger_seat_ventilation": {
+        "name": "Ventilation du siège passager",
+        "state": {
+          "off": "Désactivé",
+          "low": "Faible",
+          "high": "Élevé"
+        }
+      },
+      "rear_left_seat_heat": {
+        "name": "Chauffage du siège arrière gauche",
+        "state": {
+          "off": "Désactivé",
+          "low": "Faible",
+          "high": "Élevé"
+        }
+      },
+      "rear_left_seat_ventilation": {
+        "name": "Ventilation du siège arrière gauche",
+        "state": {
+          "off": "Désactivé",
+          "low": "Faible",
+          "high": "Élevé"
+        }
+      },
+      "rear_right_seat_heat": {
+        "name": "Chauffage du siège arrière droit",
+        "state": {
+          "off": "Désactivé",
+          "low": "Faible",
+          "high": "Élevé"
+        }
+      },
+      "rear_right_seat_ventilation": {
+        "name": "Ventilation du siège arrière droit",
+        "state": {
+          "off": "Désactivé",
+          "low": "Faible",
+          "high": "Élevé"
+        }
+      }
+    },
+    "switch": {
+      "battery_heat": {
+        "name": "Chaleur de la batterie"
+      },
+      "car_on": {
+        "name": "Voiture allumée"
+      },
+      "steering_wheel_heat": {
+        "name": "Chauffage du volant"
+      }
+    },
+    "climate": {
+      "climate": {
+        "name": "Climat",
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "max_heat": "Chaleur maximale",
+              "max_cool": "Max Cool"
+            }
+          }
+        }
+      }
+    },
+    "lock": {
+      "lock": {
+        "name": "Verrouillage"
+      }
+    },
+    "device_tracker": {
+      "location": {
+        "name": "Emplacement"
+      }
+    }
+  }
+}

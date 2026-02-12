@@ -39,7 +39,8 @@ class BydLock(CoordinatorEntity, LockEntity):
     """Representation of BYD lock control."""
 
     _attr_has_entity_name = True
-    _attr_name = "Lock"
+    _attr_name = None
+    _attr_translation_key = "lock"
 
     def __init__(
         self,
@@ -61,7 +62,9 @@ class BydLock(CoordinatorEntity, LockEntity):
         """Available when coordinator has data for this vehicle."""
         if not super().available:
             return False
-        return self._vin in self.coordinator.data.get("vehicles", {})
+        if self._vin not in self.coordinator.data.get("vehicles", {}):
+            return False
+        return self._api.is_remote_command_supported(self._vin, "lock")
 
     def _get_realtime_locks(self) -> list[bool] | None:
         realtime_map = self.coordinator.data.get("realtime", {})

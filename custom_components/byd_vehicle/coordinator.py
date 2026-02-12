@@ -15,6 +15,9 @@ from pybyd import (
     BydApiError,
     BydAuthenticationError,
     BydClient,
+    BydControlPasswordError,
+    BydEndpointNotSupportedError,
+    BydRateLimitError,
     BydRemoteControlError,
     BydSessionExpiredError,
     BydTransportError,
@@ -60,6 +63,7 @@ class BydApi:
             control_pin=entry.data.get(CONF_CONTROL_PIN) or None,
         )
         self._last_remote_results: dict[tuple[str, str], dict[str, Any]] = {}
+        self._unsupported_remote_commands: dict[str, set[str]] = {}
         self._client: BydClient | None = None
 
     @property
@@ -68,6 +72,29 @@ class BydApi:
 
     def get_last_remote_result(self, vin: str, command: str) -> dict[str, Any] | None:
         return self._last_remote_results.get((vin, command))
+
+    @staticmethod
+    def _related_command_names(command: str) -> set[str]:
+        related = {command}
+        pairs = (
+            ("start_climate", "stop_climate"),
+            ("car_on", "car_off"),
+            ("battery_heat_on", "battery_heat_off"),
+            ("steering_wheel_heat_on", "steering_wheel_heat_off"),
+            ("lock", "unlock"),
+        )
+        for first, second in pairs:
+            if command in (first, second):
+                related.update({first, second})
+                break
+        return related
+
+    def mark_remote_command_unsupported(self, vin: str, command: str) -> None:
+        unsupported = self._unsupported_remote_commands.setdefault(vin, set())
+        unsupported.update(self._related_command_names(command))
+
+    def is_remote_command_supported(self, vin: str, command: str) -> bool:
+        return command not in self._unsupported_remote_commands.get(vin, set())
 
     def _store_remote_result(
         self,
@@ -94,6 +121,9 @@ class BydApi:
         if error is not None:
             data["error"] = str(error)
             data["error_type"] = type(error).__name__
+            if isinstance(error, BydApiError):
+                data["error_code"] = error.code
+                data["error_endpoint"] = error.endpoint
         self._last_remote_results[(vin, command)] = data
 
     async def _ensure_client(self) -> BydClient:
@@ -156,6 +186,23 @@ class BydApi:
             if vin and command:
                 self._store_remote_result(vin, command, None, exc)
             raise UpdateFailed(str(exc)) from exc
+        except BydControlPasswordError as exc:
+            if vin and command:
+                self._store_remote_result(vin, command, None, exc)
+            raise UpdateFailed(
+                "Control PIN rejected or cloud control temporarily locked"
+            ) from exc
+        except BydRateLimitError as exc:
+            if vin and command:
+                self._store_remote_result(vin, command, None, exc)
+            raise UpdateFailed(
+                "Command rate limited by BYD cloud, please retry shortly"
+            ) from exc
+        except BydEndpointNotSupportedError as exc:
+            if vin and command:
+                self._store_remote_result(vin, command, None, exc)
+                self.mark_remote_command_unsupported(vin, command)
+            raise UpdateFailed("Feature not supported for this vehicle/region") from exc
         except BydTransportError as exc:
             if vin and command:
                 self._store_remote_result(vin, command, None, exc)
@@ -189,6 +236,8 @@ class BydDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             vehicles = await client.get_vehicles()
             vehicle_map = {vehicle.vin: vehicle for vehicle in vehicles}
 
+            auth_errors = (BydAuthenticationError, BydSessionExpiredError)
+
             async def _fetch_for_vin(
                 vin: str,
             ) -> tuple[str, Any, Any, Any, Any]:
@@ -198,18 +247,26 @@ class BydDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 charging = None
                 try:
                     realtime = await client.get_vehicle_realtime(vin)
+                except auth_errors:
+                    raise
                 except Exception as exc:  # noqa: BLE001
                     _LOGGER.warning("Realtime fetch failed for %s: %s", vin, exc)
                 try:
                     energy = await client.get_energy_consumption(vin)
+                except auth_errors:
+                    raise
                 except Exception as exc:  # noqa: BLE001
                     _LOGGER.warning("Energy fetch failed for %s: %s", vin, exc)
                 try:
                     hvac = await client.get_hvac_status(vin)
+                except auth_errors:
+                    raise
                 except Exception as exc:  # noqa: BLE001
                     _LOGGER.warning("HVAC fetch failed for %s: %s", vin, exc)
                 try:
                     charging = await client.get_charging_status(vin)
+                except auth_errors:
+                    raise
                 except Exception as exc:  # noqa: BLE001
                     _LOGGER.warning("Charging fetch failed for %s: %s", vin, exc)
                 return vin, realtime, energy, hvac, charging
@@ -223,6 +280,12 @@ class BydDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             charging_map: dict[str, Any] = {}
             for result in results:
                 if isinstance(result, BaseException):
+                    if isinstance(result, auth_errors):
+                        _LOGGER.warning(
+                            "Telemetry auth/session failure during VIN poll: %s",
+                            result,
+                        )
+                        raise result
                     _LOGGER.warning("Telemetry update failed: %s", result)
                     continue
                 vin, realtime, energy, hvac, charging = result
@@ -318,6 +381,8 @@ class BydGpsUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             vehicles = await client.get_vehicles()
             vehicle_map = {vehicle.vin: vehicle for vehicle in vehicles}
 
+            auth_errors = (BydAuthenticationError, BydSessionExpiredError)
+
             async def _fetch_for_vin(vin: str) -> tuple[str, Any]:
                 gps = await client.get_gps_info(vin)
                 return vin, gps
@@ -328,6 +393,12 @@ class BydGpsUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             gps_map: dict[str, Any] = {}
             for result in results:
                 if isinstance(result, BaseException):
+                    if isinstance(result, auth_errors):
+                        _LOGGER.warning(
+                            "GPS auth/session failure during VIN poll: %s",
+                            result,
+                        )
+                        raise result
                     _LOGGER.warning("GPS update failed: %s", result)
                     continue
                 vin, gps = result

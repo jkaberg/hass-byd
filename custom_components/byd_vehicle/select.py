@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any
 
 from homeassistant.components.select import SelectEntity, SelectEntityDescription
@@ -17,8 +17,8 @@ from pybyd.models.hvac import HvacStatus
 from .const import DOMAIN
 from .coordinator import BydApi, BydDataUpdateCoordinator, get_vehicle_display
 
-SEAT_LEVEL_OPTIONS = ["Off", "Low", "High"]
-SEAT_LEVEL_TO_INT = {"Off": 0, "Low": 1, "High": 3}
+SEAT_LEVEL_OPTIONS = ["off", "low", "high"]
+SEAT_LEVEL_TO_INT = {"off": 0, "low": 1, "high": 3}
 INT_TO_SEAT_LEVEL = {v: k for k, v in SEAT_LEVEL_TO_INT.items()}
 
 
@@ -49,7 +49,7 @@ def _seat_status_to_option(value: Any) -> str | None:
     if value is None:
         return None
     level = _seat_status_to_command_level(value)
-    return INT_TO_SEAT_LEVEL.get(level, "Off")
+    return INT_TO_SEAT_LEVEL.get(level, "off")
 
 
 # Mapping from param_key → HvacStatus attribute name
@@ -206,7 +206,11 @@ class BydSeatClimateSelect(CoordinatorEntity, SelectEntity):
     ) -> None:
         """Initialize the select entity."""
         super().__init__(coordinator)
-        self.entity_description = description
+        self.entity_description = replace(
+            description,
+            name=None,
+            translation_key=description.key,
+        )
         self._api = api
         self._vin = vin
         self._vehicle = vehicle
@@ -225,7 +229,12 @@ class BydSeatClimateSelect(CoordinatorEntity, SelectEntity):
     def available(self) -> bool:
         if not super().available:
             return False
-        return self._vin in self.coordinator.data.get("vehicles", {})
+        if self._vin not in self.coordinator.data.get("vehicles", {}):
+            return False
+        return self._api.is_remote_command_supported(
+            self._vin,
+            f"seat_climate_{self.entity_description.key}",
+        )
 
     @property
     def current_option(self) -> str | None:

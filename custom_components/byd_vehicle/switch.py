@@ -32,6 +32,7 @@ async def async_setup_entry(
     vehicle_map = coordinator.data.get("vehicles", {})
 
     for vin, vehicle in vehicle_map.items():
+        entities.append(BydCarOnSwitch(coordinator, api, vin, vehicle))
         entities.append(BydBatteryHeatSwitch(coordinator, api, vin, vehicle))
         entities.append(BydSteeringWheelHeatSwitch(coordinator, api, vin, vehicle))
 
@@ -42,7 +43,8 @@ class BydBatteryHeatSwitch(CoordinatorEntity, SwitchEntity):
     """Representation of the BYD battery heat toggle."""
 
     _attr_has_entity_name = True
-    _attr_name = "Battery heat"
+    _attr_name = None
+    _attr_translation_key = "battery_heat"
     _attr_icon = "mdi:heat-wave"
 
     def __init__(
@@ -65,7 +67,9 @@ class BydBatteryHeatSwitch(CoordinatorEntity, SwitchEntity):
         """Available when coordinator has data for this vehicle."""
         if not super().available:
             return False
-        return self._vin in self.coordinator.data.get("vehicles", {})
+        if self._vin not in self.coordinator.data.get("vehicles", {}):
+            return False
+        return self._api.is_remote_command_supported(self._vin, "battery_heat_on")
 
     @property
     def is_on(self) -> bool | None:
@@ -137,11 +141,118 @@ class BydBatteryHeatSwitch(CoordinatorEntity, SwitchEntity):
         )
 
 
+class BydCarOnSwitch(CoordinatorEntity, SwitchEntity):
+    """Representation of a BYD car-on switch via climate control."""
+
+    _attr_has_entity_name = True
+    _attr_name = None
+    _attr_translation_key = "car_on"
+    _attr_icon = "mdi:car"
+    _TEMP_21C_SCALE = 7
+
+    def __init__(
+        self,
+        coordinator: BydDataUpdateCoordinator,
+        api: BydApi,
+        vin: str,
+        vehicle: Any,
+    ) -> None:
+        """Initialize the switch."""
+        super().__init__(coordinator)
+        self._api = api
+        self._vin = vin
+        self._vehicle = vehicle
+        self._attr_unique_id = f"{vin}_switch_car_on"
+        self._last_state: bool | None = None
+
+    def _get_hvac_status(self) -> HvacStatus | None:
+        hvac_map = self.coordinator.data.get("hvac", {})
+        hvac = hvac_map.get(self._vin)
+        return hvac if isinstance(hvac, HvacStatus) else None
+
+    @property
+    def available(self) -> bool:
+        """Available when coordinator has data for this vehicle."""
+        if not super().available:
+            return False
+        if self._vin not in self.coordinator.data.get("vehicles", {}):
+            return False
+        return self._api.is_remote_command_supported(self._vin, "car_on")
+
+    @property
+    def is_on(self) -> bool | None:
+        """Return whether car-on (climate) is on."""
+        hvac = self._get_hvac_status()
+        if hvac is not None:
+            return bool(hvac.is_ac_on)
+        return self._last_state
+
+    @property
+    def assumed_state(self) -> bool:
+        """Return True if HVAC state is unavailable."""
+        return self._get_hvac_status() is None
+
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        """Turn on car-on (start climate at 21°C)."""
+
+        async def _call(client: Any) -> Any:
+            return await client.start_climate(
+                self._vin, temperature=self._TEMP_21C_SCALE
+            )
+
+        try:
+            self._last_state = True
+            await self._api.async_call(_call, vin=self._vin, command="car_on")
+        except Exception as exc:  # noqa: BLE001
+            self._last_state = None
+            raise HomeAssistantError(str(exc)) from exc
+        self.async_write_ha_state()
+
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        """Turn off car-on (stop climate)."""
+
+        async def _call(client: Any) -> Any:
+            return await client.stop_climate(self._vin)
+
+        try:
+            self._last_state = False
+            await self._api.async_call(_call, vin=self._vin, command="car_off")
+        except Exception as exc:  # noqa: BLE001
+            self._last_state = None
+            raise HomeAssistantError(str(exc)) from exc
+        self.async_write_ha_state()
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return extra state attributes."""
+        attrs: dict[str, Any] = {
+            "vin": self._vin,
+            "target_temperature_c": 21,
+        }
+        for cmd in ("car_on", "car_off"):
+            last_result = self._api.get_last_remote_result(self._vin, cmd)
+            if last_result:
+                attrs["last_remote_result"] = last_result
+                break
+        return attrs
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        """Return device info for this switch."""
+        return DeviceInfo(
+            identifiers={(DOMAIN, self._vin)},
+            name=get_vehicle_display(self._vehicle),
+            manufacturer=getattr(self._vehicle, "brand_name", None) or "BYD",
+            model=getattr(self._vehicle, "model_name", None),
+        )
+
+
 class BydSteeringWheelHeatSwitch(CoordinatorEntity, SwitchEntity):
     """Representation of the BYD steering wheel heat toggle."""
 
     _attr_has_entity_name = True
-    _attr_name = "Steering wheel heating"
+    _attr_name = None
+    _attr_translation_key = "steering_wheel_heat"
     _attr_icon = "mdi:steering"
 
     def __init__(
@@ -171,7 +282,11 @@ class BydSteeringWheelHeatSwitch(CoordinatorEntity, SwitchEntity):
     def available(self) -> bool:
         if not super().available:
             return False
-        return self._vin in self.coordinator.data.get("vehicles", {})
+        if self._vin not in self.coordinator.data.get("vehicles", {}):
+            return False
+        return self._api.is_remote_command_supported(
+            self._vin, "steering_wheel_heat_on"
+        )
 
     @property
     def is_on(self) -> bool | None:

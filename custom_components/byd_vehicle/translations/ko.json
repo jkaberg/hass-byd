@@ -1,0 +1,428 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "BYD에 연결",
+        "description": "BYD 계정을 설정하세요.",
+        "data": {
+          "base_url": "지역",
+          "username": "사용자 이름",
+          "password": "비밀번호",
+          "control_pin": "제어 PIN(선택사항, 6자리)",
+          "country_code": "국가",
+          "poll_interval": "폴링 간격(초)",
+          "gps_poll_interval": "GPS 폴링 간격(초)",
+          "smart_gps_polling": "스마트 GPS 폴링",
+          "gps_active_interval": "GPS 활성 간격(초)",
+          "gps_inactive_interval": "GPS 비활성 간격(초)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "연결하지 못했습니다.",
+      "invalid_control_pin": "잘못된 제어 PIN 또는 클라우드 제어가 일시적으로 잠겨 있습니다.",
+      "invalid_auth": "잘못된 인증",
+      "unknown": "예상치 못한 오류"
+    },
+    "abort": {
+      "already_configured": "이 계정은 이미 구성되어 있습니다.",
+      "wrong_account": "재인증하려는 계정과 일치하지 않습니다.",
+      "reauth_successful": "재인증에 성공했습니다"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "폴링 업데이트",
+        "data": {
+          "poll_interval": "폴링 간격(초)",
+          "gps_poll_interval": "GPS 폴링 간격(초)",
+          "smart_gps_polling": "스마트 GPS 폴링",
+          "gps_active_interval": "GPS 활성 간격(초)",
+          "gps_inactive_interval": "GPS 비활성 간격(초)"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "elec_percent": {
+        "name": "배터리 잔량"
+      },
+      "endurance_mileage": {
+        "name": "범위"
+      },
+      "total_mileage": {
+        "name": "주행거리계"
+      },
+      "speed": {
+        "name": "속도"
+      },
+      "temp_in_car": {
+        "name": "기내 온도"
+      },
+      "left_front_tire_pressure": {
+        "name": "앞 좌측 타이어 공기압"
+      },
+      "right_front_tire_pressure": {
+        "name": "앞 우측 타이어 공기압"
+      },
+      "left_rear_tire_pressure": {
+        "name": "뒤 좌측 타이어 공기압"
+      },
+      "right_rear_tire_pressure": {
+        "name": "뒤 우측 타이어 공기압"
+      },
+      "soc": {
+        "name": "충전 SOC"
+      },
+      "time_to_full": {
+        "name": "완전 충전 시간"
+      },
+      "total_energy": {
+        "name": "총 에너지 소비량"
+      },
+      "avg_energy_consumption": {
+        "name": "평균 에너지 소비"
+      },
+      "temp_out_car": {
+        "name": "외부 온도"
+      },
+      "pm": {
+        "name": "PM2.5"
+      },
+      "power_battery": {
+        "name": "전원 배터리 잔량"
+      },
+      "ev_endurance": {
+        "name": "EV 내구성"
+      },
+      "endurance_mileage_v2": {
+        "name": "범위 V2"
+      },
+      "total_mileage_v2": {
+        "name": "주행거리계 V2"
+      },
+      "power_gear": {
+        "name": "기어 위치"
+      },
+      "charging_state": {
+        "name": "충전 상태"
+      },
+      "charge_state": {
+        "name": "충전 상태"
+      },
+      "wait_status": {
+        "name": "충전 대기 상태"
+      },
+      "full_hour": {
+        "name": "완충까지 시간"
+      },
+      "full_minute": {
+        "name": "가득 채울 때까지 분"
+      },
+      "charge_remaining_hours": {
+        "name": "남은 시간 충전"
+      },
+      "charge_remaining_minutes": {
+        "name": "충전 남은 시간(분)"
+      },
+      "booking_charge_state": {
+        "name": "예정된 충전"
+      },
+      "booking_charging_hour": {
+        "name": "예정된 충전 시간"
+      },
+      "booking_charging_minute": {
+        "name": "예정된 충전 시간(분)"
+      },
+      "left_front_tire_status": {
+        "name": "앞 좌측 타이어 상태"
+      },
+      "right_front_tire_status": {
+        "name": "앞 우측 타이어 상태"
+      },
+      "left_rear_tire_status": {
+        "name": "뒤 좌측 타이어 상태"
+      },
+      "right_rear_tire_status": {
+        "name": "뒤 우측 타이어 상태"
+      },
+      "tirepressure_system": {
+        "name": "TPMS 상태"
+      },
+      "rapid_tire_leak": {
+        "name": "급속한 타이어 누출"
+      },
+      "total_power": {
+        "name": "총 전력"
+      },
+      "nearest_energy_consumption": {
+        "name": "최근 에너지 소비"
+      },
+      "recent_50km_energy": {
+        "name": "최근 50km 에너지"
+      },
+      "oil_endurance": {
+        "name": "연료 범위"
+      },
+      "oil_percent": {
+        "name": "연료 수준"
+      },
+      "total_oil": {
+        "name": "총 연료 소비량"
+      },
+      "engine_status": {
+        "name": "엔진 상태"
+      },
+      "epb": {
+        "name": "전자식 주차 브레이크"
+      },
+      "eps": {
+        "name": "전동식 파워 스티어링"
+      },
+      "esp": {
+        "name": "전자적 안정성"
+      },
+      "abs_warning": {
+        "name": "ABS 경고"
+      },
+      "svs": {
+        "name": "곧 서비스 차량"
+      },
+      "srs": {
+        "name": "에어백 경고"
+      },
+      "ect": {
+        "name": "냉각수 온도 경고"
+      },
+      "ect_value": {
+        "name": "냉각수 온도"
+      },
+      "pwr": {
+        "name": "전원 경고"
+      },
+      "power_system": {
+        "name": "전력 시스템"
+      },
+      "upgrade_status": {
+        "name": "OTA 업그레이드 상태"
+      },
+      "charger_state": {
+        "name": "충전기 상태"
+      },
+      "charger_connection": {
+        "name": "충전기 연결 상태"
+      },
+      "charging_update_time": {
+        "name": "마지막 업데이트 충전 중"
+      },
+      "electricity_consumption": {
+        "name": "전력 소비"
+      },
+      "fuel_consumption": {
+        "name": "연료 소비"
+      },
+      "refrigerator_state": {
+        "name": "냉장고"
+      },
+      "refrigerator_door_state": {
+        "name": "냉장고 문"
+      }
+    },
+    "binary_sensor": {
+      "is_online": {
+        "name": "온라인"
+      },
+      "is_charging": {
+        "name": "충전 중"
+      },
+      "is_any_door_open": {
+        "name": "문"
+      },
+      "is_any_window_open": {
+        "name": "윈도우"
+      },
+      "is_locked": {
+        "name": "잠김"
+      },
+      "charger_connected": {
+        "name": "충전기 연결됨"
+      },
+      "sentry_status": {
+        "name": "감시 모드"
+      },
+      "left_front_door": {
+        "name": "전면 왼쪽 문"
+      },
+      "right_front_door": {
+        "name": "전면 오른쪽 문"
+      },
+      "left_rear_door": {
+        "name": "후면 왼쪽 도어"
+      },
+      "right_rear_door": {
+        "name": "후면 오른쪽 도어"
+      },
+      "trunk_lid": {
+        "name": "트렁크"
+      },
+      "sliding_door": {
+        "name": "미닫이문"
+      },
+      "forehold": {
+        "name": "프렁크"
+      },
+      "left_front_window": {
+        "name": "전면 왼쪽 창"
+      },
+      "right_front_window": {
+        "name": "전면 오른쪽 창"
+      },
+      "left_rear_window": {
+        "name": "뒤 좌측 창문"
+      },
+      "right_rear_window": {
+        "name": "뒤 오른쪽 창문"
+      },
+      "skylight": {
+        "name": "채광창"
+      },
+      "left_front_door_lock": {
+        "name": "앞 좌측 도어 잠금 장치"
+      },
+      "right_front_door_lock": {
+        "name": "앞 우측 도어 잠금장치"
+      },
+      "left_rear_door_lock": {
+        "name": "후면 좌측 도어 잠금 장치"
+      },
+      "right_rear_door_lock": {
+        "name": "뒤 우측 도어 잠금장치"
+      },
+      "sliding_door_lock": {
+        "name": "슬라이딩 도어 잠금 장치"
+      },
+      "battery_heat_state": {
+        "name": "배터리 가열"
+      },
+      "charge_heat_state": {
+        "name": "난방 충전"
+      },
+      "vehicle_state": {
+        "name": "차량 켜짐"
+      }
+    },
+    "button": {
+      "flash_lights": {
+        "name": "플래시 라이트"
+      },
+      "find_car": {
+        "name": "자동차 찾기"
+      },
+      "close_windows": {
+        "name": "창 닫기"
+      }
+    },
+    "select": {
+      "driver_seat_heat": {
+        "name": "운전석 난방",
+        "state": {
+          "off": "끄다",
+          "low": "낮은",
+          "high": "높은"
+        }
+      },
+      "driver_seat_ventilation": {
+        "name": "운전석 통풍",
+        "state": {
+          "off": "끄다",
+          "low": "낮은",
+          "high": "높은"
+        }
+      },
+      "passenger_seat_heat": {
+        "name": "조수석 난방",
+        "state": {
+          "off": "끄다",
+          "low": "낮은",
+          "high": "높은"
+        }
+      },
+      "passenger_seat_ventilation": {
+        "name": "조수석 환기",
+        "state": {
+          "off": "끄다",
+          "low": "낮은",
+          "high": "높은"
+        }
+      },
+      "rear_left_seat_heat": {
+        "name": "뒷좌석 난방",
+        "state": {
+          "off": "끄다",
+          "low": "낮은",
+          "high": "높은"
+        }
+      },
+      "rear_left_seat_ventilation": {
+        "name": "뒷좌석 통풍",
+        "state": {
+          "off": "끄다",
+          "low": "낮은",
+          "high": "높은"
+        }
+      },
+      "rear_right_seat_heat": {
+        "name": "뒷좌석 우측 시트 난방",
+        "state": {
+          "off": "끄다",
+          "low": "낮은",
+          "high": "높은"
+        }
+      },
+      "rear_right_seat_ventilation": {
+        "name": "뒷좌석 우측 통풍",
+        "state": {
+          "off": "끄다",
+          "low": "낮은",
+          "high": "높은"
+        }
+      }
+    },
+    "switch": {
+      "battery_heat": {
+        "name": "배터리 발열"
+      },
+      "car_on": {
+        "name": "자동차 켜짐"
+      },
+      "steering_wheel_heat": {
+        "name": "스티어링 휠 가열"
+      }
+    },
+    "climate": {
+      "climate": {
+        "name": "기후",
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "max_heat": "최대 열",
+              "max_cool": "맥스 쿨"
+            }
+          }
+        }
+      }
+    },
+    "lock": {
+      "lock": {
+        "name": "잠그다"
+      }
+    },
+    "device_tracker": {
+      "location": {
+        "name": "위치"
+      }
+    }
+  }
+}

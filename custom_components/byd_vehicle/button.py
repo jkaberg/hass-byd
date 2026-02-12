@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any
 
 from homeassistant.components.button import ButtonEntity, ButtonEntityDescription
@@ -82,7 +82,11 @@ class BydButton(CoordinatorEntity, ButtonEntity):
     ) -> None:
         """Initialize the button."""
         super().__init__(coordinator)
-        self.entity_description = description
+        self.entity_description = replace(
+            description,
+            name=None,
+            translation_key=description.key,
+        )
         self._api = api
         self._vin = vin
         self._vehicle = vehicle
@@ -93,7 +97,12 @@ class BydButton(CoordinatorEntity, ButtonEntity):
         """Available when coordinator has data for this vehicle."""
         if not super().available:
             return False
-        return self.coordinator.data.get("vehicles", {}).get(self._vin) is not None
+        if self.coordinator.data.get("vehicles", {}).get(self._vin) is None:
+            return False
+        return self._api.is_remote_command_supported(
+            self._vin,
+            self.entity_description.method,
+        )
 
     async def async_press(self) -> None:
         """Execute the remote command."""

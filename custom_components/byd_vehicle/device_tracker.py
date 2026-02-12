@@ -36,7 +36,8 @@ class BydDeviceTracker(CoordinatorEntity, TrackerEntity):
     """Representation of a BYD vehicle tracker."""
 
     _attr_has_entity_name = True
-    _attr_name = "Location"
+    _attr_name = None
+    _attr_translation_key = "location"
 
     def __init__(
         self, coordinator: BydGpsUpdateCoordinator, vin: str, vehicle: Any

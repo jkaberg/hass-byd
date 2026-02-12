@@ -2,9 +2,9 @@
 
 ## PLEASE READ FIRST!
 
-This integration and the subsequent library is an alpha stage, especially the library needs work to map out all the sensor states an parsing correctly.
+This integration and the subsequent library is an alpha stage, especially the library needs work to map out all the metr
 
-I urge any and everyone to contribute to this work so that we all can enjoy the fruits, for more information see [pyBYD](https://github.com/jkaberg/pyBYD).
+You have been warned.
 
 
 ## Description
@@ -13,6 +13,8 @@ The `byd_vehicle` integration connects Home Assistant to the BYD cloud service
 using the [pyBYD](https://github.com/jkaberg/pyBYD) library. It provides
 extensive vehicle telemetry, GPS tracking, climate control, door locks, seat
 climate, and remote commands for BYD vehicles.
+
+Requires `pybyd>=0.0.12`.
 
 ## Installation
 
@@ -62,9 +64,34 @@ Integration**, and search for **BYD Vehicle**.
 #### Supported countries
 
 Australia, Austria, Belgium, Brazil, Colombia, Costa Rica, Denmark,
-El Salvador, France, Germany, Hong Kong, India, Indonesia, Japan, Malaysia,
-Mexico, Netherlands, Norway, Pakistan, Philippines, Poland, South Africa,
-South Korea, Sweden, Thailand, Turkey, United Kingdom, Uzbekistan.
+El Salvador, France, Germany, Hong Kong, Hungary, India, Indonesia, Japan,
+Malaysia, Mexico, Netherlands, New Zealand, Norway, Pakistan, Philippines,
+Poland, South Africa, South Korea, Sweden, Thailand, Turkey,
+United Kingdom, Uzbekistan.
+
+#### Supported Home Assistant UI languages
+
+The integration includes Home Assistant translation files for:
+
+- English (`en`)
+- German (`de`)
+- Portuguese (`pt`)
+- Spanish (`es`)
+- Danish (`da`)
+- French (`fr`)
+- Chinese Simplified (`zh-Hans`)
+- Hungarian (`hu`)
+- Indonesian (`id`)
+- Japanese (`ja`)
+- Malay (`ms`)
+- Dutch (`nl`)
+- Norwegian (`no`)
+- Polish (`pl`)
+- Korean (`ko`)
+- Swedish (`sv`)
+- Thai (`th`)
+- Turkish (`tr`)
+- Uzbek (`uz`)
 
 ### Options (reconfigure)
 
@@ -173,6 +200,7 @@ locks. Requires a control PIN.
 
 | Switch | Description |
 |--------|-------------|
+| Car on | Starts climate at 21 °C when on; turns climate off when off. |
 | Battery heat | Toggle battery heating on/off. |
 | Steering wheel heating | Toggle steering wheel heater on/off. |
 
@@ -201,7 +229,8 @@ locks. Requires a control PIN.
 
 Remote command results (climate, lock, switches, buttons, seat climate) are
 exposed as `last_remote_result` in each entity's attributes, including success
-status, control state, and request serial number.
+status, control state, request serial number, and API error details when
+available (`error_code`, `error_endpoint`).
 
 A **control PIN** (6-digit) is required for remote commands. Set it during
 initial setup or update it by re-adding the integration.
@@ -210,6 +239,10 @@ initial setup or update it by re-adding the integration.
 
 - This integration relies on the BYD cloud API and account permissions. Data
   availability and command support can vary by vehicle model and region.
+- Unsupported command endpoints, cloud rate-limits, and control PIN lockouts are
+  surfaced as explicit entity errors.
+- When BYD reports a remote command endpoint as unsupported for a VIN, affected
+  command entities become unavailable for that vehicle.
 - The integration uses cloud polling (`cloud_polling` IoT class). Data freshness
   depends on the configured polling intervals.
 - A unique device fingerprint is generated per config entry to identify the
