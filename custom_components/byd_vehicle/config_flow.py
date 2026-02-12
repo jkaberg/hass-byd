@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 from typing import Any
 
@@ -179,6 +180,11 @@ class BydVehicleConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             except BydAuthenticationError:
                 errors["base"] = "invalid_auth"
             except BydControlPasswordError:
+                errors["base"] = "invalid_control_pin"
+            except json.JSONDecodeError:
+                _LOGGER.warning(
+                    "JSONDecodeError during validation – likely an invalid control PIN"
+                )
                 errors["base"] = "invalid_control_pin"
             except (BydApiError, BydTransportError) as exc:
                 _LOGGER.warning("BYD API error during validation: %s", exc)
