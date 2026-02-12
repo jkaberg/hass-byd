@@ -65,6 +65,9 @@ class BydApi:
         self._last_remote_results: dict[tuple[str, str], dict[str, Any]] = {}
         self._unsupported_remote_commands: dict[str, set[str]] = {}
         self._client: BydClient | None = None
+        # Serialize all BYD cloud calls so telemetry polls and remote
+        # commands never overlap (BYD returns 6024 for concurrent ops).
+        self._api_lock = asyncio.Lock()
 
     @property
     def config(self) -> BydConfig:
@@ -155,10 +158,25 @@ class BydApi:
     ) -> Any:
         """Execute *handler(client)* with automatic session management.
 
+        All calls are serialized through ``_api_lock`` so that
+        telemetry polls and remote-control commands never overlap on
+        BYD's cloud (which returns code 6024 for concurrent ops).
+
         The pybyd client handles login and session-expiry retries
         internally via ``ensure_session()``.  We only need to recreate
         the client on hard transport failures.
         """
+        async with self._api_lock:
+            return await self._async_call_inner(handler, vin=vin, command=command)
+
+    async def _async_call_inner(
+        self,
+        handler: Any,
+        *,
+        vin: str | None = None,
+        command: str | None = None,
+    ) -> Any:
+        """Inner call logic (must be called under ``_api_lock``)."""
         try:
             client = await self._ensure_client()
             result = await handler(client)
