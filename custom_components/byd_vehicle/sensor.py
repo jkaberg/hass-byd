@@ -767,7 +767,7 @@ class BydSensor(CoordinatorEntity, SensorEntity):
     def _resolve_value(self) -> Any:
         """Extract the current value using the description's extraction logic."""
         if self.entity_description.key == "last_updated":
-            return self.coordinator.get_telemetry_freshness()
+            return self.coordinator.get_telemetry_last_received()
         if self.entity_description.key == "gps_last_updated":
             return self.coordinator.get_gps_freshness()
         obj = self._get_source_obj()
@@ -792,7 +792,7 @@ class BydSensor(CoordinatorEntity, SensorEntity):
         if self.entity_description.key == "last_updated":
             return (
                 super().available
-                and self.coordinator.get_telemetry_freshness() is not None
+                and self.coordinator.get_telemetry_last_received() is not None
             )
         if self.entity_description.key == "gps_last_updated":
             return (

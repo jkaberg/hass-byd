@@ -98,6 +98,7 @@ class BydApi:
         # Canonical telemetry freshness keyed by VIN.
         # This advances only when material telemetry values change.
         self._telemetry_freshness: dict[str, datetime] = {}
+        self._telemetry_last_received: dict[str, datetime] = {}
         self._telemetry_snapshot_hash: dict[str, str] = {}
         self._gps_freshness: dict[str, datetime] = {}
         self._debug_dump_dir = Path(hass.config.path(".storage/byd_vehicle_debug"))
@@ -199,6 +200,39 @@ class BydApi:
     def get_telemetry_freshness(self, vin: str) -> datetime | None:
         """Return canonical telemetry freshness timestamp for a VIN."""
         return self._telemetry_freshness.get(vin)
+
+    def update_telemetry_last_received(
+        self,
+        vin: str,
+        *,
+        realtime: Any | None = None,
+        charging: Any | None = None,
+    ) -> None:
+        """Store latest observed telemetry payload timestamp for a VIN."""
+        observed_candidates = [
+            (
+                _normalize_epoch(getattr(realtime, "timestamp", None))
+                if realtime is not None
+                else None
+            ),
+            (
+                _normalize_epoch(getattr(charging, "update_time", None))
+                if charging is not None
+                else None
+            ),
+        ]
+        observed = max(
+            [candidate for candidate in observed_candidates if candidate is not None],
+            default=datetime.now(tz=UTC),
+        )
+
+        current = self._telemetry_last_received.get(vin)
+        if current is None or observed > current:
+            self._telemetry_last_received[vin] = observed
+
+    def get_telemetry_last_received(self, vin: str) -> datetime | None:
+        """Return latest telemetry payload timestamp for a VIN."""
+        return self._telemetry_last_received.get(vin)
 
     def update_gps_freshness(self, vin: str, *, gps: Any | None = None) -> bool:
         """Advance GPS freshness timestamp from observed GPS payload."""
@@ -523,6 +557,10 @@ class BydDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Expose canonical telemetry freshness for sensors."""
         return self._api.get_telemetry_freshness(self._vin)
 
+    def get_telemetry_last_received(self) -> datetime | None:
+        """Expose telemetry last-received timestamp for sensors."""
+        return self._api.get_telemetry_last_received(self._vin)
+
     def get_gps_freshness(self) -> datetime | None:
         """Expose canonical GPS freshness for sensors."""
         return self._api.get_gps_freshness(self._vin)
@@ -656,6 +694,11 @@ class BydDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         data = await self._api.async_call(_fetch)
         self._api.update_last_transmission(
+            self._vin,
+            realtime=data.get("realtime", {}).get(self._vin),
+            charging=data.get("charging", {}).get(self._vin),
+        )
+        self._api.update_telemetry_last_received(
             self._vin,
             realtime=data.get("realtime", {}).get(self._vin),
             charging=data.get("charging", {}).get(self._vin),
