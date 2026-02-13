@@ -6,6 +6,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from pybyd import BydClient
 
 from .const import (
     CONF_DEVICE_PROFILE,
@@ -49,27 +50,55 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         CONF_GPS_INACTIVE_INTERVAL, DEFAULT_GPS_INACTIVE_INTERVAL
     )
 
-    coordinator = BydDataUpdateCoordinator(hass, api, poll_interval)
-    gps_coordinator = BydGpsUpdateCoordinator(
-        hass,
-        api,
-        gps_interval,
-        telemetry_coordinator=coordinator,
-        smart_polling=smart_gps,
-        active_interval=gps_active,
-        inactive_interval=gps_inactive,
-    )
+    async def _fetch_vehicles(client: BydClient) -> list:
+        return await client.get_vehicles()
+
+    vehicles = await api.async_call(_fetch_vehicles)
+    if not vehicles:
+        raise ConfigEntryNotReady("No vehicles available for this account")
+
+    coordinators: dict[str, BydDataUpdateCoordinator] = {}
+    gps_coordinators: dict[str, BydGpsUpdateCoordinator] = {}
+
+    for vehicle in vehicles:
+        vin = vehicle.vin
+        telemetry_coordinator = BydDataUpdateCoordinator(
+            hass,
+            api,
+            vin,
+            poll_interval,
+            active_interval=gps_active,
+            inactive_interval=gps_inactive,
+        )
+        gps_coordinator = BydGpsUpdateCoordinator(
+            hass,
+            api,
+            vin,
+            gps_interval,
+            telemetry_coordinator=telemetry_coordinator,
+            smart_polling=smart_gps,
+            active_interval=gps_active,
+            inactive_interval=gps_inactive,
+        )
+        coordinators[vin] = telemetry_coordinator
+        gps_coordinators[vin] = gps_coordinator
 
     try:
-        await coordinator.async_config_entry_first_refresh()
-        await gps_coordinator.async_config_entry_first_refresh()
+        for coordinator in coordinators.values():
+            await coordinator.async_config_entry_first_refresh()
+        for gps_coordinator in gps_coordinators.values():
+            await gps_coordinator.async_config_entry_first_refresh()
     except Exception as exc:  # noqa: BLE001
         raise ConfigEntryNotReady from exc
 
+    first_vin = next(iter(coordinators))
+
     hass.data[DOMAIN][entry.entry_id] = {
         "api": api,
-        "coordinator": coordinator,
-        "gps_coordinator": gps_coordinator,
+        "coordinator": coordinators[first_vin],
+        "gps_coordinator": gps_coordinators[first_vin],
+        "coordinators": coordinators,
+        "gps_coordinators": gps_coordinators,
     }
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)

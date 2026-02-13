@@ -37,13 +37,15 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     data = hass.data[DOMAIN][entry.entry_id]
-    coordinator: BydDataUpdateCoordinator = data["coordinator"]
+    coordinators: dict[str, BydDataUpdateCoordinator] = data["coordinators"]
     api: BydApi = data["api"]
 
     entities: list[LockEntity] = []
 
-    vehicle_map = coordinator.data.get("vehicles", {})
-    for vin, vehicle in vehicle_map.items():
+    for vin, coordinator in coordinators.items():
+        vehicle = coordinator.data.get("vehicles", {}).get(vin)
+        if vehicle is None:
+            continue
         entities.append(BydLock(coordinator, api, vin, vehicle))
 
     async_add_entities(entities)

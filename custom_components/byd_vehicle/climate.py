@@ -45,7 +45,7 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     data = hass.data[DOMAIN][entry.entry_id]
-    coordinator: BydDataUpdateCoordinator = data["coordinator"]
+    coordinators: dict[str, BydDataUpdateCoordinator] = data["coordinators"]
     api: BydApi = data["api"]
     climate_duration = entry.options.get(
         CONF_CLIMATE_DURATION,
@@ -54,8 +54,10 @@ async def async_setup_entry(
 
     entities: list[ClimateEntity] = []
 
-    vehicle_map = coordinator.data.get("vehicles", {})
-    for vin, vehicle in vehicle_map.items():
+    for vin, coordinator in coordinators.items():
+        vehicle = coordinator.data.get("vehicles", {}).get(vin)
+        if vehicle is None:
+            continue
         entities.append(BydClimate(coordinator, api, vin, vehicle, climate_duration))
 
     async_add_entities(entities)

@@ -21,12 +21,14 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     data = hass.data[DOMAIN][entry.entry_id]
-    gps_coordinator: BydGpsUpdateCoordinator = data["gps_coordinator"]
+    gps_coordinators: dict[str, BydGpsUpdateCoordinator] = data["gps_coordinators"]
 
     entities: list[TrackerEntity] = []
 
-    vehicle_map = gps_coordinator.data.get("vehicles", {})
-    for vin, vehicle in vehicle_map.items():
+    for vin, gps_coordinator in gps_coordinators.items():
+        vehicle = gps_coordinator.data.get("vehicles", {}).get(vin)
+        if vehicle is None:
+            continue
         entities.append(BydDeviceTracker(gps_coordinator, vin, vehicle))
 
     async_add_entities(entities)

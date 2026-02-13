@@ -39,13 +39,14 @@ async def async_setup_entry(
 ) -> None:
     """Set up BYD switches from a config entry."""
     data = hass.data[DOMAIN][entry.entry_id]
-    coordinator: BydDataUpdateCoordinator = data["coordinator"]
+    coordinators: dict[str, BydDataUpdateCoordinator] = data["coordinators"]
     api: BydApi = data["api"]
 
     entities: list[SwitchEntity] = []
-    vehicle_map = coordinator.data.get("vehicles", {})
-
-    for vin, vehicle in vehicle_map.items():
+    for vin, coordinator in coordinators.items():
+        vehicle = coordinator.data.get("vehicles", {}).get(vin)
+        if vehicle is None:
+            continue
         entities.append(BydCarOnSwitch(coordinator, api, vin, vehicle))
         entities.append(BydBatteryHeatSwitch(coordinator, api, vin, vehicle))
         entities.append(BydSteeringWheelHeatSwitch(coordinator, api, vin, vehicle))

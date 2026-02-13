@@ -703,12 +703,13 @@ async def async_setup_entry(
 ) -> None:
     """Set up BYD sensors from a config entry."""
     data = hass.data[DOMAIN][entry.entry_id]
-    coordinator: BydDataUpdateCoordinator = data["coordinator"]
+    coordinators: dict[str, BydDataUpdateCoordinator] = data["coordinators"]
 
     entities: list[SensorEntity] = []
-    vehicle_map = coordinator.data.get("vehicles", {})
-
-    for vin, vehicle in vehicle_map.items():
+    for vin, coordinator in coordinators.items():
+        vehicle = coordinator.data.get("vehicles", {}).get(vin)
+        if vehicle is None:
+            continue
         for description in SENSOR_DESCRIPTIONS:
             entities.append(BydSensor(coordinator, vin, vehicle, description))
 
@@ -745,8 +746,7 @@ class BydSensor(CoordinatorEntity, SensorEntity):
         """Initialize the sensor."""
         super().__init__(coordinator)
         self.entity_description = description
-        self._attr_name = None
-        self._attr_translation_key = description.key
+        self._attr_name = description.name
         self._vin = vin
         self._vehicle = vehicle
         self._attr_unique_id = f"{vin}_{description.source}_{description.key}"

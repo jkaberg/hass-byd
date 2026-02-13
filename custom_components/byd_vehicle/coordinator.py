@@ -48,6 +48,24 @@ def _get_vehicle_name(vehicle: Vehicle) -> str:
     return vehicle.model_name or vehicle.vin
 
 
+def _normalize_epoch(value: Any) -> datetime | None:
+    """Convert epoch-like values (sec/ms) to UTC datetime."""
+    if value is None:
+        return None
+    try:
+        ts = float(value)
+    except (TypeError, ValueError):
+        return None
+    if ts <= 0:
+        return None
+    if ts > 1_000_000_000_000:
+        ts = ts / 1000
+    try:
+        return datetime.fromtimestamp(ts, tz=UTC)
+    except (OverflowError, OSError, ValueError):
+        return None
+
+
 class BydApi:
     """Thin wrapper around the pybyd client."""
 
@@ -74,11 +92,52 @@ class BydApi:
             CONF_DEBUG_DUMPS,
             DEFAULT_DEBUG_DUMPS,
         )
+        self._last_transmissions: dict[str, datetime] = {}
         self._debug_dump_dir = Path(hass.config.path(".storage/byd_vehicle_debug"))
         self._reload_scheduled = False
         # Serialize all BYD cloud calls so telemetry polls and remote
         # commands never overlap (BYD returns 6024 for concurrent ops).
         self._api_lock = asyncio.Lock()
+
+    def update_last_transmission(
+        self,
+        vin: str,
+        *,
+        realtime: Any | None = None,
+        gps: Any | None = None,
+        charging: Any | None = None,
+    ) -> None:
+        """Store latest observed transmission timestamp for a VIN."""
+        candidates = [
+            (
+                _normalize_epoch(getattr(realtime, "timestamp", None))
+                if realtime is not None
+                else None
+            ),
+            (
+                _normalize_epoch(getattr(gps, "gps_timestamp", None))
+                if gps is not None
+                else None
+            ),
+            (
+                _normalize_epoch(getattr(charging, "update_time", None))
+                if charging is not None
+                else None
+            ),
+        ]
+        valid_candidates = [
+            candidate for candidate in candidates if candidate is not None
+        ]
+        if not valid_candidates:
+            return
+        latest = max(valid_candidates)
+        current = self._last_transmissions.get(vin)
+        if current is None or latest > current:
+            self._last_transmissions[vin] = latest
+
+    def get_last_transmission(self, vin: str) -> datetime | None:
+        """Return last known transmission timestamp for a VIN."""
+        return self._last_transmissions.get(vin)
 
     @staticmethod
     def _json_safe(value: Any) -> Any:
@@ -296,88 +355,110 @@ class BydApi:
 
 
 class BydDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
-    """Coordinator for normal telemetry updates."""
+    """Coordinator for telemetry updates for a single VIN."""
 
-    def __init__(self, hass: HomeAssistant, api: BydApi, poll_interval: int) -> None:
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        api: BydApi,
+        vin: str,
+        poll_interval: int,
+        *,
+        active_interval: int,
+        inactive_interval: int,
+    ) -> None:
         super().__init__(
             hass,
             _LOGGER,
-            name=f"{DOMAIN}_telemetry",
+            name=f"{DOMAIN}_telemetry_{vin[-6:]}",
             update_interval=timedelta(seconds=poll_interval),
         )
         self._api = api
+        self._vin = vin
+        self._active_interval = timedelta(seconds=active_interval)
+        self._inactive_interval = timedelta(seconds=inactive_interval)
+        self._current_interval = timedelta(seconds=poll_interval)
+
+    def _desired_interval(self) -> timedelta:
+        """Determine poll interval from transmission recency."""
+        last_transmission = self._api.get_last_transmission(self._vin)
+        if last_transmission is None:
+            return self._inactive_interval
+        age = datetime.now(tz=UTC) - last_transmission
+        if age <= self._active_interval:
+            return self._active_interval
+        return self._inactive_interval
+
+    def _adjust_interval(self) -> None:
+        """Apply adaptive interval for this VIN."""
+        new_interval = self._desired_interval()
+        if self._current_interval == new_interval:
+            return
+        _LOGGER.info(
+            "Telemetry adaptive polling VIN %s: %ss -> %ss",
+            self._vin[-6:],
+            self._current_interval.total_seconds(),
+            new_interval.total_seconds(),
+        )
+        self._current_interval = new_interval
+        self.update_interval = new_interval
 
     async def _async_update_data(self) -> dict[str, Any]:
         async def _fetch(client: BydClient) -> dict[str, Any]:
             vehicles = await client.get_vehicles()
-            vehicle_map = {vehicle.vin: vehicle for vehicle in vehicles}
+            vehicle = next(
+                (vehicle for vehicle in vehicles if vehicle.vin == self._vin),
+                None,
+            )
+            if vehicle is None:
+                raise UpdateFailed(f"Vehicle {self._vin} no longer present")
+            vehicle_map = {self._vin: vehicle}
 
             auth_errors = (BydAuthenticationError, BydSessionExpiredError)
-
-            async def _fetch_for_vin(
-                vin: str,
-            ) -> tuple[str, Any, Any, Any, Any]:
-                realtime = None
-                energy = None
-                hvac = None
-                charging = None
-                try:
-                    realtime = await client.get_vehicle_realtime(vin)
-                except auth_errors:
-                    raise
-                except Exception as exc:  # noqa: BLE001
-                    _LOGGER.warning("Realtime fetch failed for %s: %s", vin, exc)
-                try:
-                    energy = await client.get_energy_consumption(vin)
-                except auth_errors:
-                    raise
-                except Exception as exc:  # noqa: BLE001
-                    _LOGGER.warning("Energy fetch failed for %s: %s", vin, exc)
-                try:
-                    hvac = await client.get_hvac_status(vin)
-                except auth_errors:
-                    raise
-                except Exception as exc:  # noqa: BLE001
-                    _LOGGER.warning("HVAC fetch failed for %s: %s", vin, exc)
-                try:
-                    charging = await client.get_charging_status(vin)
-                except auth_errors:
-                    raise
-                except Exception as exc:  # noqa: BLE001
-                    _LOGGER.warning("Charging fetch failed for %s: %s", vin, exc)
-                return vin, realtime, energy, hvac, charging
-
-            tasks = [_fetch_for_vin(vin) for vin in vehicle_map]
-            results = await asyncio.gather(*tasks, return_exceptions=True)
+            realtime = None
+            energy = None
+            hvac = None
+            charging = None
+            try:
+                realtime = await client.get_vehicle_realtime(self._vin)
+            except auth_errors:
+                raise
+            except Exception as exc:  # noqa: BLE001
+                _LOGGER.warning("Realtime fetch failed for %s: %s", self._vin, exc)
+            try:
+                energy = await client.get_energy_consumption(self._vin)
+            except auth_errors:
+                raise
+            except Exception as exc:  # noqa: BLE001
+                _LOGGER.warning("Energy fetch failed for %s: %s", self._vin, exc)
+            try:
+                hvac = await client.get_hvac_status(self._vin)
+            except auth_errors:
+                raise
+            except Exception as exc:  # noqa: BLE001
+                _LOGGER.warning("HVAC fetch failed for %s: %s", self._vin, exc)
+            try:
+                charging = await client.get_charging_status(self._vin)
+            except auth_errors:
+                raise
+            except Exception as exc:  # noqa: BLE001
+                _LOGGER.warning("Charging fetch failed for %s: %s", self._vin, exc)
 
             realtime_map: dict[str, Any] = {}
             energy_map: dict[str, Any] = {}
             hvac_map: dict[str, Any] = {}
             charging_map: dict[str, Any] = {}
-            for result in results:
-                if isinstance(result, BaseException):
-                    if isinstance(result, auth_errors):
-                        _LOGGER.warning(
-                            "Telemetry auth/session failure during VIN poll: %s",
-                            result,
-                        )
-                        raise result
-                    _LOGGER.warning("Telemetry update failed: %s", result)
-                    continue
-                vin, realtime, energy, hvac, charging = result
-                if realtime is not None:
-                    realtime_map[vin] = realtime
-                if energy is not None:
-                    energy_map[vin] = energy
-                if hvac is not None:
-                    hvac_map[vin] = hvac
-                if charging is not None:
-                    charging_map[vin] = charging
+            if realtime is not None:
+                realtime_map[self._vin] = realtime
+            if energy is not None:
+                energy_map[self._vin] = energy
+            if hvac is not None:
+                hvac_map[self._vin] = hvac
+            if charging is not None:
+                charging_map[self._vin] = charging
 
-            if vehicle_map and not any(
-                [realtime_map, energy_map, hvac_map, charging_map]
-            ):
-                raise UpdateFailed("All telemetry fetches failed for all vehicles")
+            if not any([realtime_map, energy_map, hvac_map, charging_map]):
+                raise UpdateFailed(f"All telemetry fetches failed for {self._vin}")
 
             return {
                 "vehicles": vehicle_map,
@@ -387,16 +468,24 @@ class BydDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 "charging": charging_map,
             }
 
-        return await self._api.async_call(_fetch)
+        data = await self._api.async_call(_fetch)
+        self._api.update_last_transmission(
+            self._vin,
+            realtime=data.get("realtime", {}).get(self._vin),
+            charging=data.get("charging", {}).get(self._vin),
+        )
+        self._adjust_interval()
+        return data
 
 
 class BydGpsUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
-    """Coordinator for GPS updates with optional smart polling."""
+    """Coordinator for GPS updates for a single VIN with adaptive polling."""
 
     def __init__(
         self,
         hass: HomeAssistant,
         api: BydApi,
+        vin: str,
         poll_interval: int,
         *,
         telemetry_coordinator: BydDataUpdateCoordinator | None = None,
@@ -407,10 +496,11 @@ class BydGpsUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         super().__init__(
             hass,
             _LOGGER,
-            name=f"{DOMAIN}_gps",
+            name=f"{DOMAIN}_gps_{vin[-6:]}",
             update_interval=timedelta(seconds=poll_interval),
         )
         self._api = api
+        self._vin = vin
         self._telemetry_coordinator = telemetry_coordinator
         self._smart_polling = smart_polling
         self._active_interval = timedelta(seconds=active_interval)
@@ -418,98 +508,100 @@ class BydGpsUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._current_interval = timedelta(seconds=poll_interval)
         self._last_smart_state: bool | None = None
 
-    def _is_any_vehicle_moving(self, data: dict[str, Any]) -> bool:
-        """Check if any vehicle is moving based on known speed data."""
+    def _is_vehicle_moving(self, data: dict[str, Any]) -> bool:
+        """Check if this VIN is moving based on known speed data."""
         gps_map = data.get("gps", {})
-        telemetry_data = self._telemetry_coordinator.data if self._telemetry_coordinator else None
+        telemetry_data = (
+            self._telemetry_coordinator.data if self._telemetry_coordinator else None
+        )
         realtime_map = (
             telemetry_data.get("realtime", {})
             if isinstance(telemetry_data, dict)
             else {}
         )
 
-        vins = set(data.get("vehicles", {}).keys())
-        vins.update(gps_map.keys())
-        vins.update(realtime_map.keys())
+        gps = gps_map.get(self._vin)
+        realtime = realtime_map.get(self._vin)
 
-        if not vins:
-            _LOGGER.debug("Smart GPS: no GPS or realtime data available yet")
-            return False
+        realtime_speed = (
+            getattr(realtime, "speed", None) if realtime is not None else None
+        )
+        gps_speed = getattr(gps, "speed", None) if gps is not None else None
+        speed = realtime_speed if realtime_speed is not None else gps_speed
+        if realtime_speed is not None:
+            speed_source = "realtime"
+        elif gps_speed is not None:
+            speed_source = "gps"
+        else:
+            speed_source = "none"
 
-        for vin in vins:
-            gps = gps_map.get(vin)
-            realtime = realtime_map.get(vin)
+        _LOGGER.debug(
+            "Smart GPS: VIN %s speed=%s source=%s (realtime=%s gps=%s)",
+            self._vin[-6:],
+            speed,
+            speed_source,
+            realtime_speed,
+            gps_speed,
+        )
+        return speed is not None and speed > 0
 
-            realtime_speed = getattr(realtime, "speed", None) if realtime is not None else None
-            gps_speed = getattr(gps, "speed", None) if gps is not None else None
-            speed = realtime_speed if realtime_speed is not None else gps_speed
-            if realtime_speed is not None:
-                speed_source = "realtime"
-            elif gps_speed is not None:
-                speed_source = "gps"
-            else:
-                speed_source = "none"
-
-            _LOGGER.debug(
-                "Smart GPS: VIN %s speed=%s source=%s (realtime=%s gps=%s)",
-                vin[-6:],
-                speed,
-                speed_source,
-                realtime_speed,
-                gps_speed,
-            )
-            if speed is not None and speed > 0:
-                return True
-        return False
+    def _desired_interval(self) -> timedelta:
+        """Determine base interval from transmission recency."""
+        last_transmission = self._api.get_last_transmission(self._vin)
+        if last_transmission is None:
+            return self._inactive_interval
+        age = datetime.now(tz=UTC) - last_transmission
+        if age <= self._active_interval:
+            return self._active_interval
+        return self._inactive_interval
 
     def _adjust_interval(self, data: dict[str, Any]) -> None:
-        """Adjust the polling interval based on vehicle movement."""
-        if not self._smart_polling:
-            return
-        is_moving = self._is_any_vehicle_moving(data)
-        new_interval = self._active_interval if is_moving else self._inactive_interval
+        """Adjust polling interval based on transmission and optional movement."""
+        new_interval = self._desired_interval()
+        is_moving = False
+        if self._smart_polling:
+            is_moving = self._is_vehicle_moving(data)
+            if is_moving and new_interval > self._active_interval:
+                new_interval = self._active_interval
+
         if self._current_interval != new_interval:
             _LOGGER.info(
-                "Smart GPS polling: vehicle %s, interval %ss -> %ss",
-                "moving" if is_moving else "stationary",
+                "GPS adaptive polling VIN %s (%s): %ss -> %ss",
+                self._vin[-6:],
+                "moving" if is_moving else "idle",
                 self._current_interval.total_seconds(),
                 new_interval.total_seconds(),
             )
             self._current_interval = new_interval
             self.update_interval = new_interval
-            self._last_smart_state = is_moving
+        self._last_smart_state = is_moving
 
     async def _async_update_data(self) -> dict[str, Any]:
         async def _fetch(client: BydClient) -> dict[str, Any]:
             vehicles = await client.get_vehicles()
-            vehicle_map = {vehicle.vin: vehicle for vehicle in vehicles}
+            vehicle = next(
+                (vehicle for vehicle in vehicles if vehicle.vin == self._vin),
+                None,
+            )
+            if vehicle is None:
+                raise UpdateFailed(f"Vehicle {self._vin} no longer present")
+            vehicle_map = {self._vin: vehicle}
 
             auth_errors = (BydAuthenticationError, BydSessionExpiredError)
-
-            async def _fetch_for_vin(vin: str) -> tuple[str, Any]:
-                gps = await client.get_gps_info(vin)
-                return vin, gps
-
-            tasks = [_fetch_for_vin(vin) for vin in vehicle_map]
-            results = await asyncio.gather(*tasks, return_exceptions=True)
+            gps = None
+            try:
+                gps = await client.get_gps_info(self._vin)
+            except auth_errors:
+                raise
+            except Exception as exc:  # noqa: BLE001
+                _LOGGER.warning("GPS fetch failed for %s: %s", self._vin, exc)
 
             gps_map: dict[str, Any] = {}
-            for result in results:
-                if isinstance(result, BaseException):
-                    if isinstance(result, auth_errors):
-                        _LOGGER.warning(
-                            "GPS auth/session failure during VIN poll: %s",
-                            result,
-                        )
-                        raise result
-                    _LOGGER.warning("GPS update failed: %s", result)
-                    continue
-                vin, gps = result
-                if gps is not None:
-                    gps_map[vin] = gps
+            if gps is not None:
+                gps_map[self._vin] = gps
 
-            if vehicle_map and not gps_map:
-                raise UpdateFailed("GPS fetch failed for all vehicles")
+            if not gps_map:
+                raise UpdateFailed(f"GPS fetch failed for {self._vin}")
 
             return {
                 "vehicles": vehicle_map,
@@ -517,6 +609,10 @@ class BydGpsUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             }
 
         data = await self._api.async_call(_fetch)
+        self._api.update_last_transmission(
+            self._vin,
+            gps=data.get("gps", {}).get(self._vin),
+        )
         self._adjust_interval(data)
         return data
 
