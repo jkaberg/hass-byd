@@ -28,12 +28,7 @@ from pybyd import (
     RemoteControlResult,
 )
 from pybyd.config import BydConfig, DeviceProfile
-
-try:
-    from pybyd.models.realtime import VehicleState
-except (ImportError, AttributeError):
-    VehicleState = None
-
+from pybyd.models.realtime import VehicleState
 from pybyd.models.vehicle import Vehicle
 
 from .const import (
@@ -611,23 +606,16 @@ class BydDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         state = getattr(realtime, "vehicle_state", None)
         if state is None:
             return None
-
-        if VehicleState is not None and isinstance(state, VehicleState):
-            return state == VehicleState.ON
-
-        state_raw = getattr(state, "value", state)
-        try:
-            state_int = int(state_raw)
-        except (TypeError, ValueError):
+        if not isinstance(state, VehicleState):
             return None
 
-        if VehicleState is not None:
-            try:
-                return state_int == int(VehicleState.ON.value)
-            except (AttributeError, TypeError, ValueError):
-                pass
+        on_state = getattr(VehicleState, "ON", None)
+        if on_state is None:
+            on_state = getattr(VehicleState, "STANDBY", None)
+        if on_state is None:
+            return None
 
-        return state_int == 0
+        return state == on_state
 
     def _should_fetch_hvac_status(self, realtime: Any | None) -> bool:
         """Return True when HVAC status should be fetched.

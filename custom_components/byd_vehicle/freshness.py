@@ -63,7 +63,9 @@ def _json_safe_value(value: Any) -> Any:
     return str(value)
 
 
-def _extract_material_fields(obj: Any | None, fields: tuple[str, ...]) -> dict[str, Any]:
+def _extract_material_fields(
+    obj: Any | None, fields: tuple[str, ...]
+) -> dict[str, Any]:
     """Extract normalized material fields from a source object.
 
     Missing attributes and None values are skipped so partial endpoint success
@@ -115,5 +117,7 @@ def snapshot_digest(snapshot: dict[str, Any]) -> str | None:
     """Return a stable digest for telemetry material snapshot comparison."""
     if not snapshot:
         return None
-    payload = json.dumps(snapshot, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
+    payload = json.dumps(
+        snapshot, ensure_ascii=False, separators=(",", ":"), sort_keys=True
+    )
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
