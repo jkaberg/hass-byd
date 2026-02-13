@@ -108,7 +108,7 @@ class BydApi:
         # commands never overlap (BYD returns 6024 for concurrent ops).
         self._api_lock = asyncio.Lock()
         _LOGGER.debug(
-            "Initialized BYD API wrapper for entry %s (region=%s, language=%s)",
+            "BYD API initialized: entry_id=%s, region=%s, language=%s",
             entry.entry_id,
             entry.data[CONF_BASE_URL],
             entry.data.get(CONF_LANGUAGE, DEFAULT_LANGUAGE),
@@ -281,7 +281,7 @@ class BydApi:
                 encoding="utf-8",
             )
         except Exception:  # noqa: BLE001
-            _LOGGER.debug("Failed to write BYD debug dump", exc_info=True)
+            _LOGGER.debug("Failed to write BYD debug dump.", exc_info=True)
 
     async def _async_write_debug_dump(
         self,
@@ -368,7 +368,7 @@ class BydApi:
         """
         if self._client is None:
             _LOGGER.debug(
-                "Creating new pyBYD client for entry %s",
+                "Creating new pyBYD client: entry_id=%s",
                 self._entry.entry_id,
             )
             self._client = BydClient(
@@ -385,7 +385,7 @@ class BydApi:
         """Tear down the current client so the next call creates a fresh one."""
         if self._client is not None:
             _LOGGER.debug(
-                "Invalidating pyBYD client for entry %s",
+                "Invalidating pyBYD client: entry_id=%s",
                 self._entry.entry_id,
             )
             try:
@@ -413,7 +413,7 @@ class BydApi:
         """
         call_started = perf_counter()
         _LOGGER.debug(
-            "BYD API call start (entry=%s, vin=%s, command=%s)",
+            "BYD API call started: entry_id=%s, vin=%s, command=%s",
             self._entry.entry_id,
             vin[-6:] if vin else "-",
             command or "-",
@@ -422,8 +422,7 @@ class BydApi:
             try:
                 result = await self._async_call_inner(handler, vin=vin, command=command)
                 _LOGGER.debug(
-                    "BYD API call success "
-                    "(entry=%s, vin=%s, command=%s, duration_ms=%.1f)",
+                    "BYD API call succeeded: entry_id=%s, vin=%s, command=%s, duration_ms=%.1f",
                     self._entry.entry_id,
                     vin[-6:] if vin else "-",
                     command or "-",
@@ -432,8 +431,7 @@ class BydApi:
                 return result
             except Exception as exc:  # noqa: BLE001
                 _LOGGER.debug(
-                    "BYD API call failed "
-                    "(entry=%s, vin=%s, command=%s, duration_ms=%.1f, error=%s)",
+                    "BYD API call failed: entry_id=%s, vin=%s, command=%s, duration_ms=%.1f, error=%s",
                     self._entry.entry_id,
                     vin[-6:] if vin else "-",
                     command or "-",
@@ -572,7 +570,7 @@ class BydDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if self._current_interval == new_interval:
             return
         _LOGGER.info(
-            "Telemetry adaptive polling VIN %s: %ss -> %ss",
+            "Telemetry adaptive polling: vin=%s, interval=%ss -> %ss",
             self._vin[-6:],
             self._current_interval.total_seconds(),
             new_interval.total_seconds(),
@@ -640,31 +638,57 @@ class BydDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         If realtime is unavailable/unknown, allow fetch to avoid blind spots.
         """
         if not isinstance(self.data, dict):
+            _LOGGER.debug(
+                "Charging gate VIN %s: fetch=True reason=initial_no_coordinator_data",
+                self._vin[-6:],
+            )
             return True
 
         previous_charging = self.data.get("charging", {}).get(self._vin)
         if previous_charging is None:
+            _LOGGER.debug(
+                "Charging gate VIN %s: fetch=True reason=initial_no_cached_charging",
+                self._vin[-6:],
+            )
             return True
 
         if realtime is None:
+            _LOGGER.debug(
+                "Charging gate VIN %s: fetch=True reason=no_realtime",
+                self._vin[-6:],
+            )
             return True
 
         if bool(getattr(realtime, "is_charging", False)):
+            _LOGGER.debug(
+                "Charging gate VIN %s: fetch=True reason=is_charging",
+                self._vin[-6:],
+            )
             return True
 
-        charge_states: list[int] = []
-        for attr in ("charge_state", "charging_state"):
-            state = self._coerce_enum_int(getattr(realtime, attr, None))
-            if state is not None:
-                charge_states.append(state)
+        charging_state = self._coerce_enum_int(
+            getattr(realtime, "charging_state", None)
+        )
+        if charging_state is not None:
+            should_fetch = charging_state != -1
+            _LOGGER.debug(
+                "Charging gate VIN %s: fetch=%s reason=charging_state state=%s",
+                self._vin[-6:],
+                should_fetch,
+                charging_state,
+            )
+            return should_fetch
 
-        if charge_states:
-            return any(state != -1 for state in charge_states)
-
-        return bool(getattr(previous_charging, "is_connected", False))
+        cached_connected = bool(getattr(previous_charging, "is_connected", False))
+        _LOGGER.debug(
+            "Charging gate VIN %s: fetch=%s reason=cached_connection_fallback",
+            self._vin[-6:],
+            cached_connected,
+        )
+        return cached_connected
 
     async def _async_update_data(self) -> dict[str, Any]:
-        _LOGGER.debug("Telemetry refresh start for VIN %s", self._vin[-6:])
+        _LOGGER.debug("Telemetry refresh started: vin=%s", self._vin[-6:])
         self._adjust_interval()
         if not self._is_due() and isinstance(self.data, dict):
             freshness = self._api.get_telemetry_freshness(self._vin)
@@ -674,7 +698,7 @@ class BydDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 else None
             )
             _LOGGER.debug(
-                "Telemetry refresh skipped for VIN %s (age_s=%s, interval_s=%s)",
+                "Telemetry refresh skipped: vin=%s, age_s=%s, interval_s=%s",
                 self._vin[-6:],
                 round(age, 1) if age is not None else None,
                 self._current_interval.total_seconds(),
@@ -705,14 +729,14 @@ class BydDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 raise
             except recoverable_errors as exc:
                 endpoint_failures["realtime"] = f"{type(exc).__name__}: {exc}"
-                _LOGGER.warning("Realtime fetch failed for %s: %s", self._vin, exc)
+                _LOGGER.warning("Realtime fetch failed: vin=%s, error=%s", self._vin, exc)
             try:
                 energy = await client.get_energy_consumption(self._vin)
             except auth_errors:
                 raise
             except recoverable_errors as exc:
                 endpoint_failures["energy"] = f"{type(exc).__name__}: {exc}"
-                _LOGGER.warning("Energy fetch failed for %s: %s", self._vin, exc)
+                _LOGGER.warning("Energy fetch failed: vin=%s, error=%s", self._vin, exc)
             if self._should_fetch_hvac_status(realtime):
                 try:
                     hvac = await client.get_hvac_status(self._vin)
@@ -720,10 +744,10 @@ class BydDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     raise
                 except recoverable_errors as exc:
                     endpoint_failures["hvac"] = f"{type(exc).__name__}: {exc}"
-                    _LOGGER.warning("HVAC fetch failed for %s: %s", self._vin, exc)
+                    _LOGGER.warning("HVAC fetch failed: vin=%s, error=%s", self._vin, exc)
             else:
                 _LOGGER.debug(
-                    "HVAC fetch skipped for VIN %s (vehicle not ON)",
+                    "HVAC fetch skipped: vin=%s, reason=vehicle_not_on",
                     self._vin[-6:],
                 )
             if self._should_fetch_charging_status(realtime):
@@ -733,10 +757,10 @@ class BydDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     raise
                 except recoverable_errors as exc:
                     endpoint_failures["charging"] = f"{type(exc).__name__}: {exc}"
-                    _LOGGER.warning("Charging fetch failed for %s: %s", self._vin, exc)
+                    _LOGGER.warning("Charging fetch failed: vin=%s, error=%s", self._vin, exc)
             else:
                 _LOGGER.debug(
-                    "Charging fetch skipped for VIN %s (not charging and not plugged)",
+                    "Charging fetch skipped: vin=%s, reason=not_charging_or_not_plugged",
                     self._vin[-6:],
                 )
 
@@ -775,7 +799,7 @@ class BydDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
             if endpoint_failures:
                 _LOGGER.warning(
-                    "Telemetry partial refresh for VIN %s with endpoint failures: %s",
+                    "Telemetry partial refresh: vin=%s, endpoint_failures=%s",
                     self._vin[-6:],
                     endpoint_failures,
                 )
@@ -808,10 +832,9 @@ class BydDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         )
         self._adjust_interval()
         if freshness_updated:
-            _LOGGER.debug("Telemetry freshness advanced for VIN %s", self._vin[-6:])
+            _LOGGER.debug("Telemetry freshness advanced: vin=%s", self._vin[-6:])
         _LOGGER.debug(
-            "Telemetry refresh success for VIN %s "
-            "(realtime=%s, energy=%s, hvac=%s, charging=%s)",
+            "Telemetry refresh succeeded: vin=%s, realtime=%s, energy=%s, hvac=%s, charging=%s",
             self._vin[-6:],
             self._vin in data.get("realtime", {}),
             self._vin in data.get("energy", {}),
@@ -920,7 +943,7 @@ class BydGpsUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         if self._current_interval != new_interval:
             _LOGGER.info(
-                "GPS adaptive polling VIN %s (%s): %ss -> %ss",
+                "GPS adaptive polling: vin=%s, state=%s, interval=%ss -> %ss",
                 self._vin[-6:],
                 "moving" if is_moving else "idle",
                 self._current_interval.total_seconds(),
@@ -930,7 +953,7 @@ class BydGpsUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self.update_interval = new_interval
 
     async def _async_update_data(self) -> dict[str, Any]:
-        _LOGGER.debug("GPS refresh start for VIN %s", self._vin[-6:])
+        _LOGGER.debug("GPS refresh started: vin=%s", self._vin[-6:])
         self._adjust_interval()
         if not self._is_due() and isinstance(self.data, dict):
             freshness = self._api.get_gps_freshness(self._vin)
@@ -940,8 +963,7 @@ class BydGpsUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 else None
             )
             _LOGGER.debug(
-                "GPS refresh skipped for VIN %s "
-                "(age_s=%s, interval_s=%s, smart_polling=%s, moving=%s)",
+                "GPS refresh skipped: vin=%s, age_s=%s, interval_s=%s, smart_polling=%s, moving=%s",
                 self._vin[-6:],
                 round(age, 1) if age is not None else None,
                 self._current_interval.total_seconds(),
@@ -969,7 +991,7 @@ class BydGpsUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             except auth_errors:
                 raise
             except recoverable_errors as exc:
-                _LOGGER.warning("GPS fetch failed for %s: %s", self._vin, exc)
+                _LOGGER.warning("GPS fetch failed: vin=%s, error=%s", self._vin, exc)
 
             gps_map: dict[str, Any] = {}
             if gps is not None:
@@ -994,7 +1016,7 @@ class BydGpsUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         )
         self._adjust_interval(data)
         _LOGGER.debug(
-            "GPS refresh success for VIN %s (gps=%s, smart_polling=%s, moving=%s)",
+            "GPS refresh succeeded: vin=%s, gps=%s, smart_polling=%s, moving=%s",
             self._vin[-6:],
             self._vin in data.get("gps", {}),
             self._smart_polling,
