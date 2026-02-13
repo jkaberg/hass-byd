@@ -248,6 +248,16 @@ initial setup or update it by re-adding the integration.
   command entities become unavailable for that vehicle.
 - The integration uses cloud polling (`cloud_polling` IoT class). Data freshness
   depends on the configured polling intervals.
+- The `Last updated` sensor now reflects canonical telemetry freshness and only
+  advances when core telemetry values change (realtime/charging/HVAC/energy
+  material fields), not merely when transport timestamps churn.
+- A dedicated `GPS last updated` diagnostic sensor exposes canonical GPS
+  freshness side-by-side with telemetry freshness.
+- Telemetry adaptive polling uses this same canonical telemetry freshness signal;
+  GPS updates do not advance `Last updated`.
+- Realtime and GPS fetches now use pyBYD cache-aware `stale_after` behavior,
+  allowing scheduled coordinator polls to skip expensive trigger/poll API calls
+  when MQTT/cache data is already fresh.
 - A unique device fingerprint is generated per config entry to identify the
   integration to the BYD API.
 

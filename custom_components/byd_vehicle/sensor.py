@@ -689,8 +689,15 @@ SENSOR_DESCRIPTIONS: tuple[BydSensorDescription, ...] = (
         name="Last updated",
         source="realtime",
         device_class=SensorDeviceClass.TIMESTAMP,
-        value_fn=_epoch_to_datetime,
         icon="mdi:clock-outline",
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    BydSensorDescription(
+        key="gps_last_updated",
+        name="GPS last updated",
+        source="realtime",
+        device_class=SensorDeviceClass.TIMESTAMP,
+        icon="mdi:crosshairs-gps",
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
 )
@@ -770,6 +777,10 @@ class BydSensor(CoordinatorEntity, SensorEntity):
 
     def _resolve_value(self) -> Any:
         """Extract the current value using the description's extraction logic."""
+        if self.entity_description.key == "last_updated":
+            return self.coordinator.get_telemetry_freshness()
+        if self.entity_description.key == "gps_last_updated":
+            return self.coordinator.get_gps_freshness()
         obj = self._get_source_obj()
         if obj is None:
             return None
@@ -789,6 +800,10 @@ class BydSensor(CoordinatorEntity, SensorEntity):
     @property
     def available(self) -> bool:
         """Return True when the coordinator has data for this source."""
+        if self.entity_description.key == "last_updated":
+            return super().available and self.coordinator.get_telemetry_freshness() is not None
+        if self.entity_description.key == "gps_last_updated":
+            return super().available and self.coordinator.get_gps_freshness() is not None
         return super().available and self._get_source_obj() is not None
 
     @property

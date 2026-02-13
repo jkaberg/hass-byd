@@ -76,6 +76,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         telemetry_coordinator = BydDataUpdateCoordinator(
             hass,
             api,
+            vehicle,
             vin,
             poll_interval,
             active_interval=gps_active,
@@ -84,6 +85,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         gps_coordinator = BydGpsUpdateCoordinator(
             hass,
             api,
+            vehicle,
             vin,
             gps_interval,
             telemetry_coordinator=telemetry_coordinator,
