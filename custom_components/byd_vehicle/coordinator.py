@@ -28,6 +28,12 @@ from pybyd import (
     RemoteControlResult,
 )
 from pybyd.config import BydConfig, DeviceProfile
+
+try:
+    from pybyd.models.realtime import VehicleState
+except (ImportError, AttributeError):
+    VehicleState = None
+
 from pybyd.models.vehicle import Vehicle
 
 from .const import (
@@ -587,6 +593,88 @@ class BydDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         age = datetime.now(tz=UTC) - freshness
         return age >= self._current_interval
 
+    @staticmethod
+    def _coerce_enum_int(value: Any) -> int | None:
+        """Return integer value for enums/raw ints, else None."""
+        if value is None:
+            return None
+        raw = getattr(value, "value", value)
+        try:
+            return int(raw)
+        except (TypeError, ValueError):
+            return None
+
+    def _is_vehicle_on(self, realtime: Any | None) -> bool | None:
+        """Return True when realtime state indicates vehicle is ON."""
+        if realtime is None:
+            return None
+        state = getattr(realtime, "vehicle_state", None)
+        if state is None:
+            return None
+
+        if VehicleState is not None and isinstance(state, VehicleState):
+            return state == VehicleState.ON
+
+        state_raw = getattr(state, "value", state)
+        try:
+            state_int = int(state_raw)
+        except (TypeError, ValueError):
+            return None
+
+        if VehicleState is not None:
+            try:
+                return state_int == int(VehicleState.ON.value)
+            except (AttributeError, TypeError, ValueError):
+                pass
+
+        return state_int == 0
+
+    def _should_fetch_hvac_status(self, realtime: Any | None) -> bool:
+        """Return True when HVAC status should be fetched.
+
+        Always fetch once during startup to establish initial HVAC state.
+        After that, fetch only while vehicle state is ON.
+        """
+        if not isinstance(self.data, dict):
+            return True
+
+        previous_hvac = self.data.get("hvac", {}).get(self._vin)
+        if previous_hvac is None:
+            return True
+
+        return self._is_vehicle_on(realtime) is True
+
+    def _should_fetch_charging_status(self, realtime: Any | None) -> bool:
+        """Return True when charging status should be fetched.
+
+        Always fetch once during startup to establish initial charging state.
+        After that, poll charging while vehicle is actively charging or plugged.
+        If realtime is unavailable/unknown, allow fetch to avoid blind spots.
+        """
+        if not isinstance(self.data, dict):
+            return True
+
+        previous_charging = self.data.get("charging", {}).get(self._vin)
+        if previous_charging is None:
+            return True
+
+        if realtime is None:
+            return True
+
+        if bool(getattr(realtime, "is_charging", False)):
+            return True
+
+        charge_states: list[int] = []
+        for attr in ("charge_state", "charging_state"):
+            state = self._coerce_enum_int(getattr(realtime, attr, None))
+            if state is not None:
+                charge_states.append(state)
+
+        if charge_states:
+            return any(state != -1 for state in charge_states)
+
+        return bool(getattr(previous_charging, "is_connected", False))
+
     async def _async_update_data(self) -> dict[str, Any]:
         _LOGGER.debug("Telemetry refresh start for VIN %s", self._vin[-6:])
         self._adjust_interval()
@@ -637,20 +725,32 @@ class BydDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             except recoverable_errors as exc:
                 endpoint_failures["energy"] = f"{type(exc).__name__}: {exc}"
                 _LOGGER.warning("Energy fetch failed for %s: %s", self._vin, exc)
-            try:
-                hvac = await client.get_hvac_status(self._vin)
-            except auth_errors:
-                raise
-            except recoverable_errors as exc:
-                endpoint_failures["hvac"] = f"{type(exc).__name__}: {exc}"
-                _LOGGER.warning("HVAC fetch failed for %s: %s", self._vin, exc)
-            try:
-                charging = await client.get_charging_status(self._vin)
-            except auth_errors:
-                raise
-            except recoverable_errors as exc:
-                endpoint_failures["charging"] = f"{type(exc).__name__}: {exc}"
-                _LOGGER.warning("Charging fetch failed for %s: %s", self._vin, exc)
+            if self._should_fetch_hvac_status(realtime):
+                try:
+                    hvac = await client.get_hvac_status(self._vin)
+                except auth_errors:
+                    raise
+                except recoverable_errors as exc:
+                    endpoint_failures["hvac"] = f"{type(exc).__name__}: {exc}"
+                    _LOGGER.warning("HVAC fetch failed for %s: %s", self._vin, exc)
+            else:
+                _LOGGER.debug(
+                    "HVAC fetch skipped for VIN %s (vehicle not ON)",
+                    self._vin[-6:],
+                )
+            if self._should_fetch_charging_status(realtime):
+                try:
+                    charging = await client.get_charging_status(self._vin)
+                except auth_errors:
+                    raise
+                except recoverable_errors as exc:
+                    endpoint_failures["charging"] = f"{type(exc).__name__}: {exc}"
+                    _LOGGER.warning("Charging fetch failed for %s: %s", self._vin, exc)
+            else:
+                _LOGGER.debug(
+                    "Charging fetch skipped for VIN %s (not charging and not plugged)",
+                    self._vin[-6:],
+                )
 
             realtime_map: dict[str, Any] = {}
             energy_map: dict[str, Any] = {}
@@ -662,8 +762,16 @@ class BydDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 energy_map[self._vin] = energy
             if hvac is not None:
                 hvac_map[self._vin] = hvac
+            elif isinstance(self.data, dict):
+                previous_hvac = self.data.get("hvac", {}).get(self._vin)
+                if previous_hvac is not None:
+                    hvac_map[self._vin] = previous_hvac
             if charging is not None:
                 charging_map[self._vin] = charging
+            elif isinstance(self.data, dict):
+                previous_charging = self.data.get("charging", {}).get(self._vin)
+                if previous_charging is not None:
+                    charging_map[self._vin] = previous_charging
 
             if not any([realtime_map, energy_map, hvac_map, charging_map]):
                 raise UpdateFailed(f"All telemetry fetches failed for {self._vin}")
