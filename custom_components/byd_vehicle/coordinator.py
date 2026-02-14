@@ -354,6 +354,8 @@ class BydDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             )
             if cached is None:
                 return True
+
+            # Only poll HVAC while the vehicle is on.
             return _is_vehicle_on(realtime) is True
 
         def _should_fetch_charging(

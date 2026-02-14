@@ -15,6 +15,7 @@ from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from pybyd import BydRemoteControlError
 from pybyd.models.hvac import HvacStatus
+from pybyd.models.realtime import VehicleRealtimeData, VehicleState
 
 from .const import DOMAIN
 from .coordinator import BydApi, BydDataUpdateCoordinator, get_vehicle_display
@@ -193,10 +194,10 @@ class BydCarOnSwitch(CoordinatorEntity[BydDataUpdateCoordinator], SwitchEntity):
         self._last_state: bool | None = None
         self._command_pending = False
 
-    def _get_hvac_status(self) -> HvacStatus | None:
-        hvac_map = self.coordinator.data.get("hvac", {})
-        hvac = hvac_map.get(self._vin)
-        return hvac if isinstance(hvac, HvacStatus) else None
+    def _get_realtime(self) -> VehicleRealtimeData | None:
+        realtime_map = self.coordinator.data.get("realtime", {})
+        realtime = realtime_map.get(self._vin)
+        return realtime if isinstance(realtime, VehicleRealtimeData) else None
 
     @property
     def available(self) -> bool:
@@ -212,15 +213,20 @@ class BydCarOnSwitch(CoordinatorEntity[BydDataUpdateCoordinator], SwitchEntity):
         """Return whether car-on (climate) is on."""
         if self._command_pending:
             return self._last_state
-        hvac = self._get_hvac_status()
-        if hvac is not None:
-            return bool(hvac.is_ac_on)
+        realtime = self._get_realtime()
+        if realtime is not None:
+            state = getattr(realtime, "vehicle_state", None)
+            raw = getattr(state, "value", state)
+            try:
+                return int(raw) == int(VehicleState.ON)
+            except (TypeError, ValueError):
+                return None
         return self._last_state
 
     @property
     def assumed_state(self) -> bool:
         """Return True if HVAC state is unavailable."""
-        return self._get_hvac_status() is None
+        return self._get_realtime() is None
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn on car-on (start climate at 21°C)."""
