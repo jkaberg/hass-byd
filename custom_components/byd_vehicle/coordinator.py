@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import dataclasses
 import json
 import logging
@@ -22,14 +21,18 @@ from pybyd import (
     BydControlPasswordError,
     BydEndpointNotSupportedError,
     BydRateLimitError,
-    BydRemoteControlError,
     BydSessionExpiredError,
     BydTransportError,
-    RemoteControlResult,
 )
 from pybyd.config import BydConfig, DeviceProfile
-from pybyd.models.realtime import VehicleState
+from pybyd.models.charging import ChargingStatus
+from pybyd.models.energy import EnergyConsumption
+from pybyd.models.gps import GpsInfo
+from pybyd.models.hvac import HvacStatus
+from pybyd.models.realtime import ChargingState, VehicleRealtimeData, VehicleState
 from pybyd.models.vehicle import Vehicle
+from pybyd.state.events import StateSection
+from pydantic import ValidationError
 
 from .const import (
     CONF_BASE_URL,
@@ -42,31 +45,53 @@ from .const import (
     DEFAULT_LANGUAGE,
     DOMAIN,
 )
-from .freshness import build_telemetry_material_snapshot, snapshot_digest
 
 _LOGGER = logging.getLogger(__name__)
 
 
-def _get_vehicle_name(vehicle: Vehicle) -> str:
-    return vehicle.model_name or vehicle.vin
-
-
-def _normalize_epoch(value: Any) -> datetime | None:
-    """Convert epoch-like values (sec/ms) to UTC datetime."""
+def _coerce_enum_int(value: Any) -> int | None:
+    """Return integer value for enums/raw ints, else None."""
     if value is None:
         return None
+    raw = getattr(value, "value", value)
     try:
-        ts = float(value)
+        return int(raw)
     except (TypeError, ValueError):
         return None
-    if ts <= 0:
+
+
+def _hydrate_store_model(
+    client: BydClient,
+    vin: str,
+    section: StateSection,
+    model: type[Any],
+) -> Any | None:
+    """Hydrate a pyBYD Pydantic model from the state store.
+
+    The state store returns merged dict snapshots; entities in this integration
+    expect the typed Pydantic models (attribute access, helper properties).
+    """
+
+    snapshot = client.store.get_section(vin, section)
+    if not snapshot:
         return None
-    if ts > 1_000_000_000_000:
-        ts = ts / 1000
+
     try:
-        return datetime.fromtimestamp(ts, tz=UTC)
-    except (OverflowError, OSError, ValueError):
+        # Pydantic v2 models support `model_validate`.
+        return model.model_validate(snapshot)
+    except ValidationError:
+        _LOGGER.debug(
+            "Failed to hydrate store snapshot: vin=%s section=%s model=%s",
+            vin[-6:],
+            section,
+            getattr(model, "__name__", str(model)),
+            exc_info=True,
+        )
         return None
+
+
+def _get_vehicle_name(vehicle: Vehicle) -> str:
+    return vehicle.model_name or vehicle.vin
 
 
 class BydApi:
@@ -88,169 +113,18 @@ class BydApi:
             device=device,
             control_pin=entry.data.get(CONF_CONTROL_PIN) or None,
         )
-        self._last_remote_results: dict[tuple[str, str], dict[str, Any]] = {}
-        self._unsupported_remote_commands: dict[str, set[str]] = {}
         self._client: BydClient | None = None
         self._debug_dumps_enabled = entry.options.get(
             CONF_DEBUG_DUMPS,
             DEFAULT_DEBUG_DUMPS,
         )
-        self._last_transmissions: dict[str, datetime] = {}
-        # Canonical telemetry freshness keyed by VIN.
-        # This advances only when material telemetry values change.
-        self._telemetry_freshness: dict[str, datetime] = {}
-        self._telemetry_last_received: dict[str, datetime] = {}
-        self._telemetry_snapshot_hash: dict[str, str] = {}
-        self._gps_freshness: dict[str, datetime] = {}
         self._debug_dump_dir = Path(hass.config.path(".storage/byd_vehicle_debug"))
-        self._reload_scheduled = False
-        # Serialize all BYD cloud calls so telemetry polls and remote
-        # commands never overlap (BYD returns 6024 for concurrent ops).
-        self._api_lock = asyncio.Lock()
         _LOGGER.debug(
             "BYD API initialized: entry_id=%s, region=%s, language=%s",
             entry.entry_id,
             entry.data[CONF_BASE_URL],
             entry.data.get(CONF_LANGUAGE, DEFAULT_LANGUAGE),
         )
-
-    def update_last_transmission(
-        self,
-        vin: str,
-        *,
-        realtime: Any | None = None,
-        gps: Any | None = None,
-        charging: Any | None = None,
-    ) -> None:
-        """Store latest observed transmission timestamp for a VIN."""
-        candidates = [
-            (
-                _normalize_epoch(getattr(realtime, "timestamp", None))
-                if realtime is not None
-                else None
-            ),
-            (
-                _normalize_epoch(getattr(gps, "gps_timestamp", None))
-                if gps is not None
-                else None
-            ),
-            (
-                _normalize_epoch(getattr(charging, "update_time", None))
-                if charging is not None
-                else None
-            ),
-        ]
-        valid_candidates = [
-            candidate for candidate in candidates if candidate is not None
-        ]
-        if not valid_candidates:
-            return
-        latest = max(valid_candidates)
-        current = self._last_transmissions.get(vin)
-        if current is None or latest > current:
-            self._last_transmissions[vin] = latest
-
-    def update_telemetry_freshness(
-        self,
-        vin: str,
-        *,
-        realtime: Any | None = None,
-        hvac: Any | None = None,
-        charging: Any | None = None,
-        energy: Any | None = None,
-    ) -> bool:
-        """Advance canonical telemetry freshness when material data changed.
-
-        Returns True only when the material snapshot digest changed.
-        """
-        snapshot = build_telemetry_material_snapshot(
-            realtime=realtime,
-            hvac=hvac,
-            charging=charging,
-            energy=energy,
-        )
-        digest = snapshot_digest(snapshot)
-        if digest is None:
-            return False
-
-        previous = self._telemetry_snapshot_hash.get(vin)
-        if digest == previous:
-            return False
-
-        observed_candidates = [
-            (
-                _normalize_epoch(getattr(realtime, "timestamp", None))
-                if realtime is not None
-                else None
-            ),
-            (
-                _normalize_epoch(getattr(charging, "update_time", None))
-                if charging is not None
-                else None
-            ),
-        ]
-        observed = max(
-            [candidate for candidate in observed_candidates if candidate is not None],
-            default=datetime.now(tz=UTC),
-        )
-
-        self._telemetry_snapshot_hash[vin] = digest
-        self._telemetry_freshness[vin] = observed
-        return True
-
-    def get_telemetry_freshness(self, vin: str) -> datetime | None:
-        """Return canonical telemetry freshness timestamp for a VIN."""
-        return self._telemetry_freshness.get(vin)
-
-    def update_telemetry_last_received(
-        self,
-        vin: str,
-        *,
-        realtime: Any | None = None,
-        charging: Any | None = None,
-    ) -> None:
-        """Store latest observed telemetry payload timestamp for a VIN."""
-        observed_candidates = [
-            (
-                _normalize_epoch(getattr(realtime, "timestamp", None))
-                if realtime is not None
-                else None
-            ),
-            (
-                _normalize_epoch(getattr(charging, "update_time", None))
-                if charging is not None
-                else None
-            ),
-        ]
-        observed = max(
-            [candidate for candidate in observed_candidates if candidate is not None],
-            default=datetime.now(tz=UTC),
-        )
-
-        current = self._telemetry_last_received.get(vin)
-        if current is None or observed > current:
-            self._telemetry_last_received[vin] = observed
-
-    def get_telemetry_last_received(self, vin: str) -> datetime | None:
-        """Return latest telemetry payload timestamp for a VIN."""
-        return self._telemetry_last_received.get(vin)
-
-    def update_gps_freshness(self, vin: str, *, gps: Any | None = None) -> bool:
-        """Advance GPS freshness timestamp from observed GPS payload."""
-        if gps is None:
-            return False
-        observed = _normalize_epoch(getattr(gps, "gps_timestamp", None))
-        if observed is None:
-            observed = datetime.now(tz=UTC)
-        current = self._gps_freshness.get(vin)
-        if current is not None and observed <= current:
-            return False
-        self._gps_freshness[vin] = observed
-        return True
-
-    def get_gps_freshness(self, vin: str) -> datetime | None:
-        """Return canonical GPS freshness timestamp for a VIN."""
-        return self._gps_freshness.get(vin)
 
     @staticmethod
     def _json_safe(value: Any) -> Any:
@@ -304,62 +178,6 @@ class BydApi:
     def config(self) -> BydConfig:
         return self._config
 
-    def get_last_remote_result(self, vin: str, command: str) -> dict[str, Any] | None:
-        return self._last_remote_results.get((vin, command))
-
-    @staticmethod
-    def _related_command_names(command: str) -> set[str]:
-        related = {command}
-        pairs = (
-            ("start_climate", "stop_climate"),
-            ("car_on", "car_off"),
-            ("battery_heat_on", "battery_heat_off"),
-            ("steering_wheel_heat_on", "steering_wheel_heat_off"),
-            ("lock", "unlock"),
-        )
-        for first, second in pairs:
-            if command in (first, second):
-                related.update({first, second})
-                break
-        return related
-
-    def mark_remote_command_unsupported(self, vin: str, command: str) -> None:
-        unsupported = self._unsupported_remote_commands.setdefault(vin, set())
-        unsupported.update(self._related_command_names(command))
-
-    def is_remote_command_supported(self, vin: str, command: str) -> bool:
-        return command not in self._unsupported_remote_commands.get(vin, set())
-
-    def _store_remote_result(
-        self,
-        vin: str,
-        command: str,
-        result: RemoteControlResult | None,
-        error: Exception | None = None,
-    ) -> None:
-        data: dict[str, Any] = {
-            "command": command,
-            "success": False,
-            "control_state": 0,
-            "request_serial": None,
-        }
-        if result is not None:
-            data.update(
-                {
-                    "success": result.success,
-                    "control_state": result.control_state,
-                    "request_serial": result.request_serial,
-                    "raw": result.raw,
-                }
-            )
-        if error is not None:
-            data["error"] = str(error)
-            data["error_type"] = type(error).__name__
-            if isinstance(error, BydApiError):
-                data["error_code"] = error.code
-                data["error_endpoint"] = error.endpoint
-        self._last_remote_results[(vin, command)] = data
-
     async def _ensure_client(self) -> BydClient:
         """Return a ready-to-use client, creating one if needed.
 
@@ -403,13 +221,9 @@ class BydApi:
     ) -> Any:
         """Execute *handler(client)* with automatic session management.
 
-        All calls are serialized through ``_api_lock`` so that
-        telemetry polls and remote-control commands never overlap on
-        BYD's cloud (which returns code 6024 for concurrent ops).
-
-        The pybyd client handles login and session-expiry retries
-        internally via ``ensure_session()``.  We only need to recreate
-        the client on hard transport failures.
+        The pyBYD client handles login and session-expiry retries internally.
+        This wrapper only maps pyBYD exceptions into Home Assistant
+        ConfigEntry/Auth errors and recreates the transport on hard failures.
         """
         call_started = perf_counter()
         _LOGGER.debug(
@@ -418,103 +232,59 @@ class BydApi:
             vin[-6:] if vin else "-",
             command or "-",
         )
-        async with self._api_lock:
-            try:
-                result = await self._async_call_inner(handler, vin=vin, command=command)
-                _LOGGER.debug(
-                    "BYD API call succeeded: entry_id=%s, vin=%s, command=%s, "
-                    "duration_ms=%.1f",
-                    self._entry.entry_id,
-                    vin[-6:] if vin else "-",
-                    command or "-",
-                    (perf_counter() - call_started) * 1000,
-                )
-                return result
-            except Exception as exc:  # noqa: BLE001
-                _LOGGER.debug(
-                    "BYD API call failed: entry_id=%s, vin=%s, command=%s, "
-                    "duration_ms=%.1f, error=%s",
-                    self._entry.entry_id,
-                    vin[-6:] if vin else "-",
-                    command or "-",
-                    (perf_counter() - call_started) * 1000,
-                    type(exc).__name__,
-                )
-                raise
-
-    async def _async_call_inner(
-        self,
-        handler: Any,
-        *,
-        vin: str | None = None,
-        command: str | None = None,
-    ) -> Any:
-        """Inner call logic (must be called under ``_api_lock``)."""
         try:
             client = await self._ensure_client()
             result = await handler(client)
-            self._reload_scheduled = False
-            if isinstance(result, RemoteControlResult) and vin and command:
-                self._store_remote_result(vin, command, result)
+            _LOGGER.debug(
+                "BYD API call succeeded: entry_id=%s, vin=%s, command=%s, "
+                "duration_ms=%.1f",
+                self._entry.entry_id,
+                vin[-6:] if vin else "-",
+                command or "-",
+                (perf_counter() - call_started) * 1000,
+            )
             return result
         except BydSessionExpiredError:
             # Session invalidated elsewhere; reconnect and retry once.
             await self._invalidate_client()
             try:
                 client = await self._ensure_client()
-                result = await handler(client)
-                self._reload_scheduled = False
-                if isinstance(result, RemoteControlResult) and vin and command:
-                    self._store_remote_result(vin, command, result)
-                return result
-            except BydSessionExpiredError as exc:
-                if vin and command:
-                    self._store_remote_result(vin, command, None, exc)
-                if not self._reload_scheduled:
-                    self._reload_scheduled = True
-                    self._hass.async_create_task(
-                        self._hass.config_entries.async_reload(self._entry.entry_id)
-                    )
-                raise UpdateFailed(str(exc)) from exc
-            except BydAuthenticationError as exc:
-                if vin and command:
-                    self._store_remote_result(vin, command, None, exc)
-                raise ConfigEntryAuthFailed(str(exc)) from exc
-        except BydRemoteControlError as exc:
-            if vin and command:
-                self._store_remote_result(vin, command, None, exc)
-            raise
+                return await handler(client)
+            except (BydSessionExpiredError, BydAuthenticationError) as retry_exc:
+                raise ConfigEntryAuthFailed(str(retry_exc)) from retry_exc
+            except (BydApiError, BydTransportError) as retry_exc:
+                raise UpdateFailed(str(retry_exc)) from retry_exc
+            except Exception as retry_exc:  # noqa: BLE001
+                raise UpdateFailed(str(retry_exc)) from retry_exc
         except BydControlPasswordError as exc:
-            if vin and command:
-                self._store_remote_result(vin, command, None, exc)
             raise UpdateFailed(
                 "Control PIN rejected or cloud control temporarily locked"
             ) from exc
         except BydRateLimitError as exc:
-            if vin and command:
-                self._store_remote_result(vin, command, None, exc)
             raise UpdateFailed(
                 "Command rate limited by BYD cloud, please retry shortly"
             ) from exc
         except BydEndpointNotSupportedError as exc:
-            if vin and command:
-                self._store_remote_result(vin, command, None, exc)
-                self.mark_remote_command_unsupported(vin, command)
             raise UpdateFailed("Feature not supported for this vehicle/region") from exc
         except BydTransportError as exc:
-            if vin and command:
-                self._store_remote_result(vin, command, None, exc)
             # Hard transport error — tear down so next call reconnects
             await self._invalidate_client()
             raise UpdateFailed(str(exc)) from exc
         except BydAuthenticationError as exc:
-            if vin and command:
-                self._store_remote_result(vin, command, None, exc)
             raise ConfigEntryAuthFailed(str(exc)) from exc
         except BydApiError as exc:
-            if vin and command:
-                self._store_remote_result(vin, command, None, exc)
             raise UpdateFailed(str(exc)) from exc
+        except Exception as exc:  # noqa: BLE001
+            _LOGGER.debug(
+                "BYD API call failed: entry_id=%s, vin=%s, command=%s, "
+                "duration_ms=%.1f, error=%s",
+                self._entry.entry_id,
+                vin[-6:] if vin else "-",
+                command or "-",
+                (perf_counter() - call_started) * 1000,
+                type(exc).__name__,
+            )
+            raise
 
 
 class BydDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
@@ -527,9 +297,6 @@ class BydDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         vehicle: Vehicle,
         vin: str,
         poll_interval: int,
-        *,
-        active_interval: int,
-        inactive_interval: int,
     ) -> None:
         super().__init__(
             hass,
@@ -540,202 +307,80 @@ class BydDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._api = api
         self._vehicle = vehicle
         self._vin = vin
-        self._active_interval = timedelta(seconds=active_interval)
-        self._inactive_interval = timedelta(seconds=inactive_interval)
-        self._current_interval = timedelta(seconds=poll_interval)
+        self._fixed_interval = timedelta(seconds=poll_interval)
         self._polling_enabled = True
         self._force_next_refresh = False
 
-    def _desired_interval(self) -> timedelta:
-        """Determine telemetry polling interval from freshness recency."""
-        freshness = self._api.get_telemetry_freshness(self._vin)
-        if freshness is None:
-            return self._inactive_interval
-        age = datetime.now(tz=UTC) - freshness
-        if age <= self._active_interval:
-            return self._active_interval
-        return self._inactive_interval
-
-    def get_telemetry_freshness(self) -> datetime | None:
-        """Expose canonical telemetry freshness for sensors."""
-        return self._api.get_telemetry_freshness(self._vin)
-
-    def get_telemetry_last_received(self) -> datetime | None:
-        """Expose telemetry last-received timestamp for sensors."""
-        return self._api.get_telemetry_last_received(self._vin)
-
-    def get_gps_freshness(self) -> datetime | None:
-        """Expose canonical GPS freshness for sensors."""
-        return self._api.get_gps_freshness(self._vin)
-
-    @property
-    def polling_enabled(self) -> bool:
-        return self._polling_enabled
-
-    def set_polling_enabled(self, enabled: bool) -> None:
-        """Enable/disable scheduled polling for this VIN.
-
-        When disabled, the coordinator will keep its last cached data and
-        only refresh when explicitly forced.
-        """
-        self._polling_enabled = bool(enabled)
-        self.update_interval = self._current_interval if self._polling_enabled else None
-
-    async def async_force_refresh(self) -> None:
-        """Force a refresh even if not due or polling disabled."""
-        self._force_next_refresh = True
-        await self.async_request_refresh()
-
-    def _adjust_interval(self) -> None:
-        """Apply adaptive interval for this VIN."""
-        new_interval = self._desired_interval()
-        if self._current_interval == new_interval:
-            return
-        _LOGGER.info(
-            "Telemetry adaptive polling: vin=%s, interval=%ss -> %ss",
-            self._vin[-6:],
-            self._current_interval.total_seconds(),
-            new_interval.total_seconds(),
-        )
-        self._current_interval = new_interval
-        if self._polling_enabled:
-            self.update_interval = new_interval
-
-    def _is_due(self) -> bool:
-        """Return True when telemetry poll should hit the cloud."""
-        freshness = self._api.get_telemetry_freshness(self._vin)
-        if freshness is None:
-            return True
-        age = datetime.now(tz=UTC) - freshness
-        return age >= self._current_interval
-
-    @staticmethod
-    def _coerce_enum_int(value: Any) -> int | None:
-        """Return integer value for enums/raw ints, else None."""
-        if value is None:
-            return None
-        raw = getattr(value, "value", value)
-        try:
-            return int(raw)
-        except (TypeError, ValueError):
-            return None
-
-    def _is_vehicle_on(self, realtime: Any | None) -> bool | None:
-        """Return True when realtime state indicates vehicle is ON."""
-        if realtime is None:
-            return None
-        state = getattr(realtime, "vehicle_state", None)
-        if state is None:
-            return None
-        if not isinstance(state, VehicleState):
-            return None
-
-        on_state = getattr(VehicleState, "ON", None)
-        if on_state is None:
-            on_state = getattr(VehicleState, "STANDBY", None)
-        if on_state is None:
-            return None
-
-        return state == on_state
-
-    def _should_fetch_hvac_status(self, realtime: Any | None) -> bool:
-        """Return True when HVAC status should be fetched.
-
-        Always fetch once during startup to establish initial HVAC state.
-        After that, fetch only while vehicle state is ON.
-        """
-        if not isinstance(self.data, dict):
-            return True
-
-        previous_hvac = self.data.get("hvac", {}).get(self._vin)
-        if previous_hvac is None:
-            return True
-
-        return self._is_vehicle_on(realtime) is True
-
-    def _should_fetch_charging_status(self, realtime: Any | None) -> bool:
-        """Return True when charging status should be fetched.
-
-        Always fetch once during startup to establish initial charging state.
-        After that, poll charging while vehicle is actively charging or plugged.
-        If realtime is unavailable/unknown, allow fetch to avoid blind spots.
-        """
-        if not isinstance(self.data, dict):
-            _LOGGER.debug(
-                "Charging gate VIN %s: fetch=True reason=initial_no_coordinator_data",
-                self._vin[-6:],
-            )
-            return True
-
-        previous_charging = self.data.get("charging", {}).get(self._vin)
-        if previous_charging is None:
-            _LOGGER.debug(
-                "Charging gate VIN %s: fetch=True reason=initial_no_cached_charging",
-                self._vin[-6:],
-            )
-            return True
-
-        if realtime is None:
-            _LOGGER.debug(
-                "Charging gate VIN %s: fetch=True reason=no_realtime",
-                self._vin[-6:],
-            )
-            return True
-
-        if bool(getattr(realtime, "is_charging", False)):
-            _LOGGER.debug(
-                "Charging gate VIN %s: fetch=True reason=is_charging",
-                self._vin[-6:],
-            )
-            return True
-
-        charging_state = self._coerce_enum_int(
-            getattr(realtime, "charging_state", None)
-        )
-        if charging_state is not None:
-            should_fetch = charging_state != -1
-            _LOGGER.debug(
-                "Charging gate VIN %s: fetch=%s reason=charging_state state=%s",
-                self._vin[-6:],
-                should_fetch,
-                charging_state,
-            )
-            return should_fetch
-
-        cached_connected = bool(getattr(previous_charging, "is_connected", False))
-        _LOGGER.debug(
-            "Charging gate VIN %s: fetch=%s reason=cached_connection_fallback",
-            self._vin[-6:],
-            cached_connected,
-        )
-        return cached_connected
-
     async def _async_update_data(self) -> dict[str, Any]:
         _LOGGER.debug("Telemetry refresh started: vin=%s", self._vin[-6:])
+
         force = self._force_next_refresh
         self._force_next_refresh = False
 
         if not self._polling_enabled and not force:
-            # Keep cached data while polling is disabled.
             if isinstance(self.data, dict):
                 return self.data
             return {"vehicles": {self._vin: self._vehicle}}
 
-        self._adjust_interval()
-        if not force and not self._is_due() and isinstance(self.data, dict):
-            freshness = self._api.get_telemetry_freshness(self._vin)
-            age = (
-                (datetime.now(tz=UTC) - freshness).total_seconds()
-                if freshness is not None
-                else None
+        stale_after: float | None = None
+        if not force and isinstance(self.update_interval, timedelta):
+            stale_after = self.update_interval.total_seconds()
+
+        def _is_vehicle_on(realtime: VehicleRealtimeData | None) -> bool | None:
+            if realtime is None:
+                return None
+            state = getattr(realtime, "vehicle_state", None)
+            if state is None:
+                return None
+            # `vehicle_state` can be an enum or int depending on parsing.
+            state_int = _coerce_enum_int(state)
+            if state_int is None:
+                return None
+            return state_int == int(VehicleState.ON)
+
+        def _should_fetch_hvac(
+            client: BydClient,
+            realtime: VehicleRealtimeData | None,
+        ) -> bool:
+            # Always fetch once to establish initial HVAC state.
+            cached = _hydrate_store_model(
+                client,
+                self._vin,
+                StateSection.HVAC,
+                HvacStatus,
             )
-            _LOGGER.debug(
-                "Telemetry refresh skipped: vin=%s, age_s=%s, interval_s=%s",
-                self._vin[-6:],
-                round(age, 1) if age is not None else None,
-                self._current_interval.total_seconds(),
+            if cached is None:
+                return True
+            return _is_vehicle_on(realtime) is True
+
+        def _should_fetch_charging(
+            client: BydClient,
+            realtime: VehicleRealtimeData | None,
+        ) -> bool:
+            # Always fetch once to establish initial charging state.
+            cached = _hydrate_store_model(
+                client,
+                self._vin,
+                StateSection.CHARGING,
+                ChargingStatus,
             )
-            return self.data
+            if cached is None:
+                return True
+
+            if realtime is None:
+                # Unknown state; fetch to avoid blind spots.
+                return True
+
+            charging_state = _coerce_enum_int(getattr(realtime, "charging_state", None))
+            if charging_state is not None:
+                # -1 means disconnected. Anything else indicates plugged/charging.
+                return charging_state != int(ChargingState.DISCONNECTED)
+
+            # Fall back to cached charging model if realtime doesn't expose state.
+            return bool(
+                getattr(cached, "is_connected", False)
+                or getattr(cached, "is_charging", False)
+            )
 
         async def _fetch(client: BydClient) -> dict[str, Any]:
             vehicle_map = {self._vin: self._vehicle}
@@ -747,15 +392,12 @@ class BydDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 BydRateLimitError,
                 BydEndpointNotSupportedError,
             )
-            realtime = None
-            energy = None
-            hvac = None
-            charging = None
+
             endpoint_failures: dict[str, str] = {}
             try:
-                realtime = await client.get_vehicle_realtime(
+                await client.get_vehicle_realtime(
                     self._vin,
-                    stale_after=self._current_interval.total_seconds(),
+                    stale_after=stale_after,
                 )
             except auth_errors:
                 raise
@@ -764,76 +406,99 @@ class BydDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 _LOGGER.warning(
                     "Realtime fetch failed: vin=%s, error=%s", self._vin, exc
                 )
+
+            realtime_gate = _hydrate_store_model(
+                client,
+                self._vin,
+                StateSection.REALTIME,
+                VehicleRealtimeData,
+            )
             try:
-                energy = await client.get_energy_consumption(self._vin)
+                await client.get_energy_consumption(self._vin)
             except auth_errors:
                 raise
             except recoverable_errors as exc:
                 endpoint_failures["energy"] = f"{type(exc).__name__}: {exc}"
                 _LOGGER.warning("Energy fetch failed: vin=%s, error=%s", self._vin, exc)
-            if self._should_fetch_hvac_status(realtime):
+
+            if _should_fetch_hvac(client, realtime_gate):
                 try:
-                    hvac = await client.get_hvac_status(self._vin)
+                    await client.get_hvac_status(self._vin)
                 except auth_errors:
                     raise
                 except recoverable_errors as exc:
                     endpoint_failures["hvac"] = f"{type(exc).__name__}: {exc}"
                     _LOGGER.warning(
-                        "HVAC fetch failed: vin=%s, error=%s", self._vin, exc
+                        "HVAC fetch failed: vin=%s, error=%s",
+                        self._vin,
+                        exc,
                     )
             else:
                 _LOGGER.debug(
                     "HVAC fetch skipped: vin=%s, reason=vehicle_not_on",
                     self._vin[-6:],
                 )
-            if self._should_fetch_charging_status(realtime):
+
+            if _should_fetch_charging(client, realtime_gate):
                 try:
-                    charging = await client.get_charging_status(self._vin)
+                    await client.get_charging_status(self._vin)
                 except auth_errors:
                     raise
                 except recoverable_errors as exc:
                     endpoint_failures["charging"] = f"{type(exc).__name__}: {exc}"
                     _LOGGER.warning(
-                        "Charging fetch failed: vin=%s, error=%s", self._vin, exc
+                        "Charging fetch failed: vin=%s, error=%s",
+                        self._vin,
+                        exc,
                     )
             else:
                 _LOGGER.debug(
-                    "Charging fetch skipped: vin=%s, "
-                    "reason=not_charging_or_not_plugged",
+                    "Charging fetch skipped: vin=%s, reason=not_charging_or_unplugged",
                     self._vin[-6:],
                 )
+
+            store_realtime = _hydrate_store_model(
+                client,
+                self._vin,
+                StateSection.REALTIME,
+                VehicleRealtimeData,
+            )
+            store_energy = _hydrate_store_model(
+                client,
+                self._vin,
+                StateSection.ENERGY,
+                EnergyConsumption,
+            )
+            store_hvac = _hydrate_store_model(
+                client,
+                self._vin,
+                StateSection.HVAC,
+                HvacStatus,
+            )
+            store_charging = _hydrate_store_model(
+                client,
+                self._vin,
+                StateSection.CHARGING,
+                ChargingStatus,
+            )
 
             realtime_map: dict[str, Any] = {}
             energy_map: dict[str, Any] = {}
             hvac_map: dict[str, Any] = {}
             charging_map: dict[str, Any] = {}
-            if realtime is not None:
-                realtime_map[self._vin] = realtime
-            if energy is not None:
-                energy_map[self._vin] = energy
-            if hvac is not None:
-                hvac_map[self._vin] = hvac
-            elif isinstance(self.data, dict):
-                previous_hvac = self.data.get("hvac", {}).get(self._vin)
-                if previous_hvac is not None:
-                    hvac_map[self._vin] = previous_hvac
-            if charging is not None:
-                charging_map[self._vin] = charging
-            elif isinstance(self.data, dict):
-                previous_charging = self.data.get("charging", {}).get(self._vin)
-                if previous_charging is not None:
-                    charging_map[self._vin] = previous_charging
+            if store_realtime is not None:
+                realtime_map[self._vin] = store_realtime
+            if store_energy is not None:
+                energy_map[self._vin] = store_energy
+            if store_hvac is not None:
+                hvac_map[self._vin] = store_hvac
+            if store_charging is not None:
+                charging_map[self._vin] = store_charging
 
-            if not any([realtime_map, energy_map, hvac_map, charging_map]):
-                raise UpdateFailed(f"All telemetry fetches failed for {self._vin}")
-
-            previous_realtime = None
-            if isinstance(self.data, dict):
-                previous_realtime = self.data.get("realtime", {}).get(self._vin)
-            if realtime is None and previous_realtime is None:
+            if self._vin not in realtime_map:
                 raise UpdateFailed(
-                    f"Realtime fetch failed for {self._vin}; "
-                    "no cached realtime data is available"
+                    f"Realtime state unavailable for {self._vin}; "
+                    "no store snapshot is available"
                 )
 
             if endpoint_failures:
@@ -852,26 +517,6 @@ class BydDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             }
 
         data = await self._api.async_call(_fetch)
-        self._api.update_last_transmission(
-            self._vin,
-            realtime=data.get("realtime", {}).get(self._vin),
-            charging=data.get("charging", {}).get(self._vin),
-        )
-        self._api.update_telemetry_last_received(
-            self._vin,
-            realtime=data.get("realtime", {}).get(self._vin),
-            charging=data.get("charging", {}).get(self._vin),
-        )
-        freshness_updated = self._api.update_telemetry_freshness(
-            self._vin,
-            realtime=data.get("realtime", {}).get(self._vin),
-            hvac=data.get("hvac", {}).get(self._vin),
-            charging=data.get("charging", {}).get(self._vin),
-            energy=data.get("energy", {}).get(self._vin),
-        )
-        self._adjust_interval()
-        if freshness_updated:
-            _LOGGER.debug("Telemetry freshness advanced: vin=%s", self._vin[-6:])
         _LOGGER.debug(
             "Telemetry refresh succeeded: vin=%s, realtime=%s, "
             "energy=%s, hvac=%s, charging=%s",
@@ -883,9 +528,21 @@ class BydDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         )
         return data
 
+    @property
+    def polling_enabled(self) -> bool:
+        return self._polling_enabled
+
+    def set_polling_enabled(self, enabled: bool) -> None:
+        self._polling_enabled = bool(enabled)
+        self.update_interval = self._fixed_interval if self._polling_enabled else None
+
+    async def async_force_refresh(self) -> None:
+        self._force_next_refresh = True
+        await self.async_request_refresh()
+
 
 class BydGpsUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
-    """Coordinator for GPS updates for a single VIN with adaptive polling."""
+    """Coordinator for GPS updates for a single VIN."""
 
     def __init__(
         self,
@@ -910,12 +567,11 @@ class BydGpsUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._vehicle = vehicle
         self._vin = vin
         self._telemetry_coordinator = telemetry_coordinator
-        self._smart_polling = smart_polling
+        self._smart_polling = bool(smart_polling)
         self._fixed_interval = timedelta(seconds=poll_interval)
         self._active_interval = timedelta(seconds=active_interval)
         self._inactive_interval = timedelta(seconds=inactive_interval)
-        self._current_interval = timedelta(seconds=poll_interval)
-        self._last_smart_state: bool | None = None
+        self._current_interval = self._fixed_interval
         self._polling_enabled = True
         self._force_next_refresh = False
 
@@ -931,9 +587,7 @@ class BydGpsUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._force_next_refresh = True
         await self.async_request_refresh()
 
-    def _is_vehicle_moving(self, data: dict[str, Any]) -> bool:
-        """Check if this VIN is moving based on known speed data."""
-        gps_map = data.get("gps", {})
+    def _is_vehicle_moving(self) -> bool:
         telemetry_data = (
             self._telemetry_coordinator.data if self._telemetry_coordinator else None
         )
@@ -942,73 +596,32 @@ class BydGpsUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             if isinstance(telemetry_data, dict)
             else {}
         )
-
-        gps = gps_map.get(self._vin)
         realtime = realtime_map.get(self._vin)
-
-        realtime_speed = (
-            getattr(realtime, "speed", None) if realtime is not None else None
-        )
-        gps_speed = getattr(gps, "speed", None) if gps is not None else None
-        speed = realtime_speed if realtime_speed is not None else gps_speed
-        if realtime_speed is not None:
-            speed_source = "realtime"
-        elif gps_speed is not None:
-            speed_source = "gps"
-        else:
-            speed_source = "none"
-
-        _LOGGER.debug(
-            "Smart GPS: VIN %s speed=%s source=%s (realtime=%s gps=%s)",
-            self._vin[-6:],
-            speed,
-            speed_source,
-            realtime_speed,
-            gps_speed,
-        )
-        return speed is not None and speed > 0
-
-    def _desired_interval(self, data: dict[str, Any] | None = None) -> timedelta:
-        """Determine interval from smart mode state or fixed interval."""
-        if not self._smart_polling:
-            self._last_smart_state = None
-            return self._fixed_interval
-
-        probe_data = data if isinstance(data, dict) else {}
-        if not probe_data:
-            probe_data = self.data if isinstance(self.data, dict) else {}
-
-        is_moving = self._is_vehicle_moving(probe_data)
-        self._last_smart_state = is_moving
-        return self._active_interval if is_moving else self._inactive_interval
-
-    def _is_due(self) -> bool:
-        """Return True when GPS poll should hit the cloud."""
-        freshness = self._api.get_gps_freshness(self._vin)
-        if freshness is None:
-            return True
-        age = datetime.now(tz=UTC) - freshness
-        return age >= self._current_interval
-
-    def _adjust_interval(self, data: dict[str, Any] | None = None) -> None:
-        """Adjust polling interval from smart-mode movement or fixed mode."""
-        new_interval = self._desired_interval(data)
-        is_moving = bool(self._last_smart_state)
-
-        if self._current_interval != new_interval:
-            _LOGGER.info(
-                "GPS adaptive polling: vin=%s, state=%s, interval=%ss -> %ss",
-                self._vin[-6:],
-                "moving" if is_moving else "idle",
-                self._current_interval.total_seconds(),
-                new_interval.total_seconds(),
+        speed = getattr(realtime, "speed", None) if realtime is not None else None
+        if speed is None:
+            gps = (
+                self.data.get("gps", {}).get(self._vin)
+                if isinstance(self.data, dict)
+                else None
             )
-            self._current_interval = new_interval
-            if self._polling_enabled:
-                self.update_interval = new_interval
+            speed = getattr(gps, "speed", None) if gps is not None else None
+        return bool(speed is not None and speed > 0)
+
+    def _adjust_interval(self) -> None:
+        if not self._smart_polling:
+            self._current_interval = self._fixed_interval
+        else:
+            self._current_interval = (
+                self._active_interval
+                if self._is_vehicle_moving()
+                else self._inactive_interval
+            )
+        if self._polling_enabled:
+            self.update_interval = self._current_interval
 
     async def _async_update_data(self) -> dict[str, Any]:
         _LOGGER.debug("GPS refresh started: vin=%s", self._vin[-6:])
+
         force = self._force_next_refresh
         self._force_next_refresh = False
 
@@ -1018,23 +631,6 @@ class BydGpsUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             return {"vehicles": {self._vin: self._vehicle}}
 
         self._adjust_interval()
-        if not force and not self._is_due() and isinstance(self.data, dict):
-            freshness = self._api.get_gps_freshness(self._vin)
-            age = (
-                (datetime.now(tz=UTC) - freshness).total_seconds()
-                if freshness is not None
-                else None
-            )
-            _LOGGER.debug(
-                "GPS refresh skipped: vin=%s, age_s=%s, interval_s=%s, "
-                "smart_polling=%s, moving=%s",
-                self._vin[-6:],
-                round(age, 1) if age is not None else None,
-                self._current_interval.total_seconds(),
-                self._smart_polling,
-                self._last_smart_state,
-            )
-            return self.data
 
         async def _fetch(client: BydClient) -> dict[str, Any]:
             vehicle_map = {self._vin: self._vehicle}
@@ -1046,15 +642,14 @@ class BydGpsUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 BydRateLimitError,
                 BydEndpointNotSupportedError,
             )
-            gps = None
             try:
-                gps = await client.get_gps_info(
-                    self._vin,
-                )
+                await client.get_gps_info(self._vin)
             except auth_errors:
                 raise
             except recoverable_errors as exc:
                 _LOGGER.warning("GPS fetch failed: vin=%s, error=%s", self._vin, exc)
+
+            gps = _hydrate_store_model(client, self._vin, StateSection.GPS, GpsInfo)
 
             gps_map: dict[str, Any] = {}
             if gps is not None:
@@ -1069,21 +664,11 @@ class BydGpsUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             }
 
         data = await self._api.async_call(_fetch)
-        self._api.update_last_transmission(
-            self._vin,
-            gps=data.get("gps", {}).get(self._vin),
-        )
-        self._api.update_gps_freshness(
-            self._vin,
-            gps=data.get("gps", {}).get(self._vin),
-        )
-        self._adjust_interval(data)
+        self._adjust_interval()
         _LOGGER.debug(
-            "GPS refresh succeeded: vin=%s, gps=%s, smart_polling=%s, moving=%s",
+            "GPS refresh succeeded: vin=%s, gps=%s",
             self._vin[-6:],
             self._vin in data.get("gps", {}),
-            self._smart_polling,
-            self._last_smart_state,
         )
         return data
 

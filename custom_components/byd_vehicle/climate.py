@@ -142,7 +142,7 @@ class BydClimate(CoordinatorEntity[BydDataUpdateCoordinator], ClimateEntity):
             return False
         if self._vin not in self.coordinator.data.get("vehicles", {}):
             return False
-        return self._api.is_remote_command_supported(self._vin, "start_climate")
+        return True
 
     @property
     def hvac_mode(self) -> HVACMode:
@@ -340,11 +340,6 @@ class BydClimate(CoordinatorEntity[BydDataUpdateCoordinator], ClimateEntity):
             attrs["rapid_cooling"] = hvac.rapid_decrease_temp_state
         if self._last_command:
             attrs["last_remote_command"] = self._last_command
-            last_result = self._api.get_last_remote_result(
-                self._vin, self._last_command
-            )
-            if last_result:
-                attrs["last_remote_result"] = last_result
         return attrs
 
     @property

@@ -40,6 +40,24 @@ from .coordinator import (
 )
 
 
+def _normalize_epoch(value: Any) -> datetime | None:
+    """Convert epoch-like values (sec/ms) to UTC datetime."""
+    if value is None:
+        return None
+    try:
+        ts = float(value)
+    except (TypeError, ValueError):
+        return None
+    if ts <= 0:
+        return None
+    if ts > 1_000_000_000_000:
+        ts = ts / 1000
+    try:
+        return datetime.fromtimestamp(ts, tz=UTC)
+    except (OverflowError, OSError, ValueError):
+        return None
+
+
 @dataclass(frozen=True, kw_only=True)
 class BydSensorDescription(SensorEntityDescription):
     """Describe a BYD sensor."""
@@ -688,7 +706,7 @@ SENSOR_DESCRIPTIONS: tuple[BydSensorDescription, ...] = (
     BydSensorDescription(
         key="gps_last_updated",
         name="GPS last updated",
-        source="realtime",
+        source="gps",
         device_class=SensorDeviceClass.TIMESTAMP,
         icon="mdi:crosshairs-gps",
         entity_category=EntityCategory.DIAGNOSTIC,
@@ -704,6 +722,7 @@ async def async_setup_entry(
     """Set up BYD sensors from a config entry."""
     data = hass.data[DOMAIN][entry.entry_id]
     coordinators: dict[str, BydDataUpdateCoordinator] = data["coordinators"]
+    gps_coordinators = data.get("gps_coordinators", {})
 
     entities: list[SensorEntity] = []
     for vin, coordinator in coordinators.items():
@@ -711,6 +730,13 @@ async def async_setup_entry(
         if vehicle is None:
             continue
         for description in SENSOR_DESCRIPTIONS:
+            if description.key == "gps_last_updated":
+                gps_coordinator = gps_coordinators.get(vin)
+                if gps_coordinator is not None:
+                    entities.append(
+                        BydSensor(gps_coordinator, vin, vehicle, description)
+                    )
+                continue
             entities.append(BydSensor(coordinator, vin, vehicle, description))
 
     async_add_entities(entities)
@@ -773,9 +799,25 @@ class BydSensor(CoordinatorEntity[BydDataUpdateCoordinator], SensorEntity):
     def _resolve_value(self) -> Any:
         """Extract the current value using the description's extraction logic."""
         if self.entity_description.key == "last_updated":
-            return self.coordinator.get_telemetry_last_received()
+            realtime = self.coordinator.data.get("realtime", {}).get(self._vin)
+            charging = self.coordinator.data.get("charging", {}).get(self._vin)
+            candidates = [
+                (
+                    _normalize_epoch(getattr(realtime, "timestamp", None))
+                    if realtime is not None
+                    else None
+                ),
+                (
+                    _normalize_epoch(getattr(charging, "update_time", None))
+                    if charging is not None
+                    else None
+                ),
+            ]
+            valid = [candidate for candidate in candidates if candidate is not None]
+            return max(valid) if valid else None
         if self.entity_description.key == "gps_last_updated":
-            return self.coordinator.get_gps_freshness()
+            gps = self.coordinator.data.get("gps", {}).get(self._vin)
+            return _normalize_epoch(getattr(gps, "gps_timestamp", None))
         obj = self._get_source_obj()
         if obj is None:
             return None
@@ -796,14 +838,9 @@ class BydSensor(CoordinatorEntity[BydDataUpdateCoordinator], SensorEntity):
     def available(self) -> bool:
         """Return True when the coordinator has data for this source."""
         if self.entity_description.key == "last_updated":
-            return (
-                super().available
-                and self.coordinator.get_telemetry_last_received() is not None
-            )
+            return super().available and self._resolve_value() is not None
         if self.entity_description.key == "gps_last_updated":
-            return (
-                super().available and self.coordinator.get_gps_freshness() is not None
-            )
+            return super().available and self._resolve_value() is not None
         return super().available and self._get_source_obj() is not None
 
     @property

@@ -80,7 +80,7 @@ class BydBatteryHeatSwitch(CoordinatorEntity[BydDataUpdateCoordinator], SwitchEn
             return False
         if self._vin not in self.coordinator.data.get("vehicles", {}):
             return False
-        return self._api.is_remote_command_supported(self._vin, "battery_heat_on")
+        return True
 
     @property
     def is_on(self) -> bool | None:
@@ -154,13 +154,7 @@ class BydBatteryHeatSwitch(CoordinatorEntity[BydDataUpdateCoordinator], SwitchEn
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return extra state attributes."""
-        attrs: dict[str, Any] = {"vin": self._vin}
-        for cmd in ("battery_heat_on", "battery_heat_off"):
-            last_result = self._api.get_last_remote_result(self._vin, cmd)
-            if last_result:
-                attrs["last_remote_result"] = last_result
-                break
-        return attrs
+        return {"vin": self._vin}
 
     @property
     def device_info(self) -> DeviceInfo:
@@ -211,7 +205,7 @@ class BydCarOnSwitch(CoordinatorEntity[BydDataUpdateCoordinator], SwitchEntity):
             return False
         if self._vin not in self.coordinator.data.get("vehicles", {}):
             return False
-        return self._api.is_remote_command_supported(self._vin, "car_on")
+        return True
 
     @property
     def is_on(self) -> bool | None:
@@ -281,16 +275,7 @@ class BydCarOnSwitch(CoordinatorEntity[BydDataUpdateCoordinator], SwitchEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return extra state attributes."""
-        attrs: dict[str, Any] = {
-            "vin": self._vin,
-            "target_temperature_c": 21,
-        }
-        for cmd in ("car_on", "car_off"):
-            last_result = self._api.get_last_remote_result(self._vin, cmd)
-            if last_result:
-                attrs["last_remote_result"] = last_result
-                break
-        return attrs
+        return {"vin": self._vin, "target_temperature_c": 21}
 
     @property
     def device_info(self) -> DeviceInfo:
@@ -344,9 +329,7 @@ class BydSteeringWheelHeatSwitch(
             return False
         if self._vin not in self.coordinator.data.get("vehicles", {}):
             return False
-        return self._api.is_remote_command_supported(
-            self._vin, "steering_wheel_heat_on"
-        )
+        return True
 
     @property
     def is_on(self) -> bool | None:
@@ -415,13 +398,7 @@ class BydSteeringWheelHeatSwitch(
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        attrs: dict[str, Any] = {"vin": self._vin}
-        for cmd in ("steering_wheel_heat_on", "steering_wheel_heat_off"):
-            last_result = self._api.get_last_remote_result(self._vin, cmd)
-            if last_result:
-                attrs["last_remote_result"] = last_result
-                break
-        return attrs
+        return {"vin": self._vin}
 
     @property
     def device_info(self) -> DeviceInfo:
@@ -477,7 +454,6 @@ class BydDisablePollingSwitch(
         return self._disabled
 
     def _apply(self) -> None:
-        # Disable polling means: turn off scheduled update intervals.
         self.coordinator.set_polling_enabled(not self._disabled)
         gps = self._gps_coordinator
         if gps is not None:

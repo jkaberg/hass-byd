@@ -70,7 +70,7 @@ class BydLock(CoordinatorEntity[BydDataUpdateCoordinator], LockEntity):
             return False
         if self._vin not in self.coordinator.data.get("vehicles", {}):
             return False
-        return self._api.is_remote_command_supported(self._vin, "lock")
+        return True
 
     def _get_realtime_locks(self) -> list[bool] | None:
         realtime_map = self.coordinator.data.get("realtime", {})
@@ -157,11 +157,6 @@ class BydLock(CoordinatorEntity[BydDataUpdateCoordinator], LockEntity):
         attrs: dict[str, Any] = {"vin": self._vin}
         if self._last_command:
             attrs["last_remote_command"] = self._last_command
-            last_result = self._api.get_last_remote_result(
-                self._vin, self._last_command
-            )
-            if last_result:
-                attrs["last_remote_result"] = last_result
         return attrs
 
     @property

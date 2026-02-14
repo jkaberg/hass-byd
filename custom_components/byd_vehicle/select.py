@@ -249,10 +249,7 @@ class BydSeatClimateSelect(CoordinatorEntity[BydDataUpdateCoordinator], SelectEn
             return False
         if self._vin not in self.coordinator.data.get("vehicles", {}):
             return False
-        return self._api.is_remote_command_supported(
-            self._vin,
-            f"seat_climate_{self.entity_description.key}",
-        )
+        return True
 
     @property
     def current_option(self) -> str | None:
@@ -315,12 +312,7 @@ class BydSeatClimateSelect(CoordinatorEntity[BydDataUpdateCoordinator], SelectEn
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        attrs: dict[str, Any] = {"vin": self._vin}
-        cmd = f"seat_climate_{self.entity_description.key}"
-        last_result = self._api.get_last_remote_result(self._vin, cmd)
-        if last_result:
-            attrs["last_remote_result"] = last_result
-        return attrs
+        return {"vin": self._vin}
 
     @property
     def device_info(self) -> DeviceInfo:

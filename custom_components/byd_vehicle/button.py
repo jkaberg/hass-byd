@@ -111,10 +111,7 @@ class BydButton(CoordinatorEntity[BydDataUpdateCoordinator], ButtonEntity):
             return False
         if self.coordinator.data.get("vehicles", {}).get(self._vin) is None:
             return False
-        return self._api.is_remote_command_supported(
-            self._vin,
-            self.entity_description.method,
-        )
+        return True
 
     async def async_press(self) -> None:
         """Execute the remote command."""
@@ -142,13 +139,7 @@ class BydButton(CoordinatorEntity[BydDataUpdateCoordinator], ButtonEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return extra state attributes."""
-        attrs: dict[str, Any] = {"vin": self._vin}
-        last_result = self._api.get_last_remote_result(
-            self._vin, self.entity_description.method
-        )
-        if last_result:
-            attrs["last_remote_result"] = last_result
-        return attrs
+        return {"vin": self._vin}
 
     @property
     def device_info(self) -> DeviceInfo:

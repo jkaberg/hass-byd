@@ -1,0 +1,25 @@
+[MAIN]
+py-version=3.11
+
+[MESSAGES CONTROL]
+# Home Assistant entity implementations commonly:
+# - implement async_* methods (pylint flags abstract-method)
+# - use broad exception handling around I/O
+# - have many attributes/args due to HA entity wiring
+# - share boilerplate device_info / coordinator patterns (duplicate-code)
+disable=
+    abstract-method,
+    broad-exception-caught,
+    duplicate-code,
+    missing-class-docstring,
+    missing-function-docstring,
+    missing-module-docstring,
+    protected-access,
+    too-many-arguments,
+    too-many-branches,
+    too-many-instance-attributes,
+    too-many-locals,
+    too-many-positional-arguments,
+    too-many-return-statements,
+    too-many-statements,
+    unnecessary-dunder-call,
