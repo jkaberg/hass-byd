@@ -1,0 +1,438 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connecteu a BYD",
+        "description": "Configureu el compte de BYD.",
+        "data": {
+          "base_url": "Regió",
+          "username": "Nom d'usuari",
+          "password": "Contrasenya",
+          "control_pin": "PIN de control (opcional, 6 dígits)",
+          "country_code": "Estat",
+          "poll_interval": "Interval de consulta (segons)",
+          "gps_poll_interval": "Interval de consulta del GPS (segons)",
+          "smart_gps_polling": "Consulta de GPS intel·ligent",
+          "gps_active_interval": "Interval actiu de GPS (segons)",
+          "gps_inactive_interval": "Interval inactiva de GPS (segons)",
+          "climate_duration": "Durada de la climatització (interval de temps)",
+          "debug_dumps": "Depuració de les respostes de l'API en brut"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "No s'ha pogut connectar",
+      "invalid_control_pin": "El PIN de control no és vàlid o s'ha blocat el control al núvol temporalment",
+      "invalid_auth": "Autenticació no vàlida",
+      "unknown": "S'ha produït un error inesperat"
+    },
+    "abort": {
+      "already_configured": "Aquest compte ja s'ha configurat",
+      "wrong_account": "El compte no coincideix amb el que es torna a autenticar",
+      "reauth_successful": "La reautenticació s'ha fet correctament"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Actualitza la consulta",
+        "data": {
+          "poll_interval": "Interval de consulta (segons)",
+          "gps_poll_interval": "Interval de consulta de GPS (segons)",
+          "smart_gps_polling": "Consulta de GPS instel·ligent",
+          "gps_active_interval": "Interval actiu de GPS (segons)",
+          "gps_inactive_interval": "Interval inacitu de GPS (segons)",
+          "climate_duration": "Durada de la climatització (interval de temps",
+          "debug_dumps": "Depuració de les respostes de l'API en brut"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "elec_percent": {
+        "name": "Nivell de bateria"
+      },
+      "endurance_mileage": {
+        "name": "Autonomia"
+      },
+      "total_mileage": {
+        "name": "Hodòmetre"
+      },
+      "speed": {
+        "name": "Velocitat"
+      },
+      "temp_in_car": {
+        "name": "Temperatura en cabina"
+      },
+      "left_front_tire_pressure": {
+        "name": "Pressió del pneumàtic anterior esquerre"
+      },
+      "right_front_tire_pressure": {
+        "name": "Pressió del pneumàtic anterior dret"
+      },
+      "left_rear_tire_pressure": {
+        "name": "Pressió del pneumàtic posterior esquerre"
+      },
+      "right_rear_tire_pressure": {
+        "name": "Pressió del pneumàtic posterior dret"
+      },
+      "soc": {
+        "name": "Nivell de càrrega (SoC)"
+      },
+      "time_to_full": {
+        "name": "Temps per a càrrega completa"
+      },
+      "total_energy": {
+        "name": "Consum total d'energia"
+      },
+      "avg_energy_consumption": {
+        "name": "Consum amitjanat d'energia"
+      },
+      "temp_out_car": {
+        "name": "Temperatura exterior"
+      },
+      "pm": {
+        "name": "PM2.5"
+      },
+      "power_battery": {
+        "name": "Nivell d'energia de la bateria"
+      },
+      "ev_endurance": {
+        "name": "Autonomia elèctrica"
+      },
+      "endurance_mileage_v2": {
+        "name": "Autonomia V2"
+      },
+      "total_mileage_v2": {
+        "name": "Hodòmetre V2"
+      },
+      "power_gear": {
+        "name": "Posició de marxa"
+      },
+      "charging_state": {
+        "name": "Estat de càrrega"
+      },
+      "charge_state": {
+        "name": "Estat de càrrega"
+      },
+      "wait_status": {
+        "name": "Estat d'espera de càrrega"
+      },
+      "full_hour": {
+        "name": "Hores per a càrrega completa"
+      },
+      "full_minute": {
+        "name": "Minuts per a càrrega completa"
+      },
+      "charge_remaining_hours": {
+        "name": "Hores de càrrega restants"
+      },
+      "charge_remaining_minutes": {
+        "name": "Minuts de càrrega restants"
+      },
+      "booking_charge_state": {
+        "name": "Càrrega programada"
+      },
+      "booking_charging_hour": {
+        "name": "Hora de càrrega programada"
+      },
+      "booking_charging_minute": {
+        "name": "Minut de càrrega programada"
+      },
+      "left_front_tire_status": {
+        "name": "Estat del pneumàtic anterior esquerre"
+      },
+      "right_front_tire_status": {
+        "name": "Estat del pneumàtic anterior dret"
+      },
+      "left_rear_tire_status": {
+        "name": "Estat del pneumàtic posterior esquerre"
+      },
+      "right_rear_tire_status": {
+        "name": "Estat del pneumàtic posterior dret"
+      },
+      "tirepressure_system": {
+        "name": "Estat de pressió dels pneumàtics"
+      },
+      "rapid_tire_leak": {
+        "name": "Fuita ràpida de pneumàtics"
+      },
+      "total_power": {
+        "name": "Potència total"
+      },
+      "nearest_energy_consumption": {
+        "name": "Consum d'energia recent"
+      },
+      "recent_50km_energy": {
+        "name": "Consum dels últims 50 km"
+      },
+      "oil_endurance": {
+        "name": "Autonomia de combustible"
+      },
+      "oil_percent": {
+        "name": "Nivell de combustible"
+      },
+      "total_oil": {
+        "name": "Consum total de combustible"
+      },
+      "engine_status": {
+        "name": "Estat del motor"
+      },
+      "epb": {
+        "name": "Fre d'estacionament electrònic"
+      },
+      "eps": {
+        "name": "Direcció assistida elèctrica"
+      },
+      "esp": {
+        "name": "Estabilitat electrònica"
+      },
+      "abs_warning": {
+        "name": "Avís ABS"
+      },
+      "svs": {
+        "name": "Servei del vehicle requerit aviat"
+      },
+      "srs": {
+        "name": "Avís d'airbag"
+      },
+      "ect": {
+        "name": "Avís de temperatura del refrigerant"
+      },
+      "ect_value": {
+        "name": "Temperatura del refrigerant"
+      },
+      "pwr": {
+        "name": "Avís d'energia"
+      },
+      "power_system": {
+        "name": "Sistema d'energia"
+      },
+      "upgrade_status": {
+        "name": "Estat d'actualització OTA"
+      },
+      "charger_state": {
+        "name": "Estat del carregador"
+      },
+      "charger_connection": {
+        "name": "Estat de connexió del carregador"
+      },
+      "charging_update_time": {
+        "name": "Última actualització de càrrega"
+      },
+      "electricity_consumption": {
+        "name": "Consum d'electricitat"
+      },
+      "fuel_consumption": {
+        "name": "Consum de combustible"
+      },
+      "refrigerator_state": {
+        "name": "Refrigerador"
+      },
+      "refrigerator_door_state": {
+        "name": "Porta del refrigerador"
+      },
+      "last_updated": {
+        "name": "Última actualització de la telemetria"
+      },
+      "gps_last_updated": {
+        "name": "Última actualització del GPS"
+      }
+    },
+    "binary_sensor": {
+      "is_online": {
+        "name": "En línia"
+      },
+      "is_charging": {
+        "name": "Carregant"
+      },
+      "is_any_door_open": {
+        "name": "Portes obertes"
+      },
+      "is_any_window_open": {
+        "name": "Finestres obertes"
+      },
+      "is_locked": {
+        "name": "Blocat"
+      },
+      "charger_connected": {
+        "name": "Carregador connectat"
+      },
+      "sentry_status": {
+        "name": "Mode sentinella"
+      },
+      "left_front_door": {
+        "name": "Porta anterior esquerra"
+      },
+      "right_front_door": {
+        "name": "Porta anterior dreta"
+      },
+      "left_rear_door": {
+        "name": "Porta posterior esquerra"
+      },
+      "right_rear_door": {
+        "name": "Porta posterior dreta"
+      },
+      "trunk_lid": {
+        "name": "Maleter"
+      },
+      "sliding_door": {
+        "name": "Porta corredissa"
+      },
+      "forehold": {
+        "name": "Maleter davanter"
+      },
+      "left_front_window": {
+        "name": "Finestra anterior esquerra"
+      },
+      "right_front_window": {
+        "name": "Finestra anterior dreta"
+      },
+      "left_rear_window": {
+        "name": "Finestra posterior esquerra"
+      },
+      "right_rear_window": {
+        "name": "Finestra posterior dreta"
+      },
+      "skylight": {
+        "name": "Sostre solar"
+      },
+      "left_front_door_lock": {
+        "name": "Pany de la porta anterior esquerra"
+      },
+      "right_front_door_lock": {
+        "name": "Pany de la porta anterior dreta"
+      },
+      "left_rear_door_lock": {
+        "name": "Pany de la porta posterior esquerra"
+      },
+      "right_rear_door_lock": {
+        "name": "Pany de la porta posterior dreta"
+      },
+      "sliding_door_lock": {
+        "name": "Pany de la porta corredissa"
+      },
+      "battery_heat_state": {
+        "name": "Escalfament de la bateria"
+      },
+      "charge_heat_state": {
+        "name": "Escalfament de la càrrega"
+      },
+      "vehicle_state": {
+        "name": "Vehicle engegat"
+      }
+    },
+    "button": {
+      "flash_lights": {
+        "name": "Ràfega de llums"
+      },
+      "find_car": {
+        "name": "Troba el cotxe"
+      },
+      "close_windows": {
+        "name": "Tanca les finestres"
+      }
+    },
+    "select": {
+      "driver_seat_heat": {
+        "name": "Calefacció del seient del conductor",
+        "state": {
+          "off": "Desactivada",
+          "low": "Baixa",
+          "high": "Alta"
+        }
+      },
+      "driver_seat_ventilation": {
+        "name": "Ventilació del seient del conductor",
+        "state": {
+          "off": "Desactivada",
+          "low": "Baixa",
+          "high": "Alta"
+        }
+      },
+      "passenger_seat_heat": {
+        "name": "Calefacció del seient del passatger",
+        "state": {
+          "off": "Desactivada",
+          "low": "Baixa",
+          "high": "Alta"
+        }
+      },
+      "passenger_seat_ventilation": {
+        "name": "Ventilació del seient del passatger",
+        "state": {
+          "off": "Desactivada",
+          "low": "Baixa",
+          "high": "Alta"
+        }
+      },
+      "rear_left_seat_heat": {
+        "name": "Calefacció del seient posterior esquerre",
+        "state": {
+          "off": "Desactivada",
+          "low": "Baixa",
+          "high": "Alta"
+        }
+      },
+      "rear_left_seat_ventilation": {
+        "name": "Ventilació del seient posterior esquerre",
+        "state": {
+          "off": "Desactivada",
+          "low": "Baixa",
+          "high": "Alta"
+        }
+      },
+      "rear_right_seat_heat": {
+        "name": "Calefacció del seient posterior dret",
+        "state": {
+          "off": "Desactivada",
+          "low": "Baixa",
+          "high": "Alta"
+        }
+      },
+      "rear_right_seat_ventilation": {
+        "name": "Ventilació del seient posterior dret",
+        "state": {
+          "off": "Desactivada",
+          "low": "Baixa",
+          "high": "Alta"
+        }
+      }
+    },
+    "switch": {
+      "battery_heat": {
+        "name": "Calor de la bateria"
+      },
+      "car_on": {
+        "name": "Cotxe engegat"
+      },
+      "steering_wheel_heat": {
+        "name": "Calefacció del volant"
+      }
+    },
+    "climate": {
+      "climate": {
+        "name": "Climatització",
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "max_heat": "Calefacció màxima",
+              "max_cool": "Refrigeració màxima"
+            }
+          }
+        }
+      }
+    },
+    "lock": {
+      "lock": {
+        "name": "Bloca"
+      }
+    },
+    "device_tracker": {
+      "location": {
+        "name": "Ubicació"
+      }
+    }
+  }
+}
