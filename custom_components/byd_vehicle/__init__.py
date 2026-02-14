@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import logging
 
+import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.exceptions import ConfigEntryNotReady, HomeAssistantError
+from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from pybyd import BydClient
 
@@ -153,9 +155,103 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
+    # Register custom services (once per integration, not per entry)
+    _register_services(hass)
+
     entry.async_on_unload(entry.add_update_listener(async_reload_entry))
     _LOGGER.debug("BYD config entry %s setup complete", entry.entry_id)
     return True
+
+
+# ── Custom Services ───────────────────────────────────────────────────
+
+SERVICE_SET_CHARGING_SCHEDULE = "set_charging_schedule"
+SERVICE_RENAME_VEHICLE = "rename_vehicle"
+
+SET_CHARGING_SCHEDULE_SCHEMA = vol.Schema(
+    {
+        vol.Required("target_soc"): vol.All(
+            vol.Coerce(int), vol.Range(min=20, max=100)
+        ),
+        vol.Required("start_hour"): vol.All(
+            vol.Coerce(int), vol.Range(min=0, max=23)
+        ),
+        vol.Required("start_minute"): vol.All(
+            vol.Coerce(int), vol.Range(min=0, max=59)
+        ),
+        vol.Required("end_hour"): vol.All(
+            vol.Coerce(int), vol.Range(min=0, max=23)
+        ),
+        vol.Required("end_minute"): vol.All(
+            vol.Coerce(int), vol.Range(min=0, max=59)
+        ),
+    }
+)
+
+RENAME_VEHICLE_SCHEMA = vol.Schema(
+    {
+        vol.Required("name"): vol.All(cv.string, vol.Length(min=1, max=32)),
+    }
+)
+
+
+def _get_first_api(hass: HomeAssistant) -> tuple:
+    """Get the first available API and VIN from loaded entries."""
+    for entry_data in hass.data.get(DOMAIN, {}).values():
+        if isinstance(entry_data, dict) and "api" in entry_data:
+            api = entry_data["api"]
+            coordinators = entry_data.get("coordinators", {})
+            if coordinators:
+                vin = next(iter(coordinators))
+                return api, vin
+    raise HomeAssistantError("No BYD vehicle entries loaded")
+
+
+def _register_services(hass: HomeAssistant) -> None:
+    """Register custom services (idempotent)."""
+    if hass.services.has_service(DOMAIN, SERVICE_SET_CHARGING_SCHEDULE):
+        return
+
+    async def _handle_set_charging_schedule(call: ServiceCall) -> None:
+        from .pybyd_ext import SmartChargingConfig, save_charging_schedule
+
+        api, vin = _get_first_api(hass)
+        config = SmartChargingConfig(
+            target_soc=call.data["target_soc"],
+            start_hour=call.data["start_hour"],
+            start_minute=call.data["start_minute"],
+            end_hour=call.data["end_hour"],
+            end_minute=call.data["end_minute"],
+        )
+
+        async def _call(client: BydClient) -> dict:
+            return await save_charging_schedule(client, vin, config)
+
+        await api.async_call(_call)
+
+    async def _handle_rename_vehicle(call: ServiceCall) -> None:
+        from .pybyd_ext import rename_vehicle
+
+        api, vin = _get_first_api(hass)
+        new_name = call.data["name"]
+
+        async def _call(client: BydClient) -> dict:
+            return await rename_vehicle(client, vin, name=new_name)
+
+        await api.async_call(_call)
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_SET_CHARGING_SCHEDULE,
+        _handle_set_charging_schedule,
+        schema=SET_CHARGING_SCHEDULE_SCHEMA,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_RENAME_VEHICLE,
+        _handle_rename_vehicle,
+        schema=RENAME_VEHICLE_SCHEMA,
+    )
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

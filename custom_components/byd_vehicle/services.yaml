@@ -1,0 +1,69 @@
+set_charging_schedule:
+  name: Set charging schedule
+  description: >-
+    Configure the smart charging schedule (target SOC and time window).
+    Requires the pybyd extension module.
+  target:
+    entity:
+      domain: switch
+      integration: byd_vehicle
+  fields:
+    target_soc:
+      name: Target SOC
+      description: Target state of charge (%)
+      required: true
+      selector:
+        number:
+          min: 20
+          max: 100
+          step: 5
+          unit_of_measurement: "%"
+    start_hour:
+      name: Start hour
+      description: Charging window start hour (0-23)
+      required: true
+      selector:
+        number:
+          min: 0
+          max: 23
+    start_minute:
+      name: Start minute
+      description: Charging window start minute (0-59)
+      required: true
+      selector:
+        number:
+          min: 0
+          max: 59
+    end_hour:
+      name: End hour
+      description: Charging window end hour (0-23)
+      required: true
+      selector:
+        number:
+          min: 0
+          max: 23
+    end_minute:
+      name: End minute
+      description: Charging window end minute (0-59)
+      required: true
+      selector:
+        number:
+          min: 0
+          max: 59
+
+rename_vehicle:
+  name: Rename vehicle
+  description: >-
+    Change the vehicle alias in the BYD cloud.
+    Requires the pybyd extension module.
+  target:
+    entity:
+      domain: sensor
+      integration: byd_vehicle
+  fields:
+    name:
+      name: Vehicle name
+      description: New name for the vehicle (1-32 characters)
+      required: true
+      selector:
+        text:

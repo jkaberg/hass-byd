@@ -112,7 +112,27 @@
       "refrigerator_state": { "name": "Refrigerator" },
       "refrigerator_door_state": { "name": "Refrigerator door" },
       "last_updated": { "name": "Telemetry last updated" },
-      "gps_last_updated": { "name": "GPS last updated" }
+      "gps_last_updated": { "name": "GPS last updated" },
+      "air_conditioning_mode": { "name": "AC mode" },
+      "air_run_state": { "name": "AC run state" },
+      "copilot_setting_temp_new": { "name": "Passenger set temperature" },
+      "copilot_temp": { "name": "Passenger zone temperature" },
+      "electric_defrost_status": { "name": "Electric defrost" },
+      "front_defrost_status": { "name": "Front defrost" },
+      "rapid_decrease_temp_state": { "name": "Rapid cool" },
+      "rapid_increase_temp_state": { "name": "Rapid heat" },
+      "wind_mode": { "name": "Fan mode" },
+      "wind_position": { "name": "Airflow direction" },
+      "wiper_heat_status": { "name": "Wiper heating" },
+      "pm25_state_out_car": { "name": "Outdoor air quality" },
+      "vehicle_state": { "name": "Vehicle state" },
+      "vehicle_state_info": { "name": "Vehicle state info" },
+      "auto_plate": { "name": "License plate" },
+      "auto_bought_time": { "name": "Purchase date" },
+      "tbox_version": { "name": "T-Box version" },
+      "yun_active_time": { "name": "Cloud activation time" },
+      "tire_press_unit": { "name": "Tire pressure unit" },
+      "cycle_choice": { "name": "Recirculation mode" }
     },
     "binary_sensor": {
       "is_online": { "name": "Online" },
@@ -217,7 +237,9 @@
     "switch": {
       "battery_heat": { "name": "Battery heat" },
       "car_on": { "name": "Car on" },
-      "steering_wheel_heat": { "name": "Steering wheel heating" }
+      "steering_wheel_heat": { "name": "Steering wheel heating" },
+      "smart_charging": { "name": "Smart charging" },
+      "push_notifications": { "name": "Push notifications" }
     },
     "climate": {
       "climate": {
@@ -235,8 +257,49 @@
     "lock": {
       "lock": { "name": "Lock" }
     },
+    "image": {
+      "vehicle_image": { "name": "Vehicle image" }
+    },
     "device_tracker": {
       "location": { "name": "Location" }
+    }
+  },
+  "services": {
+    "set_charging_schedule": {
+      "name": "Set charging schedule",
+      "description": "Configure the smart charging schedule.",
+      "fields": {
+        "target_soc": {
+          "name": "Target SOC",
+          "description": "Target state of charge (%)"
+        },
+        "start_hour": {
+          "name": "Start hour",
+          "description": "Charging window start hour"
+        },
+        "start_minute": {
+          "name": "Start minute",
+          "description": "Charging window start minute"
+        },
+        "end_hour": {
+          "name": "End hour",
+          "description": "Charging window end hour"
+        },
+        "end_minute": {
+          "name": "End minute",
+          "description": "Charging window end minute"
+        }
+      }
+    },
+    "rename_vehicle": {
+      "name": "Rename vehicle",
+      "description": "Change the vehicle alias in the BYD cloud.",
+      "fields": {
+        "name": {
+          "name": "Vehicle name",
+          "description": "New name for the vehicle (1-32 characters)"
+        }
+      }
     }
   }
 }

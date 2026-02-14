@@ -46,6 +46,8 @@ async def async_setup_entry(
         entities.append(BydCarOnSwitch(coordinator, api, vin, vehicle))
         entities.append(BydBatteryHeatSwitch(coordinator, api, vin, vehicle))
         entities.append(BydSteeringWheelHeatSwitch(coordinator, api, vin, vehicle))
+        entities.append(BydSmartChargingSwitch(coordinator, api, vin, vehicle))
+        entities.append(BydPushNotificationSwitch(coordinator, api, vin, vehicle))
 
     async_add_entities(entities)
 
@@ -472,6 +474,190 @@ class BydDisablePollingSwitch(
     async def async_turn_off(self, **kwargs: Any) -> None:
         self._disabled = False
         self._apply()
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        return DeviceInfo(
+            identifiers={(DOMAIN, self._vin)},
+            name=get_vehicle_display(self._vehicle),
+            manufacturer=getattr(self._vehicle, "brand_name", None) or "BYD",
+            model=getattr(self._vehicle, "model_name", None),
+            serial_number=self._vin,
+            hw_version=getattr(self._vehicle, "tbox_version", None) or None,
+        )
+
+
+class BydSmartChargingSwitch(CoordinatorEntity, SwitchEntity):
+    """Toggle smart charging via undocumented BYD API endpoint."""
+
+    _attr_has_entity_name = True
+    _attr_name = "Smart charging"
+    _attr_icon = "mdi:battery-clock"
+    _attr_entity_registry_enabled_default = False
+
+    def __init__(
+        self,
+        coordinator: BydDataUpdateCoordinator,
+        api: BydApi,
+        vin: str,
+        vehicle: Any,
+    ) -> None:
+        """Initialize the switch."""
+        super().__init__(coordinator)
+        self._api = api
+        self._vin = vin
+        self._vehicle = vehicle
+        self._attr_unique_id = f"{vin}_switch_smart_charging"
+        self._last_state: bool | None = None
+        self._command_pending = False
+
+    @property
+    def available(self) -> bool:
+        if not super().available:
+            return False
+        return self._vin in self.coordinator.data.get("vehicles", {})
+
+    @property
+    def assumed_state(self) -> bool:
+        charging = self.coordinator.data.get("charging", {}).get(self._vin)
+        if charging is not None:
+            return getattr(charging, "smart_charge_switch", None) is None
+        return True
+
+    @property
+    def is_on(self) -> bool | None:
+        if self._command_pending:
+            return self._last_state
+        charging = self.coordinator.data.get("charging", {}).get(self._vin)
+        if charging is not None:
+            val = getattr(charging, "smart_charge_switch", None)
+            if val is not None:
+                return bool(val)
+        return self._last_state
+
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        """Enable smart charging."""
+        from .pybyd_ext import toggle_smart_charging
+
+        async def _call(client: Any) -> Any:
+            return await toggle_smart_charging(client, self._vin, enable=True)
+
+        try:
+            self._last_state = True
+            await self._api.async_call(_call)
+        except Exception as exc:  # noqa: BLE001
+            self._last_state = None
+            raise HomeAssistantError(str(exc)) from exc
+        self._command_pending = True
+        self.async_write_ha_state()
+
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        """Disable smart charging."""
+        from .pybyd_ext import toggle_smart_charging
+
+        async def _call(client: Any) -> Any:
+            return await toggle_smart_charging(client, self._vin, enable=False)
+
+        try:
+            self._last_state = False
+            await self._api.async_call(_call)
+        except Exception as exc:  # noqa: BLE001
+            self._last_state = None
+            raise HomeAssistantError(str(exc)) from exc
+        self._command_pending = True
+        self.async_write_ha_state()
+
+    def _handle_coordinator_update(self) -> None:
+        self._command_pending = False
+        super()._handle_coordinator_update()
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        return DeviceInfo(
+            identifiers={(DOMAIN, self._vin)},
+            name=get_vehicle_display(self._vehicle),
+            manufacturer=getattr(self._vehicle, "brand_name", None) or "BYD",
+            model=getattr(self._vehicle, "model_name", None),
+            serial_number=self._vin,
+            hw_version=getattr(self._vehicle, "tbox_version", None) or None,
+        )
+
+
+class BydPushNotificationSwitch(CoordinatorEntity, SwitchEntity):
+    """Toggle push notifications via undocumented BYD API endpoint."""
+
+    _attr_has_entity_name = True
+    _attr_name = "Push notifications"
+    _attr_icon = "mdi:bell"
+    _attr_entity_registry_enabled_default = False
+
+    def __init__(
+        self,
+        coordinator: BydDataUpdateCoordinator,
+        api: BydApi,
+        vin: str,
+        vehicle: Any,
+    ) -> None:
+        """Initialize the switch."""
+        super().__init__(coordinator)
+        self._api = api
+        self._vin = vin
+        self._vehicle = vehicle
+        self._attr_unique_id = f"{vin}_switch_push_notifications"
+        self._last_state: bool | None = None
+        self._command_pending = False
+
+    @property
+    def available(self) -> bool:
+        if not super().available:
+            return False
+        return self._vin in self.coordinator.data.get("vehicles", {})
+
+    @property
+    def assumed_state(self) -> bool:
+        return True
+
+    @property
+    def is_on(self) -> bool | None:
+        if self._command_pending:
+            return self._last_state
+        return self._last_state
+
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        """Enable push notifications."""
+        from .pybyd_ext import set_push_state
+
+        async def _call(client: Any) -> Any:
+            return await set_push_state(client, self._vin, enable=True)
+
+        try:
+            self._last_state = True
+            await self._api.async_call(_call)
+        except Exception as exc:  # noqa: BLE001
+            self._last_state = None
+            raise HomeAssistantError(str(exc)) from exc
+        self._command_pending = True
+        self.async_write_ha_state()
+
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        """Disable push notifications."""
+        from .pybyd_ext import set_push_state
+
+        async def _call(client: Any) -> Any:
+            return await set_push_state(client, self._vin, enable=False)
+
+        try:
+            self._last_state = False
+            await self._api.async_call(_call)
+        except Exception as exc:  # noqa: BLE001
+            self._last_state = None
+            raise HomeAssistantError(str(exc)) from exc
+        self._command_pending = True
+        self.async_write_ha_state()
+
+    def _handle_coordinator_update(self) -> None:
+        self._command_pending = False
+        super()._handle_coordinator_update()
 
     @property
     def device_info(self) -> DeviceInfo:

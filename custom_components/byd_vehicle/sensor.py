@@ -711,6 +711,174 @@ SENSOR_DESCRIPTIONS: tuple[BydSensorDescription, ...] = (
         icon="mdi:crosshairs-gps",
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
+    # ===========================================================
+    # HVAC: extended sensors (disabled by default)
+    # ===========================================================
+    BydSensorDescription(
+        key="air_conditioning_mode",
+        name="AC mode",
+        source="hvac",
+        icon="mdi:air-conditioner",
+        entity_registry_enabled_default=False,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    BydSensorDescription(
+        key="air_run_state",
+        name="AC run state",
+        source="hvac",
+        icon="mdi:air-conditioner",
+        entity_registry_enabled_default=False,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    BydSensorDescription(
+        key="copilot_setting_temp_new",
+        name="Passenger set temperature",
+        source="hvac",
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        device_class=SensorDeviceClass.TEMPERATURE,
+        entity_registry_enabled_default=False,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    BydSensorDescription(
+        key="copilot_temp",
+        name="Passenger zone temperature",
+        source="hvac",
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        device_class=SensorDeviceClass.TEMPERATURE,
+        entity_registry_enabled_default=False,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    BydSensorDescription(
+        key="electric_defrost_status",
+        name="Electric defrost",
+        source="hvac",
+        icon="mdi:car-defrost-rear",
+        entity_registry_enabled_default=False,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    BydSensorDescription(
+        key="front_defrost_status",
+        name="Front defrost",
+        source="hvac",
+        icon="mdi:car-defrost-front",
+        entity_registry_enabled_default=False,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    BydSensorDescription(
+        key="rapid_decrease_temp_state",
+        name="Rapid cool",
+        source="hvac",
+        icon="mdi:snowflake",
+        entity_registry_enabled_default=False,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    BydSensorDescription(
+        key="rapid_increase_temp_state",
+        name="Rapid heat",
+        source="hvac",
+        icon="mdi:fire",
+        entity_registry_enabled_default=False,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    BydSensorDescription(
+        key="wind_mode",
+        name="Fan mode",
+        source="hvac",
+        icon="mdi:fan",
+        entity_registry_enabled_default=False,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    BydSensorDescription(
+        key="wind_position",
+        name="Airflow direction",
+        source="hvac",
+        icon="mdi:weather-windy",
+        entity_registry_enabled_default=False,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    BydSensorDescription(
+        key="wiper_heat_status",
+        name="Wiper heating",
+        source="hvac",
+        icon="mdi:car-windshield",
+        entity_registry_enabled_default=False,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    BydSensorDescription(
+        key="pm25_state_out_car",
+        name="Outdoor air quality",
+        source="hvac",
+        icon="mdi:weather-hazy",
+        entity_registry_enabled_default=False,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    # ===========================================================
+    # Realtime: extended vehicle metadata (disabled by default)
+    # ===========================================================
+    BydSensorDescription(
+        key="vehicle_state",
+        name="Vehicle state",
+        source="realtime",
+        icon="mdi:car-info",
+        entity_registry_enabled_default=False,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    BydSensorDescription(
+        key="vehicle_state_info",
+        name="Vehicle state info",
+        source="realtime",
+        icon="mdi:car-info",
+        entity_registry_enabled_default=False,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    BydSensorDescription(
+        key="auto_plate",
+        name="License plate",
+        source="vehicle",
+        icon="mdi:card-text",
+        entity_registry_enabled_default=False,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    BydSensorDescription(
+        key="auto_bought_time",
+        name="Purchase date",
+        source="vehicle",
+        icon="mdi:calendar",
+        entity_registry_enabled_default=False,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    BydSensorDescription(
+        key="tbox_version",
+        name="T-Box version",
+        source="vehicle",
+        icon="mdi:chip",
+        entity_registry_enabled_default=False,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    BydSensorDescription(
+        key="yun_active_time",
+        name="Cloud activation time",
+        source="vehicle",
+        icon="mdi:cloud-check",
+        entity_registry_enabled_default=False,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    BydSensorDescription(
+        key="tire_press_unit",
+        name="Tire pressure unit",
+        source="realtime",
+        icon="mdi:car-tire-alert",
+        entity_registry_enabled_default=False,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    BydSensorDescription(
+        key="cycle_choice",
+        name="Recirculation mode",
+        source="hvac",
+        icon="mdi:rotate-3d-variant",
+        entity_registry_enabled_default=False,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
 )
 
 
@@ -793,7 +961,10 @@ class BydSensor(CoordinatorEntity[BydDataUpdateCoordinator], SensorEntity):
 
     def _get_source_obj(self) -> Any | None:
         """Return the model object for this sensor's source."""
-        source_map = self.coordinator.data.get(self.entity_description.source, {})
+        source = self.entity_description.source
+        if source == "vehicle":
+            return self.coordinator.data.get("vehicles", {}).get(self._vin)
+        source_map = self.coordinator.data.get(source, {})
         return source_map.get(self._vin)
 
     def _resolve_value(self) -> Any:
