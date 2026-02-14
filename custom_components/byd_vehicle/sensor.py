@@ -730,7 +730,7 @@ _TIRE_UNIT_MAP = {
 }
 
 
-class BydSensor(CoordinatorEntity, SensorEntity):
+class BydSensor(CoordinatorEntity[BydDataUpdateCoordinator], SensorEntity):
     """Representation of a BYD vehicle sensor."""
 
     _attr_has_entity_name = True
@@ -746,7 +746,9 @@ class BydSensor(CoordinatorEntity, SensorEntity):
         """Initialize the sensor."""
         super().__init__(coordinator)
         self.entity_description = description
-        self._attr_name = description.name
+        self._attr_name = (
+            description.name if isinstance(description.name, str) else None
+        )
         self._vin = vin
         self._vehicle = vehicle
         self._attr_unique_id = f"{vin}_{description.source}_{description.key}"

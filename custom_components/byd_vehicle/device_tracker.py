@@ -34,7 +34,7 @@ async def async_setup_entry(
     async_add_entities(entities)
 
 
-class BydDeviceTracker(CoordinatorEntity, TrackerEntity):
+class BydDeviceTracker(CoordinatorEntity[BydGpsUpdateCoordinator], TrackerEntity):
     """Representation of a BYD vehicle tracker."""
 
     _attr_has_entity_name = True

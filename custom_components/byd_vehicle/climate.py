@@ -47,7 +47,7 @@ async def async_setup_entry(
     async_add_entities(entities)
 
 
-class BydClimate(CoordinatorEntity, ClimateEntity):
+class BydClimate(CoordinatorEntity[BydDataUpdateCoordinator], ClimateEntity):
     """Representation of BYD climate control."""
 
     _BYD_SCALE_MIN = 1

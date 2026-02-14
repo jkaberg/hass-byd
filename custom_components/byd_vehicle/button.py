@@ -79,7 +79,7 @@ async def async_setup_entry(
     async_add_entities(entities)
 
 
-class BydButton(CoordinatorEntity, ButtonEntity):
+class BydButton(CoordinatorEntity[BydDataUpdateCoordinator], ButtonEntity):
     """Representation of a BYD remote command button."""
 
     _attr_has_entity_name = True
@@ -96,7 +96,9 @@ class BydButton(CoordinatorEntity, ButtonEntity):
         """Initialize the button."""
         super().__init__(coordinator)
         self.entity_description = description
-        self._attr_name = description.name
+        self._attr_name = (
+            description.name if isinstance(description.name, str) else None
+        )
         self._api = api
         self._vin = vin
         self._vehicle = vehicle
@@ -161,7 +163,7 @@ class BydButton(CoordinatorEntity, ButtonEntity):
         )
 
 
-class BydForcePollButton(CoordinatorEntity, ButtonEntity):
+class BydForcePollButton(CoordinatorEntity[BydDataUpdateCoordinator], ButtonEntity):
     """Button that forces a coordinator refresh (telemetry + GPS)."""
 
     _attr_has_entity_name = True

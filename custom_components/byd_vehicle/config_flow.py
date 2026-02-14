@@ -137,7 +137,7 @@ async def _validate_input(hass: HomeAssistant, data: dict[str, Any]) -> None:
         await client.get_vehicles()
 
 
-class BydVehicleConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
+class BydVehicleConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for BYD Vehicle."""
 
     VERSION = 1
@@ -268,7 +268,7 @@ class BydVehicleConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: i
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
-    ) -> dict[str, Any]:
+    ) -> config_entries.ConfigFlowResult:
         errors: dict[str, str] = {}
 
         if user_input is not None:
@@ -375,7 +375,9 @@ class BydVehicleConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: i
             step_id="user", data_schema=data_schema, errors=errors
         )
 
-    async def async_step_reauth(self, _: dict[str, Any]) -> dict[str, Any]:
+    async def async_step_reauth(
+        self, _: dict[str, Any]
+    ) -> config_entries.ConfigFlowResult:
         self._reauth_entry = self._get_reauth_entry()
         return await self.async_step_user()
 
@@ -395,7 +397,7 @@ class BydVehicleOptionsFlow(config_entries.OptionsFlow):
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
-    ) -> dict[str, Any]:
+    ) -> config_entries.ConfigFlowResult:
         if user_input is not None:
             # Store minutes (int) rather than the human label.
             if CONF_CLIMATE_DURATION in user_input:

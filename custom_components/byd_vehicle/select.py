@@ -202,7 +202,7 @@ async def async_setup_entry(
     async_add_entities(entities)
 
 
-class BydSeatClimateSelect(CoordinatorEntity, SelectEntity):
+class BydSeatClimateSelect(CoordinatorEntity[BydDataUpdateCoordinator], SelectEntity):
     """Select entity for a single seat heating/ventilation level."""
 
     _attr_has_entity_name = True
@@ -221,7 +221,9 @@ class BydSeatClimateSelect(CoordinatorEntity, SelectEntity):
         """Initialize the select entity."""
         super().__init__(coordinator)
         self.entity_description = description
-        self._attr_name = description.name
+        self._attr_name = (
+            description.name if isinstance(description.name, str) else None
+        )
         self._api = api
         self._vin = vin
         self._vehicle = vehicle

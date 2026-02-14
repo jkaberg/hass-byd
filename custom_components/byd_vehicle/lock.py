@@ -41,7 +41,7 @@ async def async_setup_entry(
     async_add_entities(entities)
 
 
-class BydLock(CoordinatorEntity, LockEntity):
+class BydLock(CoordinatorEntity[BydDataUpdateCoordinator], LockEntity):
     """Representation of BYD lock control."""
 
     _attr_has_entity_name = True

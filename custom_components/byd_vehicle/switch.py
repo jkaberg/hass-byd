@@ -50,7 +50,7 @@ async def async_setup_entry(
     async_add_entities(entities)
 
 
-class BydBatteryHeatSwitch(CoordinatorEntity, SwitchEntity):
+class BydBatteryHeatSwitch(CoordinatorEntity[BydDataUpdateCoordinator], SwitchEntity):
     """Representation of the BYD battery heat toggle."""
 
     _attr_has_entity_name = True
@@ -175,7 +175,7 @@ class BydBatteryHeatSwitch(CoordinatorEntity, SwitchEntity):
         )
 
 
-class BydCarOnSwitch(CoordinatorEntity, SwitchEntity):
+class BydCarOnSwitch(CoordinatorEntity[BydDataUpdateCoordinator], SwitchEntity):
     """Representation of a BYD car-on switch via climate control."""
 
     _attr_has_entity_name = True
@@ -305,7 +305,9 @@ class BydCarOnSwitch(CoordinatorEntity, SwitchEntity):
         )
 
 
-class BydSteeringWheelHeatSwitch(CoordinatorEntity, SwitchEntity):
+class BydSteeringWheelHeatSwitch(
+    CoordinatorEntity[BydDataUpdateCoordinator], SwitchEntity
+):
     """Representation of the BYD steering wheel heat toggle."""
 
     _attr_has_entity_name = True
@@ -433,7 +435,9 @@ class BydSteeringWheelHeatSwitch(CoordinatorEntity, SwitchEntity):
         )
 
 
-class BydDisablePollingSwitch(CoordinatorEntity, RestoreEntity, SwitchEntity):
+class BydDisablePollingSwitch(
+    CoordinatorEntity[BydDataUpdateCoordinator], RestoreEntity, SwitchEntity
+):
     """Per-vehicle switch to disable scheduled polling."""
 
     _attr_has_entity_name = True
