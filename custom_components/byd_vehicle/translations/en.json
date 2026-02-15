@@ -125,12 +125,6 @@
       "full_minute": {
         "name": "Minutes to full"
       },
-      "charge_remaining_hours": {
-        "name": "Charge remaining hours"
-      },
-      "charge_remaining_minutes": {
-        "name": "Charge remaining minutes"
-      },
       "booking_charge_state": {
         "name": "Scheduled charging"
       },
@@ -238,6 +232,12 @@
       },
       "gps_last_updated": {
         "name": "GPS last updated"
+      },
+      "remaining_hours": {
+        "name": "Charge remaining hours"
+      },
+      "remaining_minutes": {
+        "name": "Charge remaining minutes"
       }
     },
     "binary_sensor": {
@@ -332,6 +332,9 @@
       },
       "close_windows": {
         "name": "Close windows"
+      },
+      "force_poll": {
+        "name": "Force poll"
       }
     },
     "select": {
@@ -409,6 +412,9 @@
       },
       "steering_wheel_heat": {
         "name": "Steering wheel heating"
+      },
+      "disable_polling": {
+        "name": "Disable polling"
       }
     },
     "climate": {

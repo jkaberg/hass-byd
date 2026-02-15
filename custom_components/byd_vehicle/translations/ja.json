@@ -15,7 +15,8 @@
           "smart_gps_polling": "スマート GPS ポーリング",
           "gps_active_interval": "GPS アクティブな間隔 (秒)",
           "gps_inactive_interval": "GPS 非アクティブな間隔 (秒)",
-          "climate_duration": "エアコン作動時間 (time_span)"
+          "climate_duration": "エアコン作動時間 (time_span)",
+          "debug_dumps": "APIレスポンスのデバッグダンプ"
         }
       }
     },
@@ -41,7 +42,8 @@
           "smart_gps_polling": "スマート GPS ポーリング",
           "gps_active_interval": "GPS アクティブな間隔 (秒)",
           "gps_inactive_interval": "GPS 非アクティブな間隔 (秒)",
-          "climate_duration": "エアコン作動時間 (time_span)"
+          "climate_duration": "エアコン作動時間 (time_span)",
+          "debug_dumps": "APIレスポンスのデバッグダンプ"
         }
       }
     }
@@ -122,12 +124,6 @@
       },
       "full_minute": {
         "name": "満充電までの分数"
-      },
-      "charge_remaining_hours": {
-        "name": "残り充電時間"
-      },
-      "charge_remaining_minutes": {
-        "name": "残り充電分数"
       },
       "booking_charge_state": {
         "name": "計画充電"
@@ -236,6 +232,12 @@
       },
       "gps_last_updated": {
         "name": "GPS 最終更新"
+      },
+      "remaining_hours": {
+        "name": "残り充電時間"
+      },
+      "remaining_minutes": {
+        "name": "残り充電分数"
       }
     },
     "binary_sensor": {
@@ -330,6 +332,9 @@
       },
       "close_windows": {
         "name": "窓を閉じる"
+      },
+      "force_poll": {
+        "name": "強制ポーリング"
       }
     },
     "select": {
@@ -407,6 +412,9 @@
       },
       "steering_wheel_heat": {
         "name": "ステアリングホイールヒーター"
+      },
+      "disable_polling": {
+        "name": "ポーリング無効化"
       }
     },
     "climate": {

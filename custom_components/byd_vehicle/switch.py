@@ -14,7 +14,13 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from pybyd import BydRemoteControlError
+from pybyd.models.control import (
+    BatteryHeatParams,
+    ClimateStartParams,
+    SeatClimateParams,
+)
 from pybyd.models.hvac import HvacStatus
+from pybyd.models.realtime import StearingWheelHeat
 
 from .const import DOMAIN
 from .coordinator import BydApi, BydDataUpdateCoordinator, get_vehicle_display
@@ -108,7 +114,9 @@ class BydBatteryHeatSwitch(CoordinatorEntity[BydDataUpdateCoordinator], SwitchEn
         """Turn on battery heat."""
 
         async def _call(client: Any) -> Any:
-            return await client.set_battery_heat(self._vin, on=True)
+            return await client.set_battery_heat(
+                self._vin, params=BatteryHeatParams(on=True)
+            )
 
         try:
             self._last_state = True
@@ -129,7 +137,9 @@ class BydBatteryHeatSwitch(CoordinatorEntity[BydDataUpdateCoordinator], SwitchEn
         """Turn off battery heat."""
 
         async def _call(client: Any) -> Any:
-            return await client.set_battery_heat(self._vin, on=False)
+            return await client.set_battery_heat(
+                self._vin, params=BatteryHeatParams(on=False)
+            )
 
         try:
             self._last_state = False
@@ -175,7 +185,7 @@ class BydCarOnSwitch(CoordinatorEntity[BydDataUpdateCoordinator], SwitchEntity):
     _attr_has_entity_name = True
     _attr_translation_key = "car_on"
     _attr_icon = "mdi:car"
-    _TEMP_21C_SCALE = 7
+    _DEFAULT_TEMP_C = 21.0
 
     def __init__(
         self,
@@ -228,7 +238,9 @@ class BydCarOnSwitch(CoordinatorEntity[BydDataUpdateCoordinator], SwitchEntity):
         async def _call(client: Any) -> Any:
             return await client.start_climate(
                 self._vin,
-                temperature=self._TEMP_21C_SCALE,
+                params=ClimateStartParams(
+                    temperature=self._DEFAULT_TEMP_C, time_span=1
+                ),
             )
 
         try:
@@ -344,12 +356,12 @@ class BydSteeringWheelHeatSwitch(
         if hvac is not None:
             val = hvac.steering_wheel_heat_state
             if val is not None:
-                return bool(val)
+                return val == StearingWheelHeat.ON
         realtime = self._get_realtime()
         if realtime is not None:
             val = getattr(realtime, "steering_wheel_heat_state", None)
             if val is not None:
-                return bool(val)
+                return val == StearingWheelHeat.ON
         return self._last_state
 
     @property
@@ -370,7 +382,9 @@ class BydSteeringWheelHeatSwitch(
         kwargs["steering_wheel_heat"] = 1 if on else 0
 
         async def _call(client: Any) -> Any:
-            return await client.set_seat_climate(self._vin, **kwargs)
+            return await client.set_seat_climate(
+                self._vin, params=SeatClimateParams(**kwargs)
+            )
 
         cmd = "steering_wheel_heat_on" if on else "steering_wheel_heat_off"
         try:
@@ -423,7 +437,7 @@ class BydDisablePollingSwitch(
     """Per-vehicle switch to disable scheduled polling."""
 
     _attr_has_entity_name = True
-    _attr_name = "Disable polling"
+    _attr_translation_key = "disable_polling"
     _attr_icon = "mdi:sync-off"
     _attr_entity_category = EntityCategory.CONFIG
 

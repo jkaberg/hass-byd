@@ -1,0 +1,444 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Yhdistä BYD:hen",
+        "description": "Määritä BYD-tilisi.",
+        "data": {
+          "base_url": "Alue",
+          "username": "Käyttäjänimi",
+          "password": "Salasana",
+          "control_pin": "Ohjaus-PIN (valinnainen, 6-numeroinen)",
+          "country_code": "Maa",
+          "poll_interval": "Kyselyväli (sekuntia)",
+          "gps_poll_interval": "GPS-kyselyväli (sekuntia)",
+          "smart_gps_polling": "Älykäs GPS-kysely",
+          "gps_active_interval": "GPS aktiivinen väli (sekuntia)",
+          "gps_inactive_interval": "GPS passiivinen väli (sekuntia)",
+          "climate_duration": "Ilmastoinnin kesto (time_span)",
+          "debug_dumps": "API-vastausten virheenkorjausvedos"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Yhteyden muodostaminen epäonnistui",
+      "invalid_control_pin": "Virheellinen ohjaus-PIN tai pilviohjaustoiminto on tilapäisesti lukittu",
+      "invalid_auth": "Virheellinen todennus",
+      "unknown": "Odottamaton virhe"
+    },
+    "abort": {
+      "already_configured": "Tämä tili on jo määritetty",
+      "wrong_account": "Tili ei vastaa uudelleen todennettavaa tiliä",
+      "reauth_successful": "Uudelleen todennus onnistui"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Päivitä kysely",
+        "data": {
+          "poll_interval": "Kyselyväli (sekuntia)",
+          "gps_poll_interval": "GPS-kyselyväli (sekuntia)",
+          "smart_gps_polling": "Älykäs GPS-kysely",
+          "gps_active_interval": "GPS aktiivinen väli (sekuntia)",
+          "gps_inactive_interval": "GPS passiivinen väli (sekuntia)",
+          "climate_duration": "Ilmastoinnin kesto (time_span)",
+          "debug_dumps": "API-vastausten virheenkorjausvedos"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "elec_percent": {
+        "name": "Akkutaso"
+      },
+      "endurance_mileage": {
+        "name": "Toimintamatka"
+      },
+      "total_mileage": {
+        "name": "Matkamittari"
+      },
+      "speed": {
+        "name": "Nopeus"
+      },
+      "temp_in_car": {
+        "name": "Matkustamon lämpötila"
+      },
+      "left_front_tire_pressure": {
+        "name": "Vasen eturenkaan paine"
+      },
+      "right_front_tire_pressure": {
+        "name": "Oikea eturenkaan paine"
+      },
+      "left_rear_tire_pressure": {
+        "name": "Vasen takarenkaan paine"
+      },
+      "right_rear_tire_pressure": {
+        "name": "Oikea takarenkaan paine"
+      },
+      "soc": {
+        "name": "Latauksen varaustaso"
+      },
+      "time_to_full": {
+        "name": "Aika täyteen lataukseen"
+      },
+      "total_energy": {
+        "name": "Kokonaisenergiankulutus"
+      },
+      "avg_energy_consumption": {
+        "name": "Keskimääräinen energiankulutus"
+      },
+      "temp_out_car": {
+        "name": "Ulkolämpötila"
+      },
+      "pm": {
+        "name": "PM2.5"
+      },
+      "power_battery": {
+        "name": "Ajoakun varaustaso"
+      },
+      "ev_endurance": {
+        "name": "Sähköinen toimintamatka"
+      },
+      "endurance_mileage_v2": {
+        "name": "Toimintamatka V2"
+      },
+      "total_mileage_v2": {
+        "name": "Matkamittari V2"
+      },
+      "power_gear": {
+        "name": "Vaihteen asento"
+      },
+      "charging_state": {
+        "name": "Lataustila"
+      },
+      "charge_state": {
+        "name": "Latauksen tila"
+      },
+      "wait_status": {
+        "name": "Latauksen odotustila"
+      },
+      "full_hour": {
+        "name": "Tuntia täyteen"
+      },
+      "full_minute": {
+        "name": "Minuuttia täyteen"
+      },
+      "remaining_hours": {
+        "name": "Latauksen jäljellä oleva aika (tunnit)"
+      },
+      "remaining_minutes": {
+        "name": "Latauksen jäljellä oleva aika (minuutit)"
+      },
+      "booking_charge_state": {
+        "name": "Ajastettu lataus"
+      },
+      "booking_charging_hour": {
+        "name": "Ajastetun latauksen tunti"
+      },
+      "booking_charging_minute": {
+        "name": "Ajastetun latauksen minuutti"
+      },
+      "left_front_tire_status": {
+        "name": "Vasen eturenkaan tila"
+      },
+      "right_front_tire_status": {
+        "name": "Oikea eturenkaan tila"
+      },
+      "left_rear_tire_status": {
+        "name": "Vasen takarenkaan tila"
+      },
+      "right_rear_tire_status": {
+        "name": "Oikea takarenkaan tila"
+      },
+      "tirepressure_system": {
+        "name": "Rengaspainejärjestelmän tila"
+      },
+      "rapid_tire_leak": {
+        "name": "Nopea rengasvuoto"
+      },
+      "total_power": {
+        "name": "Kokonaisteho"
+      },
+      "nearest_energy_consumption": {
+        "name": "Viimeaikainen energiankulutus"
+      },
+      "recent_50km_energy": {
+        "name": "Viimeisen 50 km energia"
+      },
+      "oil_endurance": {
+        "name": "Polttoaineen toimintamatka"
+      },
+      "oil_percent": {
+        "name": "Polttoainetaso"
+      },
+      "total_oil": {
+        "name": "Kokonaispolttoaineenkulutus"
+      },
+      "engine_status": {
+        "name": "Moottorin tila"
+      },
+      "epb": {
+        "name": "Sähköinen seisontajarru"
+      },
+      "eps": {
+        "name": "Sähköinen ohjaustehostin"
+      },
+      "esp": {
+        "name": "Elektroninen ajonvakautus"
+      },
+      "abs_warning": {
+        "name": "ABS-varoitus"
+      },
+      "svs": {
+        "name": "Huolto pian"
+      },
+      "srs": {
+        "name": "Turvatyynyn varoitus"
+      },
+      "ect": {
+        "name": "Jäähdytysnesteen lämpötilavaroitus"
+      },
+      "ect_value": {
+        "name": "Jäähdytysnesteen lämpötila"
+      },
+      "pwr": {
+        "name": "Tehovaroitus"
+      },
+      "power_system": {
+        "name": "Voimansiirtojärjestelmä"
+      },
+      "upgrade_status": {
+        "name": "OTA-päivityksen tila"
+      },
+      "charger_state": {
+        "name": "Laturin tila"
+      },
+      "charger_connection": {
+        "name": "Laturin yhteystila"
+      },
+      "charging_update_time": {
+        "name": "Latauksen viimeisin päivitys"
+      },
+      "electricity_consumption": {
+        "name": "Sähkönkulutus"
+      },
+      "fuel_consumption": {
+        "name": "Polttoaineenkulutus"
+      },
+      "refrigerator_state": {
+        "name": "Jääkaappi"
+      },
+      "refrigerator_door_state": {
+        "name": "Jääkaapin ovi"
+      },
+      "last_updated": {
+        "name": "Telemetria viimeksi päivitetty"
+      },
+      "gps_last_updated": {
+        "name": "GPS viimeksi päivitetty"
+      }
+    },
+    "binary_sensor": {
+      "is_online": {
+        "name": "Online"
+      },
+      "is_charging": {
+        "name": "Lataa"
+      },
+      "is_any_door_open": {
+        "name": "Ovet"
+      },
+      "is_any_window_open": {
+        "name": "Ikkunat"
+      },
+      "is_locked": {
+        "name": "Lukittu"
+      },
+      "charger_connected": {
+        "name": "Laturi kytketty"
+      },
+      "sentry_status": {
+        "name": "Vartiotila"
+      },
+      "left_front_door": {
+        "name": "Vasen etuovi"
+      },
+      "right_front_door": {
+        "name": "Oikea etuovi"
+      },
+      "left_rear_door": {
+        "name": "Vasen takaovi"
+      },
+      "right_rear_door": {
+        "name": "Oikea takaovi"
+      },
+      "trunk_lid": {
+        "name": "Takakontti"
+      },
+      "sliding_door": {
+        "name": "Liukuovi"
+      },
+      "forehold": {
+        "name": "Etukontti"
+      },
+      "left_front_window": {
+        "name": "Vasen etuikkuna"
+      },
+      "right_front_window": {
+        "name": "Oikea etuikkuna"
+      },
+      "left_rear_window": {
+        "name": "Vasen takaikkuna"
+      },
+      "right_rear_window": {
+        "name": "Oikea takaikkuna"
+      },
+      "skylight": {
+        "name": "Kattoikkuna"
+      },
+      "left_front_door_lock": {
+        "name": "Vasen etuoven lukko"
+      },
+      "right_front_door_lock": {
+        "name": "Oikea etuoven lukko"
+      },
+      "left_rear_door_lock": {
+        "name": "Vasen takaoven lukko"
+      },
+      "right_rear_door_lock": {
+        "name": "Oikea takaoven lukko"
+      },
+      "sliding_door_lock": {
+        "name": "Liukuoven lukko"
+      },
+      "battery_heat_state": {
+        "name": "Akun lämmitys"
+      },
+      "charge_heat_state": {
+        "name": "Latauksen lämmitys"
+      },
+      "vehicle_state": {
+        "name": "Ajoneuvo päällä"
+      }
+    },
+    "button": {
+      "flash_lights": {
+        "name": "Vilkuta valoja"
+      },
+      "find_car": {
+        "name": "Etsi auto"
+      },
+      "close_windows": {
+        "name": "Sulje ikkunat"
+      },
+      "force_poll": {
+        "name": "Pakota kysely"
+      }
+    },
+    "select": {
+      "driver_seat_heat": {
+        "name": "Kuljettajan istuinlämmitys",
+        "state": {
+          "off": "Pois",
+          "low": "Matala",
+          "high": "Korkea"
+        }
+      },
+      "driver_seat_ventilation": {
+        "name": "Kuljettajan istuintuuletus",
+        "state": {
+          "off": "Pois",
+          "low": "Matala",
+          "high": "Korkea"
+        }
+      },
+      "passenger_seat_heat": {
+        "name": "Matkustajan istuinlämmitys",
+        "state": {
+          "off": "Pois",
+          "low": "Matala",
+          "high": "Korkea"
+        }
+      },
+      "passenger_seat_ventilation": {
+        "name": "Matkustajan istuintuuletus",
+        "state": {
+          "off": "Pois",
+          "low": "Matala",
+          "high": "Korkea"
+        }
+      },
+      "rear_left_seat_heat": {
+        "name": "Vasen takaistuimen lämmitys",
+        "state": {
+          "off": "Pois",
+          "low": "Matala",
+          "high": "Korkea"
+        }
+      },
+      "rear_left_seat_ventilation": {
+        "name": "Vasen takaistuimen tuuletus",
+        "state": {
+          "off": "Pois",
+          "low": "Matala",
+          "high": "Korkea"
+        }
+      },
+      "rear_right_seat_heat": {
+        "name": "Oikea takaistuimen lämmitys",
+        "state": {
+          "off": "Pois",
+          "low": "Matala",
+          "high": "Korkea"
+        }
+      },
+      "rear_right_seat_ventilation": {
+        "name": "Oikea takaistuimen tuuletus",
+        "state": {
+          "off": "Pois",
+          "low": "Matala",
+          "high": "Korkea"
+        }
+      }
+    },
+    "switch": {
+      "battery_heat": {
+        "name": "Akun lämmitys"
+      },
+      "car_on": {
+        "name": "Auto päällä"
+      },
+      "steering_wheel_heat": {
+        "name": "Ohjauspyörän lämmitys"
+      },
+      "disable_polling": {
+        "name": "Poista kysely käytöstä"
+      }
+    },
+    "climate": {
+      "climate": {
+        "name": "Ilmastointi",
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "max_heat": "Maksimilämmitys",
+              "max_cool": "Maksimijäähdytys"
+            }
+          }
+        }
+      }
+    },
+    "lock": {
+      "lock": {
+        "name": "Lukko"
+      }
+    },
+    "device_tracker": {
+      "location": {
+        "name": "Sijainti"
+      }
+    }
+  }
+}

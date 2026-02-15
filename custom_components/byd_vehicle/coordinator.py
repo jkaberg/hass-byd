@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import dataclasses
 import json
 import logging
 from datetime import UTC, datetime, timedelta
@@ -31,8 +30,6 @@ from pybyd.models.gps import GpsInfo
 from pybyd.models.hvac import HvacStatus
 from pybyd.models.realtime import ChargingState, VehicleRealtimeData, VehicleState
 from pybyd.models.vehicle import Vehicle
-from pybyd.state.events import StateSection
-from pydantic import ValidationError
 
 from .const import (
     CONF_BASE_URL,
@@ -57,39 +54,6 @@ def _coerce_enum_int(value: Any) -> int | None:
     try:
         return int(raw)
     except (TypeError, ValueError):
-        return None
-
-
-def _hydrate_store_model(
-    client: BydClient,
-    vin: str,
-    section: StateSection,
-    model: type[Any],
-) -> Any | None:
-    """Hydrate a pyBYD Pydantic model from the state store.
-
-    The state store returns merged dict snapshots; entities in this integration
-    expect the typed Pydantic models (attribute access, helper properties).
-    """
-
-    snapshot = client.store.get_section(vin, section)
-    if not snapshot:
-        return None
-
-    if not isinstance(snapshot, dict):
-        return None
-
-    try:
-        # Pydantic v2 models support `model_validate`.
-        return model.model_validate(snapshot)
-    except ValidationError:
-        _LOGGER.debug(
-            "Failed to hydrate store snapshot: vin=%s section=%s model=%s",
-            vin[-6:],
-            section,
-            getattr(model, "__name__", str(model)),
-            exc_info=True,
-        )
         return None
 
 
@@ -122,6 +86,7 @@ class BydApi:
             DEFAULT_DEBUG_DUMPS,
         )
         self._debug_dump_dir = Path(hass.config.path(".storage/byd_vehicle_debug"))
+        self._coordinators: dict[str, BydDataUpdateCoordinator] = {}
         _LOGGER.debug(
             "BYD API initialized: entry_id=%s, region=%s, language=%s",
             entry.entry_id,
@@ -129,22 +94,11 @@ class BydApi:
             entry.data.get(CONF_LANGUAGE, DEFAULT_LANGUAGE),
         )
 
-    @staticmethod
-    def _json_safe(value: Any) -> Any:
-        if dataclasses.is_dataclass(value) and not isinstance(value, type):
-            return BydApi._json_safe(dataclasses.asdict(value))
-        if isinstance(value, dict):
-            return {str(key): BydApi._json_safe(inner) for key, inner in value.items()}
-        if isinstance(value, (list, tuple, set)):
-            return [BydApi._json_safe(item) for item in value]
-        if isinstance(value, (str, int, float, bool)) or value is None:
-            return value
-        if hasattr(value, "value"):
-            enum_value = getattr(value, "value", None)
-            if isinstance(enum_value, (str, int, float, bool)):
-                return enum_value
-            return str(value)
-        return str(value)
+    def register_coordinators(
+        self, coordinators: dict[str, BydDataUpdateCoordinator]
+    ) -> None:
+        """Register telemetry coordinators for MQTT push dispatch."""
+        self._coordinators = coordinators
 
     def _write_debug_dump(self, category: str, payload: dict[str, Any]) -> None:
         if not self._debug_dumps_enabled:
@@ -154,7 +108,7 @@ class BydApi:
             timestamp = datetime.now(tz=UTC).strftime("%Y%m%dT%H%M%S%fZ")
             file_path = self._debug_dump_dir / f"{timestamp}_{category}.json"
             file_path.write_text(
-                json.dumps(payload, ensure_ascii=False, indent=2),
+                json.dumps(payload, ensure_ascii=False, indent=2, default=str),
                 encoding="utf-8",
             )
         except Exception:  # noqa: BLE001
@@ -171,11 +125,20 @@ class BydApi:
             payload,
         )
 
-    def _record_transport_trace(self, payload: dict[str, Any]) -> None:
-        safe_payload = self._json_safe(payload)
-        self._hass.async_create_task(
-            self._async_write_debug_dump("api_trace", safe_payload)
-        )
+    def _handle_mqtt_vehicle_info(
+        self, vin: str, data: VehicleRealtimeData
+    ) -> None:
+        """Handle MQTT vehicleInfo push -- dispatch to coordinator."""
+        coordinator = self._coordinators.get(vin)
+        if coordinator is None:
+            _LOGGER.debug(
+                "MQTT vehicle info for unknown VIN: %s (known: %s)",
+                vin[-6:],
+                [v[-6:] for v in self._coordinators],
+            )
+            return
+        _LOGGER.debug("MQTT push received for VIN %s -- updating coordinator", vin[-6:])
+        coordinator.handle_mqtt_realtime(data)
 
     @property
     def config(self) -> BydConfig:
@@ -185,7 +148,7 @@ class BydApi:
         """Return a ready-to-use client, creating one if needed.
 
         The client's own ``ensure_session()`` handles login and token
-        expiry transparently — we only manage the transport lifecycle.
+        expiry transparently -- we only manage the transport lifecycle.
         """
         if self._client is None:
             _LOGGER.debug(
@@ -195,9 +158,7 @@ class BydApi:
             self._client = BydClient(
                 self._config,
                 session=self._http_session,
-                response_trace_recorder=(
-                    self._record_transport_trace if self._debug_dumps_enabled else None
-                ),
+                on_vehicle_info=self._handle_mqtt_vehicle_info,
             )
             await self._client.__aenter__()
         return self._client
@@ -270,7 +231,7 @@ class BydApi:
         except BydEndpointNotSupportedError as exc:
             raise UpdateFailed("Feature not supported for this vehicle/region") from exc
         except BydTransportError as exc:
-            # Hard transport error — tear down so next call reconnects
+            # Hard transport error -- tear down so next call reconnects
             await self._invalidate_client()
             raise UpdateFailed(str(exc)) from exc
         except BydAuthenticationError as exc:
@@ -313,6 +274,56 @@ class BydDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._fixed_interval = timedelta(seconds=poll_interval)
         self._polling_enabled = True
         self._force_next_refresh = False
+        # Local state tracking for conditional fetching.
+        self._last_realtime: VehicleRealtimeData | None = None
+        self._last_hvac: HvacStatus | None = None
+        self._last_charging: ChargingStatus | None = None
+
+    def handle_mqtt_realtime(self, data: VehicleRealtimeData) -> None:
+        """Accept an MQTT-pushed realtime update and push to entities."""
+        self._last_realtime = data
+        if not isinstance(self.data, dict):
+            return
+        new_data = dict(self.data)
+        new_data["realtime"] = {self._vin: data}
+        self.async_set_updated_data(new_data)
+
+    def _is_vehicle_on(self, realtime: VehicleRealtimeData | None) -> bool | None:
+        if realtime is None:
+            return None
+        state = getattr(realtime, "vehicle_state", None)
+        if state is None:
+            return None
+        state_int = _coerce_enum_int(state)
+        if state_int is None:
+            return None
+        return state_int == int(VehicleState.ON)
+
+    def _should_fetch_hvac(
+        self, realtime: VehicleRealtimeData | None
+    ) -> bool:
+        # Always fetch once to establish initial HVAC state.
+        if self._last_hvac is None:
+            return True
+        # Only poll HVAC while the vehicle is on.
+        return self._is_vehicle_on(realtime) is True
+
+    def _should_fetch_charging(
+        self, realtime: VehicleRealtimeData | None
+    ) -> bool:
+        # Always fetch once to establish initial charging state.
+        if self._last_charging is None:
+            return True
+        if realtime is None:
+            return True
+        charging_state = _coerce_enum_int(getattr(realtime, "charging_state", None))
+        if charging_state is not None:
+            return charging_state != int(ChargingState.NOT_CHARGING)
+        # Fall back to cached charging model.
+        return bool(
+            getattr(self._last_charging, "is_connected", False)
+            or getattr(self._last_charging, "is_charging", False)
+        )
 
     async def _async_update_data(self) -> dict[str, Any]:
         _LOGGER.debug("Telemetry refresh started: vin=%s", self._vin[-6:])
@@ -324,68 +335,6 @@ class BydDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             if isinstance(self.data, dict):
                 return self.data
             return {"vehicles": {self._vin: self._vehicle}}
-
-        stale_after: float | None = None
-        if not force and isinstance(self.update_interval, timedelta):
-            stale_after = self.update_interval.total_seconds()
-
-        def _is_vehicle_on(realtime: VehicleRealtimeData | None) -> bool | None:
-            if realtime is None:
-                return None
-            state = getattr(realtime, "vehicle_state", None)
-            if state is None:
-                return None
-            # `vehicle_state` can be an enum or int depending on parsing.
-            state_int = _coerce_enum_int(state)
-            if state_int is None:
-                return None
-            return state_int == int(VehicleState.ON)
-
-        def _should_fetch_hvac(
-            client: BydClient,
-            realtime: VehicleRealtimeData | None,
-        ) -> bool:
-            # Always fetch once to establish initial HVAC state.
-            cached = _hydrate_store_model(
-                client,
-                self._vin,
-                StateSection.HVAC,
-                HvacStatus,
-            )
-            if cached is None:
-                return True
-
-            # Only poll HVAC while the vehicle is on.
-            return _is_vehicle_on(realtime) is True
-
-        def _should_fetch_charging(
-            client: BydClient,
-            realtime: VehicleRealtimeData | None,
-        ) -> bool:
-            # Always fetch once to establish initial charging state.
-            cached = _hydrate_store_model(
-                client,
-                self._vin,
-                StateSection.CHARGING,
-                ChargingStatus,
-            )
-            if cached is None:
-                return True
-
-            if realtime is None:
-                # Unknown state; fetch to avoid blind spots.
-                return True
-
-            charging_state = _coerce_enum_int(getattr(realtime, "charging_state", None))
-            if charging_state is not None:
-                # -1 means disconnected. Anything else indicates plugged/charging.
-                return charging_state != int(ChargingState.DISCONNECTED)
-
-            # Fall back to cached charging model if realtime doesn't expose state.
-            return bool(
-                getattr(cached, "is_connected", False)
-                or getattr(cached, "is_charging", False)
-            )
 
         async def _fetch(client: BydClient) -> dict[str, Any]:
             vehicle_map = {self._vin: self._vehicle}
@@ -399,11 +348,11 @@ class BydDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             )
 
             endpoint_failures: dict[str, str] = {}
+
+            # --- Realtime (always) ---
+            realtime: VehicleRealtimeData | None = None
             try:
-                await client.get_vehicle_realtime(
-                    self._vin,
-                    stale_after=stale_after,
-                )
+                realtime = await client.get_vehicle_realtime(self._vin)
             except auth_errors:
                 raise
             except recoverable_errors as exc:
@@ -412,23 +361,24 @@ class BydDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     "Realtime fetch failed: vin=%s, error=%s", self._vin, exc
                 )
 
-            realtime_gate = _hydrate_store_model(
-                client,
-                self._vin,
-                StateSection.REALTIME,
-                VehicleRealtimeData,
-            )
+            # --- Energy (always) ---
+            energy: EnergyConsumption | None = None
             try:
-                await client.get_energy_consumption(self._vin)
+                energy = await client.get_energy_consumption(self._vin)
             except auth_errors:
                 raise
             except recoverable_errors as exc:
                 endpoint_failures["energy"] = f"{type(exc).__name__}: {exc}"
                 _LOGGER.warning("Energy fetch failed: vin=%s, error=%s", self._vin, exc)
 
-            if _should_fetch_hvac(client, realtime_gate):
+            # Use fresh realtime or fall back to previous cycle.
+            realtime_gate = realtime or self._last_realtime
+
+            # --- HVAC (conditional) ---
+            hvac: HvacStatus | None = None
+            if self._should_fetch_hvac(realtime_gate):
                 try:
-                    await client.get_hvac_status(self._vin)
+                    hvac = await client.get_hvac_status(self._vin)
                 except auth_errors:
                     raise
                 except recoverable_errors as exc:
@@ -444,9 +394,11 @@ class BydDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     self._vin[-6:],
                 )
 
-            if _should_fetch_charging(client, realtime_gate):
+            # --- Charging (conditional) ---
+            charging: ChargingStatus | None = None
+            if self._should_fetch_charging(realtime_gate):
                 try:
-                    await client.get_charging_status(self._vin)
+                    charging = await client.get_charging_status(self._vin)
                 except auth_errors:
                     raise
                 except recoverable_errors as exc:
@@ -462,48 +414,37 @@ class BydDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     self._vin[-6:],
                 )
 
-            store_realtime = _hydrate_store_model(
-                client,
-                self._vin,
-                StateSection.REALTIME,
-                VehicleRealtimeData,
-            )
-            store_energy = _hydrate_store_model(
-                client,
-                self._vin,
-                StateSection.ENERGY,
-                EnergyConsumption,
-            )
-            store_hvac = _hydrate_store_model(
-                client,
-                self._vin,
-                StateSection.HVAC,
-                HvacStatus,
-            )
-            store_charging = _hydrate_store_model(
-                client,
-                self._vin,
-                StateSection.CHARGING,
-                ChargingStatus,
-            )
+            # Update local state for next cycle's conditional decisions.
+            if realtime is not None:
+                self._last_realtime = realtime
+            if hvac is not None:
+                self._last_hvac = hvac
+            if charging is not None:
+                self._last_charging = charging
 
+            # Build result maps, falling back to last-known data.
             realtime_map: dict[str, Any] = {}
             energy_map: dict[str, Any] = {}
             hvac_map: dict[str, Any] = {}
             charging_map: dict[str, Any] = {}
-            if store_realtime is not None:
-                realtime_map[self._vin] = store_realtime
-            if store_energy is not None:
-                energy_map[self._vin] = store_energy
-            if store_hvac is not None:
-                hvac_map[self._vin] = store_hvac
-            if store_charging is not None:
-                charging_map[self._vin] = store_charging
+
+            effective_realtime = realtime or self._last_realtime
+            if effective_realtime is not None:
+                realtime_map[self._vin] = effective_realtime
+            effective_energy = energy
+            if effective_energy is not None:
+                energy_map[self._vin] = effective_energy
+            effective_hvac = hvac or self._last_hvac
+            if effective_hvac is not None:
+                hvac_map[self._vin] = effective_hvac
+            effective_charging = charging or self._last_charging
+            if effective_charging is not None:
+                charging_map[self._vin] = effective_charging
 
             if self._vin not in realtime_map:
                 raise UpdateFailed(
                     f"Realtime state unavailable for {self._vin}; "
-                    "no store snapshot is available"
+                    "no data returned from API"
                 )
 
             if endpoint_failures:
@@ -511,6 +452,27 @@ class BydDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     "Telemetry partial refresh: vin=%s, endpoint_failures=%s",
                     self._vin[-6:],
                     endpoint_failures,
+                )
+
+            # Debug dumps via model serialization.
+            if self._api._debug_dumps_enabled:
+                dump: dict[str, Any] = {"vin": self._vin, "sections": {}}
+                if effective_realtime is not None:
+                    dump["sections"]["realtime"] = effective_realtime.model_dump(
+                        mode="json"
+                    )
+                if effective_energy is not None:
+                    dump["sections"]["energy"] = effective_energy.model_dump(
+                        mode="json"
+                    )
+                if effective_hvac is not None:
+                    dump["sections"]["hvac"] = effective_hvac.model_dump(mode="json")
+                if effective_charging is not None:
+                    dump["sections"]["charging"] = effective_charging.model_dump(
+                        mode="json"
+                    )
+                self._api._hass.async_create_task(
+                    self._api._async_write_debug_dump("telemetry", dump)
                 )
 
             return {
@@ -647,14 +609,14 @@ class BydGpsUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 BydRateLimitError,
                 BydEndpointNotSupportedError,
             )
+
+            gps: GpsInfo | None = None
             try:
-                await client.get_gps_info(self._vin)
+                gps = await client.get_gps_info(self._vin)
             except auth_errors:
                 raise
             except recoverable_errors as exc:
                 _LOGGER.warning("GPS fetch failed: vin=%s, error=%s", self._vin, exc)
-
-            gps = _hydrate_store_model(client, self._vin, StateSection.GPS, GpsInfo)
 
             gps_map: dict[str, Any] = {}
             if gps is not None:
@@ -662,6 +624,16 @@ class BydGpsUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
             if not gps_map:
                 raise UpdateFailed(f"GPS fetch failed for {self._vin}")
+
+            # Debug dump for GPS.
+            if self._api._debug_dumps_enabled and gps is not None:
+                dump = {
+                    "vin": self._vin,
+                    "sections": {"gps": gps.model_dump(mode="json")},
+                }
+                self._api._hass.async_create_task(
+                    self._api._async_write_debug_dump("gps", dump)
+                )
 
             return {
                 "vehicles": vehicle_map,

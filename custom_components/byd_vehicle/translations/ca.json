@@ -125,12 +125,6 @@
       "full_minute": {
         "name": "Minuts per a càrrega completa"
       },
-      "charge_remaining_hours": {
-        "name": "Hores de càrrega restants"
-      },
-      "charge_remaining_minutes": {
-        "name": "Minuts de càrrega restants"
-      },
       "booking_charge_state": {
         "name": "Càrrega programada"
       },
@@ -238,6 +232,12 @@
       },
       "gps_last_updated": {
         "name": "Última actualització del GPS"
+      },
+      "remaining_hours": {
+        "name": "Hores de càrrega restants"
+      },
+      "remaining_minutes": {
+        "name": "Minuts de càrrega restants"
       }
     },
     "binary_sensor": {
@@ -332,6 +332,9 @@
       },
       "close_windows": {
         "name": "Tanca les finestres"
+      },
+      "force_poll": {
+        "name": "Forçar consulta"
       }
     },
     "select": {
@@ -409,6 +412,9 @@
       },
       "steering_wheel_heat": {
         "name": "Calefacció del volant"
+      },
+      "disable_polling": {
+        "name": "Desactivar consulta"
       }
     },
     "climate": {

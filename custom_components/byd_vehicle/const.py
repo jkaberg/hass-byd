@@ -43,6 +43,9 @@ DEFAULT_LANGUAGE = "en"
 # Duration dropdown values (minutes) for remote climate start.
 CLIMATE_DURATION_OPTIONS: tuple[int, ...] = (10, 15, 20, 25, 30)
 
+# Mapping from user-facing minutes to pyBYD time_span codes.
+CLIMATE_DURATION_TO_CODE: dict[int, int] = {10: 1, 15: 2, 20: 3, 25: 4, 30: 5}
+
 MIN_POLL_INTERVAL = 30
 MAX_POLL_INTERVAL = 900
 MIN_GPS_POLL_INTERVAL = 30
@@ -81,6 +84,7 @@ COUNTRY_OPTIONS: dict[str, tuple[str, str]] = {
     "Costa Rica": ("CR", "es"),
     "Denmark": ("DK", "da"),
     "El Salvador": ("SV", "es"),
+    "Finland": ("FI", "fi"),
     "France": ("FR", "fr"),
     "Germany": ("DE", "de"),
     "Hong Kong": ("HK", "zh"),

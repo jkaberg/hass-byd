@@ -15,7 +15,8 @@
           "smart_gps_polling": "Intelligens GPS lekérdezés",
           "gps_active_interval": "GPS aktív időköz (mp)",
           "gps_inactive_interval": "GPS inaktív időköz (mp)",
-		  "climate_duration": "Klíma időtartam"
+          "climate_duration": "Klíma időtartam",
+          "debug_dumps": "API válaszok hibakeresési mentése"
         }
       }
     },
@@ -41,7 +42,8 @@
           "smart_gps_polling": "Intelligens GPS lekérdezés",
           "gps_active_interval": "GPS aktív időköz (mp)",
           "gps_inactive_interval": "GPS inaktív időköz (mp)",
-		  "climate_duration": "Klíma időtartam"
+          "climate_duration": "Klíma időtartam",
+          "debug_dumps": "API válaszok hibakeresési mentése"
         }
       }
     }
@@ -122,12 +124,6 @@
       },
       "full_minute": {
         "name": "Percek a teljes töltésig"
-      },
-      "charge_remaining_hours": {
-        "name": "Töltésből hátralévő órák"
-      },
-      "charge_remaining_minutes": {
-        "name": "Töltésből hátralévő percek"
       },
       "booking_charge_state": {
         "name": "Ütemezett töltés"
@@ -231,11 +227,17 @@
       "refrigerator_door_state": {
         "name": "Hűtőszekrény ajtó"
       },
-	  "last_updated": {
+      "last_updated": {
         "name": "Utolsó frissítés"
       },
       "gps_last_updated": {
         "name": "GPS utolsó frissítés"
+      },
+      "remaining_hours": {
+        "name": "Töltésből hátralévő órák"
+      },
+      "remaining_minutes": {
+        "name": "Töltésből hátralévő percek"
       }
     },
     "binary_sensor": {
@@ -330,6 +332,9 @@
       },
       "close_windows": {
         "name": "Ablakok bezására"
+      },
+      "force_poll": {
+        "name": "Lekérdezés kényszerítése"
       }
     },
     "select": {
@@ -407,6 +412,9 @@
       },
       "steering_wheel_heat": {
         "name": "Kormányfűtés"
+      },
+      "disable_polling": {
+        "name": "Lekérdezés letiltása"
       }
     },
     "climate": {

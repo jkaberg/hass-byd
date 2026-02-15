@@ -27,6 +27,7 @@ repository.
 2. Open the three-dot menu and select **Custom repositories**.
 3. Add the repository URL and select **Integration** as the category.
 4. Search for "BYD Vehicle" and install the integration.
+  - HACS will install the latest published release by default; for dev/testing you can open the repository in HACS and select the `main` branch as the download target.
 5. Restart Home Assistant.
 6. Add "BYD Vehicle" from **Settings > Devices & Services**.
 

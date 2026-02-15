@@ -15,7 +15,8 @@
           "smart_gps_polling": "Akıllı GPS yoklama",
           "gps_active_interval": "GPS aktif aralık (saniye)",
           "gps_inactive_interval": "GPS etkin olmayan süre (saniye)",
-          "climate_duration": "Klima süresi (time_span)"
+          "climate_duration": "Klima süresi (time_span)",
+          "debug_dumps": "API yanıtlarının hata ayıklama dökümü"
         }
       }
     },
@@ -41,7 +42,8 @@
           "smart_gps_polling": "Akıllı GPS yoklama",
           "gps_active_interval": "GPS aktif aralık (saniye)",
           "gps_inactive_interval": "GPS etkin olmayan süre (saniye)",
-          "climate_duration": "Klima süresi (time_span)"
+          "climate_duration": "Klima süresi (time_span)",
+          "debug_dumps": "API yanıtlarının hata ayıklama dökümü"
         }
       }
     }
@@ -122,12 +124,6 @@
       },
       "full_minute": {
         "name": "Doluluk dakikaları"
-      },
-      "charge_remaining_hours": {
-        "name": "Kalan şarj saatleri"
-      },
-      "charge_remaining_minutes": {
-        "name": "Kalan şarj dakikaları"
       },
       "booking_charge_state": {
         "name": "Planlı şarj"
@@ -236,6 +232,12 @@
       },
       "gps_last_updated": {
         "name": "GPS son güncelleme"
+      },
+      "remaining_hours": {
+        "name": "Kalan şarj saatleri"
+      },
+      "remaining_minutes": {
+        "name": "Kalan şarj dakikaları"
       }
     },
     "binary_sensor": {
@@ -330,6 +332,9 @@
       },
       "close_windows": {
         "name": "Pencereleri kapat"
+      },
+      "force_poll": {
+        "name": "Zorla sorgula"
       }
     },
     "select": {
@@ -407,6 +412,9 @@
       },
       "steering_wheel_heat": {
         "name": "Direksiyon ısıtması"
+      },
+      "disable_polling": {
+        "name": "Sorgulamayı devre dışı bırak"
       }
     },
     "climate": {

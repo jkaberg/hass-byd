@@ -15,7 +15,8 @@
           "smart_gps_polling": "Smart GPS-polling",
           "gps_active_interval": "GPS aktivt interval (sekunder)",
           "gps_inactive_interval": "GPS inaktivt interval (sekunder)",
-          "climate_duration": "Klimavarighed (time_span)"
+          "climate_duration": "Klimavarighed (time_span)",
+          "debug_dumps": "Fejlretnings-dump af API-svar"
         }
       }
     },
@@ -41,7 +42,8 @@
           "smart_gps_polling": "Smart GPS-polling",
           "gps_active_interval": "GPS aktivt interval (sekunder)",
           "gps_inactive_interval": "GPS inaktivt interval (sekunder)",
-          "climate_duration": "Klimavarighed (time_span)"
+          "climate_duration": "Klimavarighed (time_span)",
+          "debug_dumps": "Fejlretnings-dump af API-svar"
         }
       }
     }
@@ -122,12 +124,6 @@
       },
       "full_minute": {
         "name": "Minutter til fuld"
-      },
-      "charge_remaining_hours": {
-        "name": "Resterende ladetimer"
-      },
-      "charge_remaining_minutes": {
-        "name": "Resterende lademinutter"
       },
       "booking_charge_state": {
         "name": "Planlagt opladning"
@@ -236,6 +232,12 @@
       },
       "gps_last_updated": {
         "name": "GPS sidst opdateret"
+      },
+      "remaining_hours": {
+        "name": "Resterende ladetimer"
+      },
+      "remaining_minutes": {
+        "name": "Resterende lademinutter"
       }
     },
     "binary_sensor": {
@@ -330,6 +332,9 @@
       },
       "close_windows": {
         "name": "Luk vinduer"
+      },
+      "force_poll": {
+        "name": "Tving forespørgsel"
       }
     },
     "select": {
@@ -407,6 +412,9 @@
       },
       "steering_wheel_heat": {
         "name": "Ratvarme"
+      },
+      "disable_polling": {
+        "name": "Deaktiver forespørgsel"
       }
     },
     "climate": {

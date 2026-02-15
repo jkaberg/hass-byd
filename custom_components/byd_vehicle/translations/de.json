@@ -15,7 +15,8 @@
           "smart_gps_polling": "Intelligente GPS-Abfrage",
           "gps_active_interval": "GPS aktives Intervall (Sekunden)",
           "gps_inactive_interval": "GPS inaktives Intervall (Sekunden)",
-          "climate_duration": "Klimadauer (time_span)"
+          "climate_duration": "Klimadauer (time_span)",
+          "debug_dumps": "API-Antworten als Debug-Dump"
         }
       }
     },
@@ -41,7 +42,8 @@
           "smart_gps_polling": "Intelligente GPS-Abfrage",
           "gps_active_interval": "GPS aktives Intervall (Sekunden)",
           "gps_inactive_interval": "GPS inaktives Intervall (Sekunden)",
-          "climate_duration": "Klimadauer (time_span)"
+          "climate_duration": "Klimadauer (time_span)",
+          "debug_dumps": "API-Antworten als Debug-Dump"
         }
       }
     }
@@ -122,12 +124,6 @@
       },
       "full_minute": {
         "name": "Minuten bis voll"
-      },
-      "charge_remaining_hours": {
-        "name": "Verbleibende Ladezeit (Stunden)"
-      },
-      "charge_remaining_minutes": {
-        "name": "Verbleibende Ladezeit (Minuten)"
       },
       "booking_charge_state": {
         "name": "Geplantes Laden"
@@ -236,6 +232,12 @@
       },
       "gps_last_updated": {
         "name": "GPS zuletzt aktualisiert"
+      },
+      "remaining_hours": {
+        "name": "Verbleibende Ladezeit (Stunden)"
+      },
+      "remaining_minutes": {
+        "name": "Verbleibende Ladezeit (Minuten)"
       }
     },
     "binary_sensor": {
@@ -330,6 +332,9 @@
       },
       "close_windows": {
         "name": "Fenster schließen"
+      },
+      "force_poll": {
+        "name": "Abfrage erzwingen"
       }
     },
     "select": {
@@ -407,6 +412,9 @@
       },
       "steering_wheel_heat": {
         "name": "Lenkradheizung"
+      },
+      "disable_polling": {
+        "name": "Abfrage deaktivieren"
       }
     },
     "climate": {

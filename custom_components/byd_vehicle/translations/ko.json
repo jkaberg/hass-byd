@@ -15,7 +15,8 @@
           "smart_gps_polling": "스마트 GPS 폴링",
           "gps_active_interval": "GPS 활성 간격(초)",
           "gps_inactive_interval": "GPS 비활성 간격(초)",
-          "climate_duration": "에어컨 작동 시간 (time_span)"
+          "climate_duration": "에어컨 작동 시간 (time_span)",
+          "debug_dumps": "API 응답 디버그 덤프"
         }
       }
     },
@@ -41,7 +42,8 @@
           "smart_gps_polling": "스마트 GPS 폴링",
           "gps_active_interval": "GPS 활성 간격(초)",
           "gps_inactive_interval": "GPS 비활성 간격(초)",
-          "climate_duration": "에어컨 작동 시간 (time_span)"
+          "climate_duration": "에어컨 작동 시간 (time_span)",
+          "debug_dumps": "API 응답 디버그 덤프"
         }
       }
     }
@@ -122,12 +124,6 @@
       },
       "full_minute": {
         "name": "가득 채울 때까지 분"
-      },
-      "charge_remaining_hours": {
-        "name": "충전 남은 시간"
-      },
-      "charge_remaining_minutes": {
-        "name": "충전 남은 시간(분)"
       },
       "booking_charge_state": {
         "name": "예정된 충전"
@@ -236,6 +232,12 @@
       },
       "gps_last_updated": {
         "name": "GPS 마지막 업데이트"
+      },
+      "remaining_hours": {
+        "name": "충전 남은 시간"
+      },
+      "remaining_minutes": {
+        "name": "충전 남은 시간(분)"
       }
     },
     "binary_sensor": {
@@ -330,6 +332,9 @@
       },
       "close_windows": {
         "name": "창 닫기"
+      },
+      "force_poll": {
+        "name": "강제 폴링"
       }
     },
     "select": {
@@ -407,6 +412,9 @@
       },
       "steering_wheel_heat": {
         "name": "스티어링 휠 가열"
+      },
+      "disable_polling": {
+        "name": "폴링 비활성화"
       }
     },
     "climate": {

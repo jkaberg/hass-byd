@@ -15,7 +15,8 @@
           "smart_gps_polling": "โพลลิ่ง GPS อัจฉริยะ",
           "gps_active_interval": "GPS ช่วงเวลาที่ใช้งาน (วินาที)",
           "gps_inactive_interval": "GPS ช่วงเวลาที่ไม่ใช้งาน (วินาที)",
-          "climate_duration": "ระยะเวลาเครื่องปรับอากาศ (time_span)"
+          "climate_duration": "ระยะเวลาเครื่องปรับอากาศ (time_span)",
+          "debug_dumps": "ดัมพ์ดีบักการตอบสนอง API"
         }
       }
     },
@@ -41,7 +42,8 @@
           "smart_gps_polling": "โพลลิ่ง GPS อัจฉริยะ",
           "gps_active_interval": "GPS ช่วงเวลาที่ใช้งาน (วินาที)",
           "gps_inactive_interval": "GPS ช่วงเวลาที่ไม่ใช้งาน (วินาที)",
-          "climate_duration": "ระยะเวลาเครื่องปรับอากาศ (time_span)"
+          "climate_duration": "ระยะเวลาเครื่องปรับอากาศ (time_span)",
+          "debug_dumps": "ดัมพ์ดีบักการตอบสนอง API"
         }
       }
     }
@@ -122,12 +124,6 @@
       },
       "full_minute": {
         "name": "นาทีจนเต็ม"
-      },
-      "charge_remaining_hours": {
-        "name": "ชั่วโมงชาร์จที่เหลือ"
-      },
-      "charge_remaining_minutes": {
-        "name": "นาทีชาร์จที่เหลือ"
       },
       "booking_charge_state": {
         "name": "การชาร์จตามกำหนดเวลา"
@@ -236,6 +232,12 @@
       },
       "gps_last_updated": {
         "name": "GPS อัปเดตล่าสุด"
+      },
+      "remaining_hours": {
+        "name": "ชั่วโมงชาร์จที่เหลือ"
+      },
+      "remaining_minutes": {
+        "name": "นาทีชาร์จที่เหลือ"
       }
     },
     "binary_sensor": {
@@ -330,6 +332,9 @@
       },
       "close_windows": {
         "name": "ปิดหน้าต่าง"
+      },
+      "force_poll": {
+        "name": "บังคับสำรวจ"
       }
     },
     "select": {
@@ -407,6 +412,9 @@
       },
       "steering_wheel_heat": {
         "name": "การทำความร้อนพวงมาลัย"
+      },
+      "disable_polling": {
+        "name": "ปิดการสำรวจ"
       }
     },
     "climate": {

@@ -8,7 +8,7 @@
           "base_url": "Region",
           "username": "Username",
           "password": "Password",
-          "control_pin": "Control PIN (optional, 6-digit)",
+          "control_pin": "Control PIN (6-digit)",
           "country_code": "Country",
           "poll_interval": "Polling interval (seconds)",
           "gps_poll_interval": "GPS polling interval (seconds)",
@@ -75,8 +75,8 @@
       "wait_status": { "name": "Charge wait status" },
       "full_hour": { "name": "Hours to full" },
       "full_minute": { "name": "Minutes to full" },
-      "charge_remaining_hours": { "name": "Charge remaining hours" },
-      "charge_remaining_minutes": { "name": "Charge remaining minutes" },
+      "remaining_hours": { "name": "Charge remaining hours" },
+      "remaining_minutes": { "name": "Charge remaining minutes" },
       "booking_charge_state": { "name": "Scheduled charging" },
       "booking_charging_hour": { "name": "Scheduled charge hour" },
       "booking_charging_minute": { "name": "Scheduled charge minute" },
@@ -146,7 +146,8 @@
     "button": {
       "flash_lights": { "name": "Flash lights" },
       "find_car": { "name": "Find car" },
-      "close_windows": { "name": "Close windows" }
+      "close_windows": { "name": "Close windows" },
+      "force_poll": { "name": "Force poll" }
     },
     "select": {
       "driver_seat_heat": {
@@ -217,7 +218,8 @@
     "switch": {
       "battery_heat": { "name": "Battery heat" },
       "car_on": { "name": "Car on" },
-      "steering_wheel_heat": { "name": "Steering wheel heating" }
+      "steering_wheel_heat": { "name": "Steering wheel heating" },
+      "disable_polling": { "name": "Disable polling" }
     },
     "climate": {
       "climate": {

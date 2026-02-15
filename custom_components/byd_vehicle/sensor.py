@@ -385,22 +385,22 @@ SENSOR_DESCRIPTIONS: tuple[BydSensorDescription, ...] = (
         value_fn=_charge_time_or_zero("full_minute"),
     ),
     BydSensorDescription(
-        key="charge_remaining_hours",
+        key="remaining_hours",
         name="Charge remaining hours",
         source="realtime",
         icon="mdi:clock-outline",
         entity_registry_enabled_default=False,
         entity_category=EntityCategory.DIAGNOSTIC,
-        value_fn=_charge_time_or_zero("charge_remaining_hours"),
+        value_fn=_charge_time_or_zero("remaining_hours"),
     ),
     BydSensorDescription(
-        key="charge_remaining_minutes",
+        key="remaining_minutes",
         name="Charge remaining minutes",
         source="realtime",
         icon="mdi:clock-outline",
         entity_registry_enabled_default=False,
         entity_category=EntityCategory.DIAGNOSTIC,
-        value_fn=_charge_time_or_zero("charge_remaining_minutes"),
+        value_fn=_charge_time_or_zero("remaining_minutes"),
     ),
     BydSensorDescription(
         key="booking_charge_state",
@@ -772,9 +772,7 @@ class BydSensor(CoordinatorEntity[BydDataUpdateCoordinator], SensorEntity):
         """Initialize the sensor."""
         super().__init__(coordinator)
         self.entity_description = description
-        self._attr_name = (
-            description.name if isinstance(description.name, str) else None
-        )
+        self._attr_translation_key = description.key
         self._vin = vin
         self._vehicle = vehicle
         self._attr_unique_id = f"{vin}_{description.source}_{description.key}"

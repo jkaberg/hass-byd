@@ -15,7 +15,8 @@
           "smart_gps_polling": "智能 GPS 轮询",
           "gps_active_interval": "GPS 活动间隔（秒）",
           "gps_inactive_interval": "GPS 非活动间隔（秒）",
-          "climate_duration": "空调持续时间 (time_span)"
+          "climate_duration": "空调持续时间 (time_span)",
+          "debug_dumps": "调试转储API响应"
         }
       }
     },
@@ -41,7 +42,8 @@
           "smart_gps_polling": "智能 GPS 轮询",
           "gps_active_interval": "GPS 活动间隔（秒）",
           "gps_inactive_interval": "GPS 非活动间隔（秒）",
-          "climate_duration": "空调持续时间 (time_span)"
+          "climate_duration": "空调持续时间 (time_span)",
+          "debug_dumps": "调试转储API响应"
         }
       }
     }
@@ -122,12 +124,6 @@
       },
       "full_minute": {
         "name": "充满分钟数"
-      },
-      "charge_remaining_hours": {
-        "name": "充电剩余小时"
-      },
-      "charge_remaining_minutes": {
-        "name": "充电剩余分钟"
       },
       "booking_charge_state": {
         "name": "预约充电"
@@ -236,6 +232,12 @@
       },
       "gps_last_updated": {
         "name": "GPS 最后更新"
+      },
+      "remaining_hours": {
+        "name": "充电剩余小时"
+      },
+      "remaining_minutes": {
+        "name": "充电剩余分钟"
       }
     },
     "binary_sensor": {
@@ -330,6 +332,9 @@
       },
       "close_windows": {
         "name": "关闭窗户"
+      },
+      "force_poll": {
+        "name": "强制轮询"
       }
     },
     "select": {
@@ -407,6 +412,9 @@
       },
       "steering_wheel_heat": {
         "name": "方向盘加热"
+      },
+      "disable_polling": {
+        "name": "禁用轮询"
       }
     },
     "climate": {

@@ -15,7 +15,8 @@
           "smart_gps_polling": "Polling GPS cerdas",
           "gps_active_interval": "GPS interval aktif (detik)",
           "gps_inactive_interval": "GPS interval tidak aktif (detik)",
-          "climate_duration": "Durasi iklim (time_span)"
+          "climate_duration": "Durasi iklim (time_span)",
+          "debug_dumps": "Debug dump respons API"
         }
       }
     },
@@ -41,7 +42,8 @@
           "smart_gps_polling": "Polling GPS cerdas",
           "gps_active_interval": "GPS interval aktif (detik)",
           "gps_inactive_interval": "GPS interval tidak aktif (detik)",
-          "climate_duration": "Durasi iklim (time_span)"
+          "climate_duration": "Durasi iklim (time_span)",
+          "debug_dumps": "Debug dump respons API"
         }
       }
     }
@@ -122,12 +124,6 @@
       },
       "full_minute": {
         "name": "Menit hingga penuh"
-      },
-      "charge_remaining_hours": {
-        "name": "Sisa jam pengisian"
-      },
-      "charge_remaining_minutes": {
-        "name": "Sisa menit pengisian"
       },
       "booking_charge_state": {
         "name": "Pengisian terjadwal"
@@ -236,6 +232,12 @@
       },
       "gps_last_updated": {
         "name": "GPS terakhir diperbarui"
+      },
+      "remaining_hours": {
+        "name": "Sisa jam pengisian"
+      },
+      "remaining_minutes": {
+        "name": "Sisa menit pengisian"
       }
     },
     "binary_sensor": {
@@ -330,6 +332,9 @@
       },
       "close_windows": {
         "name": "Tutup jendela"
+      },
+      "force_poll": {
+        "name": "Paksa polling"
       }
     },
     "select": {
@@ -407,6 +412,9 @@
       },
       "steering_wheel_heat": {
         "name": "Pemanasan roda kemudi"
+      },
+      "disable_polling": {
+        "name": "Nonaktifkan polling"
       }
     },
     "climate": {

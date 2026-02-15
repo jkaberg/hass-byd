@@ -15,7 +15,8 @@
           "smart_gps_polling": "Slimme GPS polling",
           "gps_active_interval": "GPS actief interval (seconden)",
           "gps_inactive_interval": "GPS inactief interval (seconden)",
-          "climate_duration": "Klimaatduur (time_span)"
+          "climate_duration": "Klimaatduur (time_span)",
+          "debug_dumps": "Debug-dump API-antwoorden"
         }
       }
     },
@@ -41,7 +42,8 @@
           "smart_gps_polling": "Slimme GPS polling",
           "gps_active_interval": "GPS actief interval (seconden)",
           "gps_inactive_interval": "GPS inactief interval (seconden)",
-          "climate_duration": "Klimaatduur (time_span)"
+          "climate_duration": "Klimaatduur (time_span)",
+          "debug_dumps": "Debug-dump API-antwoorden"
         }
       }
     }
@@ -122,12 +124,6 @@
       },
       "full_minute": {
         "name": "Minuten tot vol"
-      },
-      "charge_remaining_hours": {
-        "name": "Resterende laadtijd (uren)"
-      },
-      "charge_remaining_minutes": {
-        "name": "Resterende laadtijd (minuten)"
       },
       "booking_charge_state": {
         "name": "Gepland opladen"
@@ -236,6 +232,12 @@
       },
       "gps_last_updated": {
         "name": "GPS laatst bijgewerkt"
+      },
+      "remaining_hours": {
+        "name": "Resterende laadtijd (uren)"
+      },
+      "remaining_minutes": {
+        "name": "Resterende laadtijd (minuten)"
       }
     },
     "binary_sensor": {
@@ -330,6 +332,9 @@
       },
       "close_windows": {
         "name": "Sluit ramen"
+      },
+      "force_poll": {
+        "name": "Geforceerd ophalen"
       }
     },
     "select": {
@@ -407,6 +412,9 @@
       },
       "steering_wheel_heat": {
         "name": "Stuurverwarming"
+      },
+      "disable_polling": {
+        "name": "Ophalen uitschakelen"
       }
     },
     "climate": {

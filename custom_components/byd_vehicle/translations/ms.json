@@ -15,7 +15,8 @@
           "smart_gps_polling": "Polling GPS pintar",
           "gps_active_interval": "GPS selang aktif (saat)",
           "gps_inactive_interval": "GPS selang tidak aktif (saat)",
-          "climate_duration": "Tempoh iklim (time_span)"
+          "climate_duration": "Tempoh iklim (time_span)",
+          "debug_dumps": "Buang nyahpepijat respons API"
         }
       }
     },
@@ -41,7 +42,8 @@
           "smart_gps_polling": "Polling GPS pintar",
           "gps_active_interval": "GPS selang aktif (saat)",
           "gps_inactive_interval": "GPS selang tidak aktif (saat)",
-          "climate_duration": "Tempoh iklim (time_span)"
+          "climate_duration": "Tempoh iklim (time_span)",
+          "debug_dumps": "Buang nyahpepijat respons API"
         }
       }
     }
@@ -122,12 +124,6 @@
       },
       "full_minute": {
         "name": "Minit hingga penuh"
-      },
-      "charge_remaining_hours": {
-        "name": "Baki jam pengecasan"
-      },
-      "charge_remaining_minutes": {
-        "name": "Baki minit pengecasan"
       },
       "booking_charge_state": {
         "name": "Pengecasan berjadual"
@@ -236,6 +232,12 @@
       },
       "gps_last_updated": {
         "name": "GPS kemaskini terakhir"
+      },
+      "remaining_hours": {
+        "name": "Baki jam pengecasan"
+      },
+      "remaining_minutes": {
+        "name": "Baki minit pengecasan"
       }
     },
     "binary_sensor": {
@@ -330,6 +332,9 @@
       },
       "close_windows": {
         "name": "Tutup tingkap"
+      },
+      "force_poll": {
+        "name": "Paksa tinjauan"
       }
     },
     "select": {
@@ -407,6 +412,9 @@
       },
       "steering_wheel_heat": {
         "name": "Pemanasan roda stereng"
+      },
+      "disable_polling": {
+        "name": "Lumpuhkan tinjauan"
       }
     },
     "climate": {

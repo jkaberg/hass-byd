@@ -15,7 +15,8 @@
           "smart_gps_polling": "Smart GPS-pollning",
           "gps_active_interval": "GPS aktivt intervall (sekunder)",
           "gps_inactive_interval": "GPS inaktivt intervall (sekunder)",
-          "climate_duration": "Klimatvaraktighet (time_span)"
+          "climate_duration": "Klimatvaraktighet (time_span)",
+          "debug_dumps": "Felsökningsdump av API-svar"
         }
       }
     },
@@ -41,7 +42,8 @@
           "smart_gps_polling": "Smart GPS-pollning",
           "gps_active_interval": "GPS aktivt intervall (sekunder)",
           "gps_inactive_interval": "GPS inaktivt intervall (sekunder)",
-          "climate_duration": "Klimatvaraktighet (time_span)"
+          "climate_duration": "Klimatvaraktighet (time_span)",
+          "debug_dumps": "Felsökningsdump av API-svar"
         }
       }
     }
@@ -122,12 +124,6 @@
       },
       "full_minute": {
         "name": "Minuter till full"
-      },
-      "charge_remaining_hours": {
-        "name": "Återstående laddtimmar"
-      },
-      "charge_remaining_minutes": {
-        "name": "Återstående laddminuter"
       },
       "booking_charge_state": {
         "name": "Schemalagd laddning"
@@ -236,6 +232,12 @@
       },
       "gps_last_updated": {
         "name": "GPS senast uppdaterad"
+      },
+      "remaining_hours": {
+        "name": "Återstående laddtimmar"
+      },
+      "remaining_minutes": {
+        "name": "Återstående laddminuter"
       }
     },
     "binary_sensor": {
@@ -330,6 +332,9 @@
       },
       "close_windows": {
         "name": "Stäng fönster"
+      },
+      "force_poll": {
+        "name": "Tvinga uppdatering"
       }
     },
     "select": {
@@ -407,6 +412,9 @@
       },
       "steering_wheel_heat": {
         "name": "Rattvärme"
+      },
+      "disable_polling": {
+        "name": "Inaktivera uppdatering"
       }
     },
     "climate": {

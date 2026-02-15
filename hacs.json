@@ -1,5 +1,6 @@
 {
   "name": "BYD Vehicle",
   "content_in_root": false,
-  "render_readme": true
+  "render_readme": true,
+  "hide_default_branch": false
 }

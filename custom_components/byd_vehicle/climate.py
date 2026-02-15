@@ -15,9 +15,15 @@ from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from pybyd import BydRemoteControlError
+from pybyd.models.control import ClimateStartParams
 from pybyd.models.hvac import HvacStatus
 
-from .const import CONF_CLIMATE_DURATION, DEFAULT_CLIMATE_DURATION, DOMAIN
+from .const import (
+    CLIMATE_DURATION_TO_CODE,
+    CONF_CLIMATE_DURATION,
+    DEFAULT_CLIMATE_DURATION,
+    DOMAIN,
+)
 from .coordinator import BydApi, BydDataUpdateCoordinator, get_vehicle_display
 
 _LOGGER = logging.getLogger(__name__)
@@ -50,11 +56,8 @@ async def async_setup_entry(
 class BydClimate(CoordinatorEntity[BydDataUpdateCoordinator], ClimateEntity):
     """Representation of BYD climate control."""
 
-    _BYD_SCALE_MIN = 1
-    _BYD_SCALE_MAX = 17
     _TEMP_MIN_C = 15
     _TEMP_MAX_C = 31
-    _TEMP_OFFSET_C = 14
     _PRESET_MAX_HEAT = "max_heat"
     _PRESET_MAX_COOL = "max_cool"
     _DEFAULT_TEMP_C = 21.0
@@ -87,6 +90,9 @@ class BydClimate(CoordinatorEntity[BydDataUpdateCoordinator], ClimateEntity):
         self._vin = vin
         self._vehicle = vehicle
         self._climate_duration = climate_duration
+        self._climate_duration_code = CLIMATE_DURATION_TO_CODE.get(
+            climate_duration, 1
+        )
         self._attr_unique_id = f"{vin}_climate"
         self._last_mode = HVACMode.OFF
         self._last_command: str | None = None
@@ -100,39 +106,26 @@ class BydClimate(CoordinatorEntity[BydDataUpdateCoordinator], ClimateEntity):
             return hvac
         return None
 
-    def _scale_to_celsius(self, scale: int | float) -> float:
-        scale_int = int(round(scale))
-        scale_int = max(self._BYD_SCALE_MIN, min(self._BYD_SCALE_MAX, scale_int))
-        return float(scale_int + self._TEMP_OFFSET_C)
-
-    def _celsius_to_scale(self, temp_c: float | int) -> int:
-        scale = int(round(float(temp_c) - self._TEMP_OFFSET_C))
-        return max(self._BYD_SCALE_MIN, min(self._BYD_SCALE_MAX, scale))
-
-    def _preset_from_scale(self, scale: int | float | None) -> str | None:
-        if scale is None:
-            return None
-        scale_int = int(round(scale))
-        if scale_int == self._BYD_SCALE_MAX:
-            return self._PRESET_MAX_HEAT
-        if scale_int == self._BYD_SCALE_MIN:
-            return self._PRESET_MAX_COOL
-        return None
-
-    def _valid_target_temp_c(self, temp_c: float | int | None) -> float | None:
+    @staticmethod
+    def _clamp_temp(temp_c: float | int | None) -> float | None:
+        """Clamp a temperature to the valid range, or return None."""
         if temp_c is None:
             return None
-        temp_value = float(temp_c)
-        if self._TEMP_MIN_C <= temp_value <= self._TEMP_MAX_C:
-            return temp_value
+        val = float(temp_c)
+        if BydClimate._TEMP_MIN_C <= val <= BydClimate._TEMP_MAX_C:
+            return val
         return None
 
-    def _valid_target_scale(self, scale: int | float | None) -> int | None:
-        if scale is None:
+    @staticmethod
+    def _preset_from_temp(temp_c: float | None) -> str | None:
+        """Return a preset name if the temperature matches a preset boundary."""
+        if temp_c is None:
             return None
-        scale_value = int(round(scale))
-        if self._BYD_SCALE_MIN <= scale_value <= self._BYD_SCALE_MAX:
-            return scale_value
+        rounded = round(temp_c)
+        if rounded >= BydClimate._TEMP_MAX_C:
+            return BydClimate._PRESET_MAX_HEAT
+        if rounded <= BydClimate._TEMP_MIN_C:
+            return BydClimate._PRESET_MAX_COOL
         return None
 
     @property
@@ -179,13 +172,9 @@ class BydClimate(CoordinatorEntity[BydDataUpdateCoordinator], ClimateEntity):
         hvac = self._get_hvac_status()
         if hvac is not None:
             # main_setting_temp_new is already in °C (precise value from API)
-            temp_c = self._valid_target_temp_c(hvac.main_setting_temp_new)
+            temp_c = self._clamp_temp(hvac.main_setting_temp_new)
             if temp_c is not None:
                 return temp_c
-            # main_setting_temp is a BYD scale value (1-17) that needs conversion
-            scale = self._valid_target_scale(hvac.main_setting_temp)
-            if scale is not None:
-                return self._scale_to_celsius(scale)
         return self._DEFAULT_TEMP_C
 
     async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
@@ -197,11 +186,13 @@ class BydClimate(CoordinatorEntity[BydDataUpdateCoordinator], ClimateEntity):
         async def _call(client: Any) -> Any:
             if hvac_mode == HVACMode.OFF:
                 return await client.stop_climate(self._vin)
-            kwargs: dict[str, Any] = {}
-            if temp is not None:
-                kwargs["temperature"] = self._celsius_to_scale(temp)
-            kwargs["time_span"] = self._climate_duration
-            return await client.start_climate(self._vin, **kwargs)
+            return await client.start_climate(
+                self._vin,
+                params=ClimateStartParams(
+                    temperature=temp,
+                    time_span=self._climate_duration_code,
+                ),
+            )
 
         try:
             self._last_command = (
@@ -230,15 +221,19 @@ class BydClimate(CoordinatorEntity[BydDataUpdateCoordinator], ClimateEntity):
         temp = kwargs.get(ATTR_TEMPERATURE)
         if temp is None:
             return
-        scale = self._celsius_to_scale(temp)
-        self._pending_target_temp = self._scale_to_celsius(scale)
+        clamped = max(self._TEMP_MIN_C, min(self._TEMP_MAX_C, float(temp)))
+        self._pending_target_temp = clamped
 
         # If climate is currently on, send the update immediately
         if self.hvac_mode != HVACMode.OFF:
 
             async def _call(client: Any) -> Any:
                 return await client.start_climate(
-                    self._vin, temperature=scale, time_span=self._climate_duration
+                    self._vin,
+                    params=ClimateStartParams(
+                        temperature=clamped,
+                        time_span=self._climate_duration_code,
+                    ),
                 )
 
             try:
@@ -262,29 +257,30 @@ class BydClimate(CoordinatorEntity[BydDataUpdateCoordinator], ClimateEntity):
     def preset_mode(self) -> str | None:
         hvac = self._get_hvac_status()
         if hvac is not None and hvac.is_ac_on:
-            # main_setting_temp_new is °C — convert back to scale for preset check
-            temp_c = self._valid_target_temp_c(hvac.main_setting_temp_new)
+            temp_c = self._clamp_temp(hvac.main_setting_temp_new)
             if temp_c is not None:
-                return self._preset_from_scale(self._celsius_to_scale(temp_c))
-            scale = self._valid_target_scale(hvac.main_setting_temp)
-            return self._preset_from_scale(scale)
+                return self._preset_from_temp(temp_c)
         if self.hvac_mode != HVACMode.OFF and self._pending_target_temp is not None:
-            scale = self._celsius_to_scale(self._pending_target_temp)
-            return self._preset_from_scale(scale)
+            return self._preset_from_temp(self._pending_target_temp)
         return None
 
     async def async_set_preset_mode(self, preset_mode: str) -> None:
         if preset_mode not in self._attr_preset_modes:
             raise HomeAssistantError(f"Unsupported preset mode: {preset_mode}")
-        if preset_mode == self._PRESET_MAX_HEAT:
-            scale = self._BYD_SCALE_MAX
-        else:
-            scale = self._BYD_SCALE_MIN
-        self._pending_target_temp = self._scale_to_celsius(scale)
+        temp_c = (
+            float(self._TEMP_MAX_C)
+            if preset_mode == self._PRESET_MAX_HEAT
+            else float(self._TEMP_MIN_C)
+        )
+        self._pending_target_temp = temp_c
 
         async def _call(client: Any) -> Any:
             return await client.start_climate(
-                self._vin, temperature=scale, time_span=self._climate_duration
+                self._vin,
+                params=ClimateStartParams(
+                    temperature=temp_c,
+                    time_span=self._climate_duration_code,
+                ),
             )
 
         try:
@@ -318,15 +314,7 @@ class BydClimate(CoordinatorEntity[BydDataUpdateCoordinator], ClimateEntity):
             attrs["exterior_temperature"] = hvac.temp_out_car
             # copilot_setting_temp_new is already in °C;
             # copilot_setting_temp is a BYD scale value (1-17)
-            attrs["passenger_set_temperature"] = (
-                hvac.copilot_setting_temp_new
-                if hvac.copilot_setting_temp_new is not None
-                else (
-                    self._scale_to_celsius(hvac.copilot_setting_temp)
-                    if hvac.copilot_setting_temp is not None
-                    else None
-                )
-            )
+            attrs["passenger_set_temperature"] = hvac.copilot_setting_temp_new
             # Airflow
             attrs["fan_speed"] = hvac.wind_mode
             attrs["airflow_direction"] = hvac.wind_position

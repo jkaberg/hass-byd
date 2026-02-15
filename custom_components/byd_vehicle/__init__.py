@@ -143,6 +143,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     first_vin = next(iter(coordinators))
 
+    # Wire MQTT push so realtime updates dispatch to coordinators.
+    api.register_coordinators(coordinators)
+
     hass.data[DOMAIN][entry.entry_id] = {
         "api": api,
         "coordinator": coordinators[first_vin],

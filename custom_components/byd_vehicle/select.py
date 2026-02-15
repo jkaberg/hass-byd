@@ -18,7 +18,9 @@ from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from pybyd import BydRemoteControlError
+from pybyd.models.control import SeatClimateParams
 from pybyd.models.hvac import HvacStatus
+from pybyd.models.realtime import SeatHeatVentState, StearingWheelHeat
 
 from .const import DOMAIN
 from .coordinator import BydApi, BydDataUpdateCoordinator, get_vehicle_display
@@ -31,13 +33,22 @@ SEAT_LEVEL_TO_INT = {"off": 0, "low": 1, "high": 3}
 INT_TO_SEAT_LEVEL = {v: k for k, v in SEAT_LEVEL_TO_INT.items()}
 
 
+# Maps SeatHeatVentState enum → command level for set_seat_climate()
+_SEAT_STATE_TO_COMMAND: dict[SeatHeatVentState, int] = {
+    SeatHeatVentState.OFF: 0,
+    SeatHeatVentState.LOW: 1,
+    SeatHeatVentState.HIGH: 3,
+}
+
+
 def _seat_status_to_command_level(value: Any) -> int:
     """Normalize seat status values to the command scale.
 
-    Status scale observed from the API is 0=off, 2=low, 3=high, with 1
-    reported as "available but inactive". Command scale is 0=off, 1-3
-    for intensity.
+    Uses the ``SeatHeatVentState`` enum when available, falling back to
+    raw int conversion for robustness.
     """
+    if isinstance(value, SeatHeatVentState):
+        return _SEAT_STATE_TO_COMMAND.get(value, 0)
     try:
         level = int(value)
     except (TypeError, ValueError):
@@ -54,7 +65,7 @@ def _seat_status_to_command_level(value: Any) -> int:
 
 
 def _seat_status_to_option(value: Any) -> str | None:
-    """Map raw seat status values to a UI option."""
+    """Map seat status values to a UI option."""
     if value is None:
         return None
     level = _seat_status_to_command_level(value)
@@ -172,9 +183,7 @@ def _gather_seat_climate_state(
         sw_val = getattr(hvac, "steering_wheel_heat_state", None)
     if sw_val is None and realtime is not None:
         sw_val = getattr(realtime, "steering_wheel_heat_state", None)
-    values["steering_wheel_heat"] = (
-        1 if _seat_status_to_command_level(sw_val) > 0 else 0
-    )
+    values["steering_wheel_heat"] = 1 if sw_val == StearingWheelHeat.ON else 0
 
     return values
 
@@ -221,9 +230,7 @@ class BydSeatClimateSelect(CoordinatorEntity[BydDataUpdateCoordinator], SelectEn
         """Initialize the select entity."""
         super().__init__(coordinator)
         self.entity_description = description
-        self._attr_name = (
-            description.name if isinstance(description.name, str) else None
-        )
+        self._attr_translation_key = description.key
         self._api = api
         self._vin = vin
         self._vehicle = vehicle
@@ -283,7 +290,9 @@ class BydSeatClimateSelect(CoordinatorEntity[BydDataUpdateCoordinator], SelectEn
         kwargs[self.entity_description.param_key] = level
 
         async def _call(client: Any) -> Any:
-            return await client.set_seat_climate(self._vin, **kwargs)
+            return await client.set_seat_climate(
+                self._vin, params=SeatClimateParams(**kwargs)
+            )
 
         try:
             await self._api.async_call(

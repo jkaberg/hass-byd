@@ -22,6 +22,13 @@ from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
+from pybyd.models.realtime import (
+    DoorOpenState,
+    LockState,
+    VehicleState,
+    WindowState,
+)
+
 from .const import DOMAIN
 from .coordinator import (
     BydDataUpdateCoordinator,
@@ -50,29 +57,50 @@ def _bool_from_int(attr: str) -> Callable[[Any], bool | None]:
     return _fn
 
 
-def _window_open(attr: str) -> Callable[[Any], bool | None]:
-    """Return True only when window enum/state value is OPEN (2)."""
+def _door_open(attr: str) -> Callable[[Any], bool | None]:
+    """Return True when the door enum is OPEN."""
 
     def _fn(obj: Any) -> bool | None:
         val = getattr(obj, attr, None)
         if val is None:
             return None
-        raw = int(val.value) if hasattr(val, "value") else int(val)
-        return raw == 2
+        return val == DoorOpenState.OPEN
+
+    return _fn
+
+
+def _window_open(attr: str) -> Callable[[Any], bool | None]:
+    """Return True when the window enum is OPEN."""
+
+    def _fn(obj: Any) -> bool | None:
+        val = getattr(obj, attr, None)
+        if val is None:
+            return None
+        return val == WindowState.OPEN
+
+    return _fn
+
+
+def _lock_unlocked(attr: str) -> Callable[[Any], bool | None]:
+    """Return True when the lock is UNLOCKED (problem state for BinarySensorDeviceClass.LOCK)."""
+
+    def _fn(obj: Any) -> bool | None:
+        val = getattr(obj, attr, None)
+        if val is None:
+            return None
+        return val == LockState.UNLOCKED
 
     return _fn
 
 
 def _vehicle_on_from_state(obj: Any) -> bool | None:
-    """Map vehicle_state values explicitly to avoid bool-cast inversion."""
+    """Return True when the vehicle is ON."""
     val = getattr(obj, "vehicle_state", None)
     if val is None:
         return None
-    raw = int(val.value) if hasattr(val, "value") else int(val)
-    # Observed mapping in field reports: 0 means vehicle active/on.
-    if raw == 0:
+    if val == VehicleState.ON:
         return True
-    if raw == 1:
+    if val == VehicleState.OFF:
         return False
     return None
 
@@ -140,6 +168,7 @@ BINARY_SENSOR_DESCRIPTIONS: tuple[BydBinarySensorDescription, ...] = (
         name="Front left door",
         source="realtime",
         device_class=BinarySensorDeviceClass.DOOR,
+        value_fn=_door_open("left_front_door"),
         entity_registry_enabled_default=False,
     ),
     BydBinarySensorDescription(
@@ -147,6 +176,7 @@ BINARY_SENSOR_DESCRIPTIONS: tuple[BydBinarySensorDescription, ...] = (
         name="Front right door",
         source="realtime",
         device_class=BinarySensorDeviceClass.DOOR,
+        value_fn=_door_open("right_front_door"),
         entity_registry_enabled_default=False,
     ),
     BydBinarySensorDescription(
@@ -154,6 +184,7 @@ BINARY_SENSOR_DESCRIPTIONS: tuple[BydBinarySensorDescription, ...] = (
         name="Rear left door",
         source="realtime",
         device_class=BinarySensorDeviceClass.DOOR,
+        value_fn=_door_open("left_rear_door"),
         entity_registry_enabled_default=False,
     ),
     BydBinarySensorDescription(
@@ -161,6 +192,7 @@ BINARY_SENSOR_DESCRIPTIONS: tuple[BydBinarySensorDescription, ...] = (
         name="Rear right door",
         source="realtime",
         device_class=BinarySensorDeviceClass.DOOR,
+        value_fn=_door_open("right_rear_door"),
         entity_registry_enabled_default=False,
     ),
     BydBinarySensorDescription(
@@ -168,6 +200,7 @@ BINARY_SENSOR_DESCRIPTIONS: tuple[BydBinarySensorDescription, ...] = (
         name="Trunk",
         source="realtime",
         device_class=BinarySensorDeviceClass.DOOR,
+        value_fn=_door_open("trunk_lid"),
         entity_registry_enabled_default=False,
     ),
     BydBinarySensorDescription(
@@ -175,6 +208,7 @@ BINARY_SENSOR_DESCRIPTIONS: tuple[BydBinarySensorDescription, ...] = (
         name="Sliding door",
         source="realtime",
         device_class=BinarySensorDeviceClass.DOOR,
+        value_fn=_door_open("sliding_door"),
         entity_registry_enabled_default=False,
     ),
     BydBinarySensorDescription(
@@ -182,6 +216,7 @@ BINARY_SENSOR_DESCRIPTIONS: tuple[BydBinarySensorDescription, ...] = (
         name="Frunk",
         source="realtime",
         device_class=BinarySensorDeviceClass.DOOR,
+        value_fn=_door_open("forehold"),
         entity_registry_enabled_default=False,
     ),
     # ====================================
@@ -235,6 +270,7 @@ BINARY_SENSOR_DESCRIPTIONS: tuple[BydBinarySensorDescription, ...] = (
         name="Front left door lock",
         source="realtime",
         device_class=BinarySensorDeviceClass.LOCK,
+        value_fn=_lock_unlocked("left_front_door_lock"),
         entity_registry_enabled_default=False,
     ),
     BydBinarySensorDescription(
@@ -242,6 +278,7 @@ BINARY_SENSOR_DESCRIPTIONS: tuple[BydBinarySensorDescription, ...] = (
         name="Front right door lock",
         source="realtime",
         device_class=BinarySensorDeviceClass.LOCK,
+        value_fn=_lock_unlocked("right_front_door_lock"),
         entity_registry_enabled_default=False,
     ),
     BydBinarySensorDescription(
@@ -249,6 +286,7 @@ BINARY_SENSOR_DESCRIPTIONS: tuple[BydBinarySensorDescription, ...] = (
         name="Rear left door lock",
         source="realtime",
         device_class=BinarySensorDeviceClass.LOCK,
+        value_fn=_lock_unlocked("left_rear_door_lock"),
         entity_registry_enabled_default=False,
     ),
     BydBinarySensorDescription(
@@ -256,6 +294,7 @@ BINARY_SENSOR_DESCRIPTIONS: tuple[BydBinarySensorDescription, ...] = (
         name="Rear right door lock",
         source="realtime",
         device_class=BinarySensorDeviceClass.LOCK,
+        value_fn=_lock_unlocked("right_rear_door_lock"),
         entity_registry_enabled_default=False,
     ),
     BydBinarySensorDescription(
@@ -263,6 +302,7 @@ BINARY_SENSOR_DESCRIPTIONS: tuple[BydBinarySensorDescription, ...] = (
         name="Sliding door lock",
         source="realtime",
         device_class=BinarySensorDeviceClass.LOCK,
+        value_fn=_lock_unlocked("sliding_door_lock"),
         entity_registry_enabled_default=False,
     ),
     # ====================================
@@ -334,9 +374,7 @@ class BydBinarySensor(CoordinatorEntity[BydDataUpdateCoordinator], BinarySensorE
         """Initialize the binary sensor."""
         super().__init__(coordinator)
         self.entity_description = description
-        self._attr_name = (
-            description.name if isinstance(description.name, str) else None
-        )
+        self._attr_translation_key = description.key
         self._vin = vin
         self._vehicle = vehicle
         self._attr_unique_id = f"{vin}_{description.source}_{description.key}"

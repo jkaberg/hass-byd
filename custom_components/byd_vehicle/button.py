@@ -96,9 +96,7 @@ class BydButton(CoordinatorEntity[BydDataUpdateCoordinator], ButtonEntity):
         """Initialize the button."""
         super().__init__(coordinator)
         self.entity_description = description
-        self._attr_name = (
-            description.name if isinstance(description.name, str) else None
-        )
+        self._attr_translation_key = description.key
         self._api = api
         self._vin = vin
         self._vehicle = vehicle
@@ -158,7 +156,7 @@ class BydForcePollButton(CoordinatorEntity[BydDataUpdateCoordinator], ButtonEnti
     """Button that forces a coordinator refresh (telemetry + GPS)."""
 
     _attr_has_entity_name = True
-    _attr_name = "Force poll"
+    _attr_translation_key = "force_poll"
     _attr_icon = "mdi:sync"
     _attr_entity_category = EntityCategory.CONFIG
 

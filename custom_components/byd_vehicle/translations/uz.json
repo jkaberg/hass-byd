@@ -15,7 +15,8 @@
           "smart_gps_polling": "Aqlli GPS so'rovi",
           "gps_active_interval": "GPS faol interval (sekundlar)",
           "gps_inactive_interval": "GPS nofaol interval (soniyalar)",
-          "climate_duration": "Iqlim davomiyligi (time_span)"
+          "climate_duration": "Iqlim davomiyligi (time_span)",
+          "debug_dumps": "API javoblarni xato tuzatish uchun saqlash"
         }
       }
     },
@@ -41,7 +42,8 @@
           "smart_gps_polling": "Aqlli GPS so'rovi",
           "gps_active_interval": "GPS faol interval (sekundlar)",
           "gps_inactive_interval": "GPS nofaol interval (soniyalar)",
-          "climate_duration": "Iqlim davomiyligi (time_span)"
+          "climate_duration": "Iqlim davomiyligi (time_span)",
+          "debug_dumps": "API javoblarni xato tuzatish uchun saqlash"
         }
       }
     }
@@ -122,12 +124,6 @@
       },
       "full_minute": {
         "name": "To'lgunlikkacha daqiqalar"
-      },
-      "charge_remaining_hours": {
-        "name": "Qolgan zaryadlash soatlari"
-      },
-      "charge_remaining_minutes": {
-        "name": "Qolgan zaryadlash daqiqalari"
       },
       "booking_charge_state": {
         "name": "Rejalashtirilgan zaryadlash"
@@ -236,6 +232,12 @@
       },
       "gps_last_updated": {
         "name": "GPS so'nggi yangilanish"
+      },
+      "remaining_hours": {
+        "name": "Qolgan zaryadlash soatlari"
+      },
+      "remaining_minutes": {
+        "name": "Qolgan zaryadlash daqiqalari"
       }
     },
     "binary_sensor": {
@@ -330,6 +332,9 @@
       },
       "close_windows": {
         "name": "Derazalarni yoping"
+      },
+      "force_poll": {
+        "name": "Majburiy so'rov"
       }
     },
     "select": {
@@ -407,6 +412,9 @@
       },
       "steering_wheel_heat": {
         "name": "Rulni isitish"
+      },
+      "disable_polling": {
+        "name": "So'rovni o'chirish"
       }
     },
     "climate": {
