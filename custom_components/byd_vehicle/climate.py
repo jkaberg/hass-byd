@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import logging
 from typing import Any
 
 from homeassistant.components.climate import ClimateEntity, ClimateEntityFeature
@@ -11,22 +10,17 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import ATTR_TEMPERATURE, UnitOfTemperature
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
-from pybyd import BydRemoteControlError
+from pybyd import minutes_to_time_span
 from pybyd.models.control import ClimateStartParams
-from pybyd.models.hvac import HvacStatus
 
 from .const import (
-    CLIMATE_DURATION_TO_CODE,
     CONF_CLIMATE_DURATION,
     DEFAULT_CLIMATE_DURATION,
     DOMAIN,
 )
-from .coordinator import BydApi, BydDataUpdateCoordinator, get_vehicle_display
-
-_LOGGER = logging.getLogger(__name__)
+from .coordinator import BydApi, BydDataUpdateCoordinator
+from .entity import BydVehicleEntity
 
 
 async def async_setup_entry(
@@ -53,7 +47,7 @@ async def async_setup_entry(
     async_add_entities(entities)
 
 
-class BydClimate(CoordinatorEntity[BydDataUpdateCoordinator], ClimateEntity):
+class BydClimate(BydVehicleEntity, ClimateEntity):
     """Representation of BYD climate control."""
 
     _TEMP_MIN_C = 15
@@ -89,22 +83,11 @@ class BydClimate(CoordinatorEntity[BydDataUpdateCoordinator], ClimateEntity):
         self._api = api
         self._vin = vin
         self._vehicle = vehicle
-        self._climate_duration = climate_duration
-        self._climate_duration_code = CLIMATE_DURATION_TO_CODE.get(
-            climate_duration, 1
-        )
+        self._climate_duration_code = minutes_to_time_span(climate_duration)
         self._attr_unique_id = f"{vin}_climate"
         self._last_mode = HVACMode.OFF
         self._last_command: str | None = None
         self._pending_target_temp: float | None = None
-        self._command_pending = False
-
-    def _get_hvac_status(self) -> HvacStatus | None:
-        hvac_map = self.coordinator.data.get("hvac", {})
-        hvac = hvac_map.get(self._vin)
-        if isinstance(hvac, HvacStatus):
-            return hvac
-        return None
 
     @staticmethod
     def _clamp_temp(temp_c: float | int | None) -> float | None:
@@ -127,15 +110,6 @@ class BydClimate(CoordinatorEntity[BydDataUpdateCoordinator], ClimateEntity):
         if rounded <= BydClimate._TEMP_MIN_C:
             return BydClimate._PRESET_MAX_COOL
         return None
-
-    @property
-    def available(self) -> bool:
-        """Available when coordinator has data for this vehicle."""
-        if not super().available:
-            return False
-        if self._vin not in self.coordinator.data.get("vehicles", {}):
-            return False
-        return True
 
     @property
     def hvac_mode(self) -> HVACMode:
@@ -161,7 +135,7 @@ class BydClimate(CoordinatorEntity[BydDataUpdateCoordinator], ClimateEntity):
         realtime = realtime_map.get(self._vin)
         if realtime is not None:
             temp = getattr(realtime, "temp_in_car", None)
-            if temp is not None and temp != -129:
+            if temp is not None:
                 return temp
         return None
 
@@ -194,24 +168,11 @@ class BydClimate(CoordinatorEntity[BydDataUpdateCoordinator], ClimateEntity):
                 ),
             )
 
-        try:
-            self._last_command = (
-                "stop_climate" if hvac_mode == HVACMode.OFF else "start_climate"
-            )
-            await self._api.async_call(_call, vin=self._vin, command=self._last_command)
-        except BydRemoteControlError as exc:
-            _LOGGER.warning(
-                "Climate %s command sent but cloud reported failure — "
-                "updating state optimistically: %s",
-                self._last_command,
-                exc,
-            )
-        except Exception as exc:  # noqa: BLE001
-            raise HomeAssistantError(str(exc)) from exc
-
+        self._last_command = (
+            "stop_climate" if hvac_mode == HVACMode.OFF else "start_climate"
+        )
         self._last_mode = hvac_mode
-        self._command_pending = True
-        self.async_write_ha_state()
+        await self._execute_command(self._api, _call, command=self._last_command)
 
         # Refresh coordinator so the car-on switch (and HVAC snapshot) updates quickly.
         await self.coordinator.async_force_refresh()
@@ -236,19 +197,9 @@ class BydClimate(CoordinatorEntity[BydDataUpdateCoordinator], ClimateEntity):
                     ),
                 )
 
-            try:
-                self._last_command = "start_climate"
-                await self._api.async_call(
-                    _call, vin=self._vin, command=self._last_command
-                )
-            except BydRemoteControlError as exc:
-                _LOGGER.warning(
-                    "Climate temperature command sent but cloud reported "
-                    "failure — updating state optimistically: %s",
-                    exc,
-                )
-            except Exception as exc:  # noqa: BLE001
-                raise HomeAssistantError(str(exc)) from exc
+            self._last_command = "start_climate"
+            await self._execute_command(self._api, _call, command=self._last_command)
+            return
 
         self._command_pending = True
         self.async_write_ha_state()
@@ -283,31 +234,18 @@ class BydClimate(CoordinatorEntity[BydDataUpdateCoordinator], ClimateEntity):
                 ),
             )
 
-        try:
-            self._last_command = "start_climate"
-            await self._api.async_call(_call, vin=self._vin, command=self._last_command)
-        except BydRemoteControlError as exc:
-            _LOGGER.warning(
-                "Climate preset command sent but cloud reported failure — "
-                "updating state optimistically: %s",
-                exc,
-            )
-        except Exception as exc:  # noqa: BLE001
-            raise HomeAssistantError(str(exc)) from exc
-
+        self._last_command = "start_climate"
         self._last_mode = HVACMode.HEAT_COOL
-        self._command_pending = True
-        self.async_write_ha_state()
+        await self._execute_command(self._api, _call, command=self._last_command)
 
     def _handle_coordinator_update(self) -> None:
         """Clear optimistic state when fresh data arrives from the coordinator."""
-        self._command_pending = False
         self._pending_target_temp = None
         super()._handle_coordinator_update()
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        attrs: dict[str, Any] = {"vin": self._vin}
+        attrs = {**super().extra_state_attributes}
         hvac = self._get_hvac_status()
         if hvac is not None:
             # Temperatures
@@ -332,14 +270,3 @@ class BydClimate(CoordinatorEntity[BydDataUpdateCoordinator], ClimateEntity):
         if self._last_command:
             attrs["last_remote_command"] = self._last_command
         return attrs
-
-    @property
-    def device_info(self) -> DeviceInfo:
-        return DeviceInfo(
-            identifiers={(DOMAIN, self._vin)},
-            name=get_vehicle_display(self._vehicle),
-            manufacturer=getattr(self._vehicle, "brand_name", None) or "BYD",
-            model=getattr(self._vehicle, "model_name", None),
-            serial_number=self._vin,
-            hw_version=getattr(self._vehicle, "tbox_version", None) or None,
-        )

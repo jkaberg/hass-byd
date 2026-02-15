@@ -2,31 +2,23 @@
 
 from __future__ import annotations
 
-import logging
 from typing import Any
 
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers.entity import DeviceInfo, EntityCategory
+from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
-from pybyd import BydRemoteControlError
 from pybyd.models.control import (
     BatteryHeatParams,
     ClimateStartParams,
     SeatClimateParams,
 )
-from pybyd.models.hvac import HvacStatus
-from pybyd.models.realtime import StearingWheelHeat
 
 from .const import DOMAIN
-from .coordinator import BydApi, BydDataUpdateCoordinator, get_vehicle_display
-from .select import _gather_seat_climate_state
-
-_LOGGER = logging.getLogger(__name__)
+from .coordinator import BydApi, BydDataUpdateCoordinator
+from .entity import BydVehicleEntity
 
 
 async def async_setup_entry(
@@ -56,7 +48,7 @@ async def async_setup_entry(
     async_add_entities(entities)
 
 
-class BydBatteryHeatSwitch(CoordinatorEntity[BydDataUpdateCoordinator], SwitchEntity):
+class BydBatteryHeatSwitch(BydVehicleEntity, SwitchEntity):
     """Representation of the BYD battery heat toggle."""
 
     _attr_has_entity_name = True
@@ -77,16 +69,6 @@ class BydBatteryHeatSwitch(CoordinatorEntity[BydDataUpdateCoordinator], SwitchEn
         self._vehicle = vehicle
         self._attr_unique_id = f"{vin}_switch_battery_heat"
         self._last_state: bool | None = None
-        self._command_pending = False
-
-    @property
-    def available(self) -> bool:
-        """Available when coordinator has data for this vehicle."""
-        if not super().available:
-            return False
-        if self._vin not in self.coordinator.data.get("vehicles", {}):
-            return False
-        return True
 
     @property
     def is_on(self) -> bool | None:
@@ -96,9 +78,9 @@ class BydBatteryHeatSwitch(CoordinatorEntity[BydDataUpdateCoordinator], SwitchEn
         realtime_map = self.coordinator.data.get("realtime", {})
         realtime = realtime_map.get(self._vin)
         if realtime is not None:
-            val = getattr(realtime, "battery_heat_state", None)
-            if val is not None:
-                return bool(val)
+            heating = realtime.is_battery_heating
+            if heating is not None:
+                return heating
         return self._last_state
 
     @property
@@ -118,20 +100,13 @@ class BydBatteryHeatSwitch(CoordinatorEntity[BydDataUpdateCoordinator], SwitchEn
                 self._vin, params=BatteryHeatParams(on=True)
             )
 
-        try:
-            self._last_state = True
-            await self._api.async_call(_call, vin=self._vin, command="battery_heat_on")
-        except BydRemoteControlError as exc:
-            _LOGGER.warning(
-                "Battery heat on command sent but cloud reported failure — "
-                "updating state optimistically: %s",
-                exc,
-            )
-        except Exception as exc:  # noqa: BLE001
-            self._last_state = None
-            raise HomeAssistantError(str(exc)) from exc
-        self._command_pending = True
-        self.async_write_ha_state()
+        self._last_state = True
+        await self._execute_command(
+            self._api,
+            _call,
+            command="battery_heat_on",
+            on_rollback=lambda: setattr(self, "_last_state", None),
+        )
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn off battery heat."""
@@ -141,45 +116,16 @@ class BydBatteryHeatSwitch(CoordinatorEntity[BydDataUpdateCoordinator], SwitchEn
                 self._vin, params=BatteryHeatParams(on=False)
             )
 
-        try:
-            self._last_state = False
-            await self._api.async_call(_call, vin=self._vin, command="battery_heat_off")
-        except BydRemoteControlError as exc:
-            _LOGGER.warning(
-                "Battery heat off command sent but cloud reported failure — "
-                "updating state optimistically: %s",
-                exc,
-            )
-        except Exception as exc:  # noqa: BLE001
-            self._last_state = None
-            raise HomeAssistantError(str(exc)) from exc
-        self._command_pending = True
-        self.async_write_ha_state()
-
-    def _handle_coordinator_update(self) -> None:
-        """Clear optimistic state when fresh data arrives."""
-        self._command_pending = False
-        super()._handle_coordinator_update()
-
-    @property
-    def extra_state_attributes(self) -> dict[str, Any]:
-        """Return extra state attributes."""
-        return {"vin": self._vin}
-
-    @property
-    def device_info(self) -> DeviceInfo:
-        """Return device info for this switch."""
-        return DeviceInfo(
-            identifiers={(DOMAIN, self._vin)},
-            name=get_vehicle_display(self._vehicle),
-            manufacturer=getattr(self._vehicle, "brand_name", None) or "BYD",
-            model=getattr(self._vehicle, "model_name", None),
-            serial_number=self._vin,
-            hw_version=getattr(self._vehicle, "tbox_version", None) or None,
+        self._last_state = False
+        await self._execute_command(
+            self._api,
+            _call,
+            command="battery_heat_off",
+            on_rollback=lambda: setattr(self, "_last_state", None),
         )
 
 
-class BydCarOnSwitch(CoordinatorEntity[BydDataUpdateCoordinator], SwitchEntity):
+class BydCarOnSwitch(BydVehicleEntity, SwitchEntity):
     """Representation of a BYD car-on switch via climate control."""
 
     _attr_has_entity_name = True
@@ -201,21 +147,6 @@ class BydCarOnSwitch(CoordinatorEntity[BydDataUpdateCoordinator], SwitchEntity):
         self._vehicle = vehicle
         self._attr_unique_id = f"{vin}_switch_car_on"
         self._last_state: bool | None = None
-        self._command_pending = False
-
-    def _get_hvac_status(self) -> HvacStatus | None:
-        hvac_map = self.coordinator.data.get("hvac", {})
-        hvac = hvac_map.get(self._vin)
-        return hvac if isinstance(hvac, HvacStatus) else None
-
-    @property
-    def available(self) -> bool:
-        """Available when coordinator has data for this vehicle."""
-        if not super().available:
-            return False
-        if self._vin not in self.coordinator.data.get("vehicles", {}):
-            return False
-        return True
 
     @property
     def is_on(self) -> bool | None:
@@ -243,21 +174,13 @@ class BydCarOnSwitch(CoordinatorEntity[BydDataUpdateCoordinator], SwitchEntity):
                 ),
             )
 
-        try:
-            self._last_state = True
-            await self._api.async_call(_call, vin=self._vin, command="car_on")
-        except BydRemoteControlError as exc:
-            _LOGGER.warning(
-                "Car-on command sent but cloud reported failure — "
-                "updating state optimistically: %s",
-                exc,
-            )
-        except Exception as exc:  # noqa: BLE001
-            self._last_state = None
-            raise HomeAssistantError(str(exc)) from exc
-        self._command_pending = True
-        self.async_write_ha_state()
-
+        self._last_state = True
+        await self._execute_command(
+            self._api,
+            _call,
+            command="car_on",
+            on_rollback=lambda: setattr(self, "_last_state", None),
+        )
         # Refresh coordinator so the climate entity immediately reflects this.
         await self.coordinator.async_force_refresh()
 
@@ -267,49 +190,22 @@ class BydCarOnSwitch(CoordinatorEntity[BydDataUpdateCoordinator], SwitchEntity):
         async def _call(client: Any) -> Any:
             return await client.stop_climate(self._vin)
 
-        try:
-            self._last_state = False
-            await self._api.async_call(_call, vin=self._vin, command="car_off")
-        except BydRemoteControlError as exc:
-            _LOGGER.warning(
-                "Car-off command sent but cloud reported failure — "
-                "updating state optimistically: %s",
-                exc,
-            )
-        except Exception as exc:  # noqa: BLE001
-            self._last_state = None
-            raise HomeAssistantError(str(exc)) from exc
-        self._command_pending = True
-        self.async_write_ha_state()
-
+        self._last_state = False
+        await self._execute_command(
+            self._api,
+            _call,
+            command="car_off",
+            on_rollback=lambda: setattr(self, "_last_state", None),
+        )
         await self.coordinator.async_force_refresh()
-
-    def _handle_coordinator_update(self) -> None:
-        """Clear optimistic state when fresh data arrives."""
-        self._command_pending = False
-        super()._handle_coordinator_update()
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return extra state attributes."""
-        return {"vin": self._vin, "target_temperature_c": 21}
-
-    @property
-    def device_info(self) -> DeviceInfo:
-        """Return device info for this switch."""
-        return DeviceInfo(
-            identifiers={(DOMAIN, self._vin)},
-            name=get_vehicle_display(self._vehicle),
-            manufacturer=getattr(self._vehicle, "brand_name", None) or "BYD",
-            model=getattr(self._vehicle, "model_name", None),
-            serial_number=self._vin,
-            hw_version=getattr(self._vehicle, "tbox_version", None) or None,
-        )
+        return {**super().extra_state_attributes, "target_temperature_c": 21}
 
 
-class BydSteeringWheelHeatSwitch(
-    CoordinatorEntity[BydDataUpdateCoordinator], SwitchEntity
-):
+class BydSteeringWheelHeatSwitch(BydVehicleEntity, SwitchEntity):
     """Representation of the BYD steering wheel heat toggle."""
 
     _attr_has_entity_name = True
@@ -330,23 +226,6 @@ class BydSteeringWheelHeatSwitch(
         self._vehicle = vehicle
         self._attr_unique_id = f"{vin}_switch_steering_wheel_heat"
         self._last_state: bool | None = None
-        self._command_pending = False
-
-    def _get_hvac_status(self) -> HvacStatus | None:
-        hvac_map = self.coordinator.data.get("hvac", {})
-        hvac = hvac_map.get(self._vin)
-        return hvac if isinstance(hvac, HvacStatus) else None
-
-    def _get_realtime(self) -> Any | None:
-        return self.coordinator.data.get("realtime", {}).get(self._vin)
-
-    @property
-    def available(self) -> bool:
-        if not super().available:
-            return False
-        if self._vin not in self.coordinator.data.get("vehicles", {}):
-            return False
-        return True
 
     @property
     def is_on(self) -> bool | None:
@@ -354,53 +233,45 @@ class BydSteeringWheelHeatSwitch(
             return self._last_state
         hvac = self._get_hvac_status()
         if hvac is not None:
-            val = hvac.steering_wheel_heat_state
+            val = hvac.is_steering_wheel_heating
             if val is not None:
-                return val == StearingWheelHeat.ON
+                return val
         realtime = self._get_realtime()
         if realtime is not None:
-            val = getattr(realtime, "steering_wheel_heat_state", None)
+            val = realtime.is_steering_wheel_heating
             if val is not None:
-                return val == StearingWheelHeat.ON
+                return val
         return self._last_state
 
     @property
     def assumed_state(self) -> bool:
         hvac = self._get_hvac_status()
         if hvac is not None:
-            return hvac.steering_wheel_heat_state is None
+            return hvac.is_steering_wheel_heating is None
         realtime = self._get_realtime()
         if realtime is not None:
-            return getattr(realtime, "steering_wheel_heat_state", None) is None
+            return realtime.is_steering_wheel_heating is None
         return True
 
     async def _set_steering_wheel_heat(self, on: bool) -> None:
         """Send seat climate command with steering wheel heat toggled."""
         hvac = self._get_hvac_status()
         realtime = self._get_realtime()
-        kwargs = _gather_seat_climate_state(hvac, realtime)
-        kwargs["steering_wheel_heat"] = 1 if on else 0
+        params = SeatClimateParams.from_current_state(hvac, realtime).model_copy(
+            update={"steering_wheel_heat": 1 if on else 0}
+        )
 
         async def _call(client: Any) -> Any:
-            return await client.set_seat_climate(
-                self._vin, params=SeatClimateParams(**kwargs)
-            )
+            return await client.set_seat_climate(self._vin, params=params)
 
         cmd = "steering_wheel_heat_on" if on else "steering_wheel_heat_off"
-        try:
-            self._last_state = on
-            await self._api.async_call(_call, vin=self._vin, command=cmd)
-        except BydRemoteControlError as exc:
-            _LOGGER.warning(
-                "Steering wheel heat command sent but cloud reported failure — "
-                "updating state optimistically: %s",
-                exc,
-            )
-        except Exception as exc:  # noqa: BLE001
-            self._last_state = None
-            raise HomeAssistantError(str(exc)) from exc
-        self._command_pending = True
-        self.async_write_ha_state()
+        self._last_state = on
+        await self._execute_command(
+            self._api,
+            _call,
+            command=cmd,
+            on_rollback=lambda: setattr(self, "_last_state", None),
+        )
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn on steering wheel heating."""
@@ -410,30 +281,8 @@ class BydSteeringWheelHeatSwitch(
         """Turn off steering wheel heating."""
         await self._set_steering_wheel_heat(False)
 
-    def _handle_coordinator_update(self) -> None:
-        """Clear optimistic state when fresh data arrives."""
-        self._command_pending = False
-        super()._handle_coordinator_update()
 
-    @property
-    def extra_state_attributes(self) -> dict[str, Any]:
-        return {"vin": self._vin}
-
-    @property
-    def device_info(self) -> DeviceInfo:
-        return DeviceInfo(
-            identifiers={(DOMAIN, self._vin)},
-            name=get_vehicle_display(self._vehicle),
-            manufacturer=getattr(self._vehicle, "brand_name", None) or "BYD",
-            model=getattr(self._vehicle, "model_name", None),
-            serial_number=self._vin,
-            hw_version=getattr(self._vehicle, "tbox_version", None) or None,
-        )
-
-
-class BydDisablePollingSwitch(
-    CoordinatorEntity[BydDataUpdateCoordinator], RestoreEntity, SwitchEntity
-):
+class BydDisablePollingSwitch(BydVehicleEntity, RestoreEntity, SwitchEntity):
     """Per-vehicle switch to disable scheduled polling."""
 
     _attr_has_entity_name = True
@@ -486,14 +335,3 @@ class BydDisablePollingSwitch(
     async def async_turn_off(self, **kwargs: Any) -> None:
         self._disabled = False
         self._apply()
-
-    @property
-    def device_info(self) -> DeviceInfo:
-        return DeviceInfo(
-            identifiers={(DOMAIN, self._vin)},
-            name=get_vehicle_display(self._vehicle),
-            manufacturer=getattr(self._vehicle, "brand_name", None) or "BYD",
-            model=getattr(self._vehicle, "model_name", None),
-            serial_number=self._vin,
-            hw_version=getattr(self._vehicle, "tbox_version", None) or None,
-        )

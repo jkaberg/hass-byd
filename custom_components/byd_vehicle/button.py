@@ -14,13 +14,13 @@ from homeassistant.components.button import ButtonEntity, ButtonEntityDescriptio
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers.entity import DeviceInfo, EntityCategory
+from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from pybyd import BydRemoteControlError
 
 from .const import DOMAIN
-from .coordinator import BydApi, BydDataUpdateCoordinator, get_vehicle_display
+from .coordinator import BydApi, BydDataUpdateCoordinator
+from .entity import BydVehicleEntity
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -35,19 +35,16 @@ class BydButtonDescription(ButtonEntityDescription):
 BUTTON_DESCRIPTIONS: tuple[BydButtonDescription, ...] = (
     BydButtonDescription(
         key="flash_lights",
-        name="Flash lights",
         icon="mdi:car-light-high",
         method="flash_lights",
     ),
     BydButtonDescription(
         key="find_car",
-        name="Find car",
         icon="mdi:car-search",
         method="find_car",
     ),
     BydButtonDescription(
         key="close_windows",
-        name="Close windows",
         icon="mdi:window-closed",
         method="close_windows",
     ),
@@ -79,7 +76,7 @@ async def async_setup_entry(
     async_add_entities(entities)
 
 
-class BydButton(CoordinatorEntity[BydDataUpdateCoordinator], ButtonEntity):
+class BydButton(BydVehicleEntity, ButtonEntity):
     """Representation of a BYD remote command button."""
 
     _attr_has_entity_name = True
@@ -107,9 +104,7 @@ class BydButton(CoordinatorEntity[BydDataUpdateCoordinator], ButtonEntity):
         """Available when coordinator has data for this vehicle."""
         if not super().available:
             return False
-        if self.coordinator.data.get("vehicles", {}).get(self._vin) is None:
-            return False
-        return True
+        return self.coordinator.data.get("vehicles", {}).get(self._vin) is not None
 
     async def async_press(self) -> None:
         """Execute the remote command."""
@@ -134,25 +129,8 @@ class BydButton(CoordinatorEntity[BydDataUpdateCoordinator], ButtonEntity):
         except Exception as exc:  # noqa: BLE001
             raise HomeAssistantError(str(exc)) from exc
 
-    @property
-    def extra_state_attributes(self) -> dict[str, Any]:
-        """Return extra state attributes."""
-        return {"vin": self._vin}
 
-    @property
-    def device_info(self) -> DeviceInfo:
-        """Return device info for this button."""
-        return DeviceInfo(
-            identifiers={(DOMAIN, self._vin)},
-            name=get_vehicle_display(self._vehicle),
-            manufacturer=getattr(self._vehicle, "brand_name", None) or "BYD",
-            model=getattr(self._vehicle, "model_name", None),
-            serial_number=self._vin,
-            hw_version=getattr(self._vehicle, "tbox_version", None) or None,
-        )
-
-
-class BydForcePollButton(CoordinatorEntity[BydDataUpdateCoordinator], ButtonEntity):
+class BydForcePollButton(BydVehicleEntity, ButtonEntity):
     """Button that forces a coordinator refresh (telemetry + GPS)."""
 
     _attr_has_entity_name = True
@@ -187,14 +165,3 @@ class BydForcePollButton(CoordinatorEntity[BydDataUpdateCoordinator], ButtonEnti
                 await gps.async_force_refresh()
         except Exception as exc:  # noqa: BLE001
             raise HomeAssistantError(str(exc)) from exc
-
-    @property
-    def device_info(self) -> DeviceInfo:
-        return DeviceInfo(
-            identifiers={(DOMAIN, self._vin)},
-            name=get_vehicle_display(self._vehicle),
-            manufacturer=getattr(self._vehicle, "brand_name", None) or "BYD",
-            model=getattr(self._vehicle, "model_name", None),
-            serial_number=self._vin,
-            hw_version=getattr(self._vehicle, "tbox_version", None) or None,
-        )

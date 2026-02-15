@@ -1,0 +1,24 @@
+fetch_realtime:
+  target:
+    device:
+      integration: byd_vehicle
+
+fetch_gps:
+  target:
+    device:
+      integration: byd_vehicle
+
+fetch_hvac:
+  target:
+    device:
+      integration: byd_vehicle
+
+fetch_charging:
+  target:
+    device:
+      integration: byd_vehicle
+
+fetch_energy:
+  target:
+    device:
+      integration: byd_vehicle

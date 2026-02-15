@@ -28,16 +28,12 @@ from homeassistant.const import (
     UnitOfTime,
 )
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from pybyd.models.realtime import TirePressureUnit
 
 from .const import DOMAIN
-from .coordinator import (
-    BydDataUpdateCoordinator,
-    get_vehicle_display,
-)
+from .coordinator import BydDataUpdateCoordinator
+from .entity import BydVehicleEntity
 
 
 def _normalize_epoch(value: Any) -> datetime | None:
@@ -72,37 +68,6 @@ class BydSensorDescription(SensorEntityDescription):
     value_fn: Callable[[Any], Any] | None = None
 
 
-def _filter_temp(obj: Any) -> float | None:
-    """Filter out -129 sentinel temperature values."""
-    val = getattr(obj, "temp_in_car", None)
-    if val is None or val == -129:
-        return None
-    return float(val)
-
-
-def _filter_string_attr(attr: str) -> Callable[[Any], str | None]:
-    """Create a filter that removes '--' sentinel values for a named attribute."""
-
-    def _filter(obj: Any) -> str | None:
-        val = getattr(obj, attr, None)
-        if val is None or val == "--":
-            return None
-        return str(val)
-
-    return _filter
-
-
-def _minutes_to_full(obj: Any) -> int | None:
-    """Calculate minutes to full from hour/minute fields."""
-    h = getattr(obj, "full_hour", None)
-    m = getattr(obj, "full_minute", None)
-    if h is None or m is None:
-        return None
-    h = max(int(h), 0)
-    m = max(int(m), 0)
-    return h * 60 + m
-
-
 def _round_int_attr(attr: str) -> Callable[[Any], int | None]:
     """Create a converter that rounds a numeric attribute to an integer."""
 
@@ -115,28 +80,12 @@ def _round_int_attr(attr: str) -> Callable[[Any], int | None]:
     return _convert
 
 
-def _charge_time_or_zero(attr: str) -> Callable[[Any], int | None]:
-    """Create a converter that maps negative charge-time sentinels to zero."""
-
-    def _convert(obj: Any) -> int | None:
-        value = getattr(obj, attr, None)
-        if value is None:
-            return None
-        parsed = int(value)
-        if parsed < 0:
-            return 0
-        return parsed
-
-    return _convert
-
-
 SENSOR_DESCRIPTIONS: tuple[BydSensorDescription, ...] = (
     # =============================================
     # Realtime: primary sensors (enabled by default)
     # =============================================
     BydSensorDescription(
         key="elec_percent",
-        name="Battery level",
         source="realtime",
         native_unit_of_measurement=PERCENTAGE,
         device_class=SensorDeviceClass.BATTERY,
@@ -144,7 +93,6 @@ SENSOR_DESCRIPTIONS: tuple[BydSensorDescription, ...] = (
     ),
     BydSensorDescription(
         key="endurance_mileage",
-        name="Range",
         source="realtime",
         native_unit_of_measurement=UnitOfLength.KILOMETERS,
         device_class=SensorDeviceClass.DISTANCE,
@@ -154,7 +102,6 @@ SENSOR_DESCRIPTIONS: tuple[BydSensorDescription, ...] = (
     ),
     BydSensorDescription(
         key="total_mileage",
-        name="Odometer",
         source="realtime",
         native_unit_of_measurement=UnitOfLength.KILOMETERS,
         device_class=SensorDeviceClass.DISTANCE,
@@ -164,7 +111,6 @@ SENSOR_DESCRIPTIONS: tuple[BydSensorDescription, ...] = (
     ),
     BydSensorDescription(
         key="speed",
-        name="Speed",
         source="realtime",
         native_unit_of_measurement=UnitOfSpeed.KILOMETERS_PER_HOUR,
         device_class=SensorDeviceClass.SPEED,
@@ -172,20 +118,18 @@ SENSOR_DESCRIPTIONS: tuple[BydSensorDescription, ...] = (
     ),
     BydSensorDescription(
         key="temp_in_car",
-        name="Cabin temperature",
         source="realtime",
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         device_class=SensorDeviceClass.TEMPERATURE,
         state_class=SensorStateClass.MEASUREMENT,
         value_fn=lambda obj: (
-            int(round(temp)) if (temp := _filter_temp(obj)) is not None else None
+            int(round(obj.temp_in_car)) if obj.temp_in_car is not None else None
         ),
     ),
     # Tire pressures – unit resolved dynamically from tire_press_unit;
     # kPa is the default because most BYD vehicles report tirePressUnit=3.
     BydSensorDescription(
         key="left_front_tire_pressure",
-        name="Front left tire pressure",
         source="realtime",
         native_unit_of_measurement=UnitOfPressure.KPA,
         device_class=SensorDeviceClass.PRESSURE,
@@ -194,7 +138,6 @@ SENSOR_DESCRIPTIONS: tuple[BydSensorDescription, ...] = (
     ),
     BydSensorDescription(
         key="right_front_tire_pressure",
-        name="Front right tire pressure",
         source="realtime",
         native_unit_of_measurement=UnitOfPressure.KPA,
         device_class=SensorDeviceClass.PRESSURE,
@@ -203,7 +146,6 @@ SENSOR_DESCRIPTIONS: tuple[BydSensorDescription, ...] = (
     ),
     BydSensorDescription(
         key="left_rear_tire_pressure",
-        name="Rear left tire pressure",
         source="realtime",
         native_unit_of_measurement=UnitOfPressure.KPA,
         device_class=SensorDeviceClass.PRESSURE,
@@ -212,7 +154,6 @@ SENSOR_DESCRIPTIONS: tuple[BydSensorDescription, ...] = (
     ),
     BydSensorDescription(
         key="right_rear_tire_pressure",
-        name="Rear right tire pressure",
         source="realtime",
         native_unit_of_measurement=UnitOfPressure.KPA,
         device_class=SensorDeviceClass.PRESSURE,
@@ -224,7 +165,6 @@ SENSOR_DESCRIPTIONS: tuple[BydSensorDescription, ...] = (
     # ===============================================
     BydSensorDescription(
         key="soc",
-        name="Charging SOC",
         source="charging",
         native_unit_of_measurement=PERCENTAGE,
         device_class=SensorDeviceClass.BATTERY,
@@ -232,26 +172,23 @@ SENSOR_DESCRIPTIONS: tuple[BydSensorDescription, ...] = (
     ),
     BydSensorDescription(
         key="time_to_full",
-        name="Time to full charge",
         source="charging",
         native_unit_of_measurement=UnitOfTime.MINUTES,
         device_class=SensorDeviceClass.DURATION,
         state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:battery-clock",
-        value_fn=_minutes_to_full,
+        value_fn=lambda obj: obj.time_to_full_minutes,
     ),
     # =============================================
     # Energy: primary sensors (enabled by default)
     # =============================================
     BydSensorDescription(
         key="total_energy",
-        name="Total energy consumption",
         source="energy",
         icon="mdi:lightning-bolt",
     ),
     BydSensorDescription(
         key="avg_energy_consumption",
-        name="Average energy consumption",
         source="energy",
         icon="mdi:lightning-bolt",
     ),
@@ -260,7 +197,6 @@ SENSOR_DESCRIPTIONS: tuple[BydSensorDescription, ...] = (
     # =============================================
     BydSensorDescription(
         key="temp_out_car",
-        name="Exterior temperature",
         source="hvac",
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         device_class=SensorDeviceClass.TEMPERATURE,
@@ -269,7 +205,6 @@ SENSOR_DESCRIPTIONS: tuple[BydSensorDescription, ...] = (
     ),
     BydSensorDescription(
         key="pm",
-        name="PM2.5",
         source="hvac",
         native_unit_of_measurement="µg/m³",
         device_class=SensorDeviceClass.PM25,
@@ -281,7 +216,6 @@ SENSOR_DESCRIPTIONS: tuple[BydSensorDescription, ...] = (
     # Alt battery / range fields
     BydSensorDescription(
         key="power_battery",
-        name="Power battery level",
         source="realtime",
         native_unit_of_measurement=PERCENTAGE,
         device_class=SensorDeviceClass.BATTERY,
@@ -291,7 +225,6 @@ SENSOR_DESCRIPTIONS: tuple[BydSensorDescription, ...] = (
     ),
     BydSensorDescription(
         key="ev_endurance",
-        name="EV endurance",
         source="realtime",
         native_unit_of_measurement=UnitOfLength.KILOMETERS,
         device_class=SensorDeviceClass.DISTANCE,
@@ -302,7 +235,6 @@ SENSOR_DESCRIPTIONS: tuple[BydSensorDescription, ...] = (
     ),
     BydSensorDescription(
         key="endurance_mileage_v2",
-        name="Range V2",
         source="realtime",
         native_unit_of_measurement=UnitOfLength.KILOMETERS,
         device_class=SensorDeviceClass.DISTANCE,
@@ -313,7 +245,6 @@ SENSOR_DESCRIPTIONS: tuple[BydSensorDescription, ...] = (
     ),
     BydSensorDescription(
         key="total_mileage_v2",
-        name="Odometer V2",
         source="realtime",
         native_unit_of_measurement=UnitOfLength.KILOMETERS,
         device_class=SensorDeviceClass.DISTANCE,
@@ -325,7 +256,6 @@ SENSOR_DESCRIPTIONS: tuple[BydSensorDescription, ...] = (
     # Driving
     BydSensorDescription(
         key="power_gear",
-        name="Gear position",
         source="realtime",
         icon="mdi:car-shift-pattern",
         entity_registry_enabled_default=False,
@@ -334,7 +264,6 @@ SENSOR_DESCRIPTIONS: tuple[BydSensorDescription, ...] = (
     # Charging detail from realtime
     BydSensorDescription(
         key="charging_state",
-        name="Charging state",
         source="realtime",
         icon="mdi:ev-station",
         entity_registry_enabled_default=False,
@@ -342,7 +271,6 @@ SENSOR_DESCRIPTIONS: tuple[BydSensorDescription, ...] = (
     ),
     BydSensorDescription(
         key="charge_state",
-        name="Charge state",
         source="realtime",
         icon="mdi:ev-station",
         entity_registry_enabled_default=False,
@@ -350,7 +278,6 @@ SENSOR_DESCRIPTIONS: tuple[BydSensorDescription, ...] = (
     ),
     BydSensorDescription(
         key="wait_status",
-        name="Charge wait status",
         source="realtime",
         icon="mdi:timer-sand",
         entity_registry_enabled_default=False,
@@ -358,43 +285,34 @@ SENSOR_DESCRIPTIONS: tuple[BydSensorDescription, ...] = (
     ),
     BydSensorDescription(
         key="full_hour",
-        name="Hours to full",
         source="realtime",
         icon="mdi:clock-outline",
         entity_registry_enabled_default=False,
         entity_category=EntityCategory.DIAGNOSTIC,
-        value_fn=_charge_time_or_zero("full_hour"),
     ),
     BydSensorDescription(
         key="full_minute",
-        name="Minutes to full",
         source="realtime",
         icon="mdi:clock-outline",
         entity_registry_enabled_default=False,
         entity_category=EntityCategory.DIAGNOSTIC,
-        value_fn=_charge_time_or_zero("full_minute"),
     ),
     BydSensorDescription(
         key="remaining_hours",
-        name="Charge remaining hours",
         source="realtime",
         icon="mdi:clock-outline",
         entity_registry_enabled_default=False,
         entity_category=EntityCategory.DIAGNOSTIC,
-        value_fn=_charge_time_or_zero("remaining_hours"),
     ),
     BydSensorDescription(
         key="remaining_minutes",
-        name="Charge remaining minutes",
         source="realtime",
         icon="mdi:clock-outline",
         entity_registry_enabled_default=False,
         entity_category=EntityCategory.DIAGNOSTIC,
-        value_fn=_charge_time_or_zero("remaining_minutes"),
     ),
     BydSensorDescription(
         key="booking_charge_state",
-        name="Scheduled charging",
         source="realtime",
         icon="mdi:calendar-clock",
         entity_registry_enabled_default=False,
@@ -402,7 +320,6 @@ SENSOR_DESCRIPTIONS: tuple[BydSensorDescription, ...] = (
     ),
     BydSensorDescription(
         key="booking_charging_hour",
-        name="Scheduled charge hour",
         source="realtime",
         icon="mdi:calendar-clock",
         entity_registry_enabled_default=False,
@@ -410,7 +327,6 @@ SENSOR_DESCRIPTIONS: tuple[BydSensorDescription, ...] = (
     ),
     BydSensorDescription(
         key="booking_charging_minute",
-        name="Scheduled charge minute",
         source="realtime",
         icon="mdi:calendar-clock",
         entity_registry_enabled_default=False,
@@ -419,7 +335,6 @@ SENSOR_DESCRIPTIONS: tuple[BydSensorDescription, ...] = (
     # Tire status indicators
     BydSensorDescription(
         key="left_front_tire_status",
-        name="Front left tire status",
         source="realtime",
         icon="mdi:car-tire-alert",
         entity_registry_enabled_default=False,
@@ -427,7 +342,6 @@ SENSOR_DESCRIPTIONS: tuple[BydSensorDescription, ...] = (
     ),
     BydSensorDescription(
         key="right_front_tire_status",
-        name="Front right tire status",
         source="realtime",
         icon="mdi:car-tire-alert",
         entity_registry_enabled_default=False,
@@ -435,7 +349,6 @@ SENSOR_DESCRIPTIONS: tuple[BydSensorDescription, ...] = (
     ),
     BydSensorDescription(
         key="left_rear_tire_status",
-        name="Rear left tire status",
         source="realtime",
         icon="mdi:car-tire-alert",
         entity_registry_enabled_default=False,
@@ -443,7 +356,6 @@ SENSOR_DESCRIPTIONS: tuple[BydSensorDescription, ...] = (
     ),
     BydSensorDescription(
         key="right_rear_tire_status",
-        name="Rear right tire status",
         source="realtime",
         icon="mdi:car-tire-alert",
         entity_registry_enabled_default=False,
@@ -451,7 +363,6 @@ SENSOR_DESCRIPTIONS: tuple[BydSensorDescription, ...] = (
     ),
     BydSensorDescription(
         key="tirepressure_system",
-        name="TPMS state",
         source="realtime",
         icon="mdi:car-tire-alert",
         entity_registry_enabled_default=False,
@@ -459,7 +370,6 @@ SENSOR_DESCRIPTIONS: tuple[BydSensorDescription, ...] = (
     ),
     BydSensorDescription(
         key="rapid_tire_leak",
-        name="Rapid tire leak",
         source="realtime",
         icon="mdi:car-tire-alert",
         entity_registry_enabled_default=False,
@@ -468,7 +378,6 @@ SENSOR_DESCRIPTIONS: tuple[BydSensorDescription, ...] = (
     # Power / energy from realtime
     BydSensorDescription(
         key="total_power",
-        name="Total power",
         source="realtime",
         icon="mdi:flash",
         entity_registry_enabled_default=False,
@@ -476,26 +385,21 @@ SENSOR_DESCRIPTIONS: tuple[BydSensorDescription, ...] = (
     ),
     BydSensorDescription(
         key="nearest_energy_consumption",
-        name="Recent energy consumption",
         source="realtime",
         icon="mdi:lightning-bolt",
         entity_registry_enabled_default=False,
         entity_category=EntityCategory.DIAGNOSTIC,
-        value_fn=_filter_string_attr("nearest_energy_consumption"),
     ),
     BydSensorDescription(
         key="recent_50km_energy",
-        name="Recent 50km energy",
         source="realtime",
         icon="mdi:lightning-bolt",
         entity_registry_enabled_default=False,
         entity_category=EntityCategory.DIAGNOSTIC,
-        value_fn=_filter_string_attr("recent_50km_energy"),
     ),
     # Fuel (hybrid vehicles)
     BydSensorDescription(
         key="oil_endurance",
-        name="Fuel range",
         source="realtime",
         native_unit_of_measurement=UnitOfLength.KILOMETERS,
         icon="mdi:gas-station",
@@ -503,7 +407,6 @@ SENSOR_DESCRIPTIONS: tuple[BydSensorDescription, ...] = (
     ),
     BydSensorDescription(
         key="oil_percent",
-        name="Fuel level",
         source="realtime",
         native_unit_of_measurement=PERCENTAGE,
         icon="mdi:gas-station",
@@ -511,7 +414,6 @@ SENSOR_DESCRIPTIONS: tuple[BydSensorDescription, ...] = (
     ),
     BydSensorDescription(
         key="total_oil",
-        name="Total fuel consumption",
         source="realtime",
         icon="mdi:gas-station",
         entity_registry_enabled_default=False,
@@ -520,7 +422,6 @@ SENSOR_DESCRIPTIONS: tuple[BydSensorDescription, ...] = (
     # System indicators
     BydSensorDescription(
         key="engine_status",
-        name="Engine status",
         source="realtime",
         icon="mdi:engine",
         entity_registry_enabled_default=False,
@@ -528,7 +429,6 @@ SENSOR_DESCRIPTIONS: tuple[BydSensorDescription, ...] = (
     ),
     BydSensorDescription(
         key="epb",
-        name="Electronic parking brake",
         source="realtime",
         icon="mdi:car-brake-parking",
         entity_registry_enabled_default=False,
@@ -536,7 +436,6 @@ SENSOR_DESCRIPTIONS: tuple[BydSensorDescription, ...] = (
     ),
     BydSensorDescription(
         key="eps",
-        name="Electric power steering",
         source="realtime",
         icon="mdi:steering",
         entity_registry_enabled_default=False,
@@ -544,7 +443,6 @@ SENSOR_DESCRIPTIONS: tuple[BydSensorDescription, ...] = (
     ),
     BydSensorDescription(
         key="esp",
-        name="Electronic stability",
         source="realtime",
         icon="mdi:car-traction-control",
         entity_registry_enabled_default=False,
@@ -552,7 +450,6 @@ SENSOR_DESCRIPTIONS: tuple[BydSensorDescription, ...] = (
     ),
     BydSensorDescription(
         key="abs_warning",
-        name="ABS warning",
         source="realtime",
         icon="mdi:car-brake-abs",
         entity_registry_enabled_default=False,
@@ -560,7 +457,6 @@ SENSOR_DESCRIPTIONS: tuple[BydSensorDescription, ...] = (
     ),
     BydSensorDescription(
         key="svs",
-        name="Service vehicle soon",
         source="realtime",
         icon="mdi:car-wrench",
         entity_registry_enabled_default=False,
@@ -568,7 +464,6 @@ SENSOR_DESCRIPTIONS: tuple[BydSensorDescription, ...] = (
     ),
     BydSensorDescription(
         key="srs",
-        name="Airbag warning",
         source="realtime",
         icon="mdi:airbag",
         entity_registry_enabled_default=False,
@@ -576,7 +471,6 @@ SENSOR_DESCRIPTIONS: tuple[BydSensorDescription, ...] = (
     ),
     BydSensorDescription(
         key="ect",
-        name="Coolant temperature warning",
         source="realtime",
         icon="mdi:coolant-temperature",
         entity_registry_enabled_default=False,
@@ -584,7 +478,6 @@ SENSOR_DESCRIPTIONS: tuple[BydSensorDescription, ...] = (
     ),
     BydSensorDescription(
         key="ect_value",
-        name="Coolant temperature",
         source="realtime",
         icon="mdi:coolant-temperature",
         entity_registry_enabled_default=False,
@@ -592,7 +485,6 @@ SENSOR_DESCRIPTIONS: tuple[BydSensorDescription, ...] = (
     ),
     BydSensorDescription(
         key="pwr",
-        name="Power warning",
         source="realtime",
         icon="mdi:flash-alert",
         entity_registry_enabled_default=False,
@@ -600,7 +492,6 @@ SENSOR_DESCRIPTIONS: tuple[BydSensorDescription, ...] = (
     ),
     BydSensorDescription(
         key="power_system",
-        name="Power system",
         source="realtime",
         icon="mdi:flash",
         entity_registry_enabled_default=False,
@@ -608,7 +499,6 @@ SENSOR_DESCRIPTIONS: tuple[BydSensorDescription, ...] = (
     ),
     BydSensorDescription(
         key="upgrade_status",
-        name="OTA upgrade status",
         source="realtime",
         icon="mdi:cellphone-arrow-down",
         entity_registry_enabled_default=False,
@@ -619,7 +509,6 @@ SENSOR_DESCRIPTIONS: tuple[BydSensorDescription, ...] = (
     # ============================================
     BydSensorDescription(
         key="charger_state",
-        name="Charger state",
         source="charging",
         attr_key="charging_state",
         icon="mdi:ev-station",
@@ -628,7 +517,6 @@ SENSOR_DESCRIPTIONS: tuple[BydSensorDescription, ...] = (
     ),
     BydSensorDescription(
         key="charger_connection",
-        name="Charger connection state",
         source="charging",
         attr_key="connect_state",
         icon="mdi:ev-plug-type2",
@@ -637,7 +525,6 @@ SENSOR_DESCRIPTIONS: tuple[BydSensorDescription, ...] = (
     ),
     BydSensorDescription(
         key="charging_update_time",
-        name="Charging last update",
         source="charging",
         attr_key="update_time",
         device_class=SensorDeviceClass.TIMESTAMP,
@@ -650,14 +537,12 @@ SENSOR_DESCRIPTIONS: tuple[BydSensorDescription, ...] = (
     # ==========================================
     BydSensorDescription(
         key="electricity_consumption",
-        name="Electricity consumption",
         source="energy",
         icon="mdi:lightning-bolt",
         entity_registry_enabled_default=False,
     ),
     BydSensorDescription(
         key="fuel_consumption",
-        name="Fuel consumption",
         source="energy",
         icon="mdi:gas-station",
         entity_registry_enabled_default=False,
@@ -667,7 +552,6 @@ SENSOR_DESCRIPTIONS: tuple[BydSensorDescription, ...] = (
     # =========================================
     BydSensorDescription(
         key="refrigerator_state",
-        name="Refrigerator",
         source="hvac",
         icon="mdi:fridge",
         entity_registry_enabled_default=False,
@@ -675,7 +559,6 @@ SENSOR_DESCRIPTIONS: tuple[BydSensorDescription, ...] = (
     ),
     BydSensorDescription(
         key="refrigerator_door_state",
-        name="Refrigerator door",
         source="hvac",
         icon="mdi:fridge",
         entity_registry_enabled_default=False,
@@ -686,7 +569,6 @@ SENSOR_DESCRIPTIONS: tuple[BydSensorDescription, ...] = (
     # ==========================================
     BydSensorDescription(
         key="last_updated",
-        name="Telemetry last updated",
         source="realtime",
         device_class=SensorDeviceClass.TIMESTAMP,
         icon="mdi:clock-outline",
@@ -694,7 +576,6 @@ SENSOR_DESCRIPTIONS: tuple[BydSensorDescription, ...] = (
     ),
     BydSensorDescription(
         key="gps_last_updated",
-        name="GPS last updated",
         source="gps",
         device_class=SensorDeviceClass.TIMESTAMP,
         icon="mdi:crosshairs-gps",
@@ -745,7 +626,7 @@ _TIRE_UNIT_MAP = {
 }
 
 
-class BydSensor(CoordinatorEntity[BydDataUpdateCoordinator], SensorEntity):
+class BydSensor(BydVehicleEntity, SensorEntity):
     """Representation of a BYD vehicle sensor."""
 
     _attr_has_entity_name = True
@@ -778,10 +659,9 @@ class BydSensor(CoordinatorEntity[BydDataUpdateCoordinator], SensorEntity):
     # Helpers
     # ------------------------------------------------------------------
 
-    def _get_source_obj(self) -> Any | None:
+    def _get_source_obj(self, source: str = "") -> Any | None:
         """Return the model object for this sensor's source."""
-        source_map = self.coordinator.data.get(self.entity_description.source, {})
-        return source_map.get(self._vin)
+        return super()._get_source_obj(source or self.entity_description.source)
 
     def _resolve_value(self) -> Any:
         """Extract the current value using the description's extraction logic."""
@@ -824,9 +704,7 @@ class BydSensor(CoordinatorEntity[BydDataUpdateCoordinator], SensorEntity):
     @property
     def available(self) -> bool:
         """Return True when the coordinator has data for this source."""
-        if self.entity_description.key == "last_updated":
-            return super().available and self._resolve_value() is not None
-        if self.entity_description.key == "gps_last_updated":
+        if self.entity_description.key in ("last_updated", "gps_last_updated"):
             return super().available and self._resolve_value() is not None
         return super().available and self._get_source_obj() is not None
 
@@ -847,15 +725,3 @@ class BydSensor(CoordinatorEntity[BydDataUpdateCoordinator], SensorEntity):
     def native_value(self) -> Any:
         """Return the sensor value."""
         return self._resolve_value()
-
-    @property
-    def device_info(self) -> DeviceInfo:
-        """Return device info for this sensor."""
-        return DeviceInfo(
-            identifiers={(DOMAIN, self._vin)},
-            name=get_vehicle_display(self._vehicle),
-            manufacturer=getattr(self._vehicle, "brand_name", None) or "BYD",
-            model=getattr(self._vehicle, "model_name", None),
-            serial_number=self._vin,
-            hw_version=getattr(self._vehicle, "tbox_version", None) or None,
-        )

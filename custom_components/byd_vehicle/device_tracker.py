@@ -7,12 +7,11 @@ from typing import Any
 from homeassistant.components.device_tracker import SourceType, TrackerEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
-from .coordinator import BydGpsUpdateCoordinator, get_vehicle_display
+from .coordinator import BydGpsUpdateCoordinator
+from .entity import BydVehicleEntity
 
 
 async def async_setup_entry(
@@ -34,7 +33,7 @@ async def async_setup_entry(
     async_add_entities(entities)
 
 
-class BydDeviceTracker(CoordinatorEntity[BydGpsUpdateCoordinator], TrackerEntity):
+class BydDeviceTracker(BydVehicleEntity, TrackerEntity):
     """Representation of a BYD vehicle tracker."""
 
     _attr_has_entity_name = True
@@ -53,17 +52,17 @@ class BydDeviceTracker(CoordinatorEntity[BydGpsUpdateCoordinator], TrackerEntity
         """Available when coordinator has GPS data."""
         if not super().available:
             return False
-        return self.coordinator.data.get("gps", {}).get(self._vin) is not None
+        return self._get_gps() is not None
 
     @property
     def latitude(self) -> float | None:
-        gps = self.coordinator.data.get("gps", {}).get(self._vin)
-        return getattr(gps, "latitude", None) if gps else None
+        gps = self._get_gps()
+        return gps.latitude if gps else None
 
     @property
     def longitude(self) -> float | None:
-        gps = self.coordinator.data.get("gps", {}).get(self._vin)
-        return getattr(gps, "longitude", None) if gps else None
+        gps = self._get_gps()
+        return gps.longitude if gps else None
 
     @property
     def source_type(self) -> SourceType:
@@ -71,21 +70,10 @@ class BydDeviceTracker(CoordinatorEntity[BydGpsUpdateCoordinator], TrackerEntity
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        gps = self.coordinator.data.get("gps", {}).get(self._vin)
+        gps = self._get_gps()
         return {
-            "vin": self._vin,
-            "gps_speed": getattr(gps, "speed", None) if gps else None,
-            "gps_direction": getattr(gps, "direction", None) if gps else None,
-            "gps_timestamp": getattr(gps, "gps_timestamp", None) if gps else None,
+            **super().extra_state_attributes,
+            "gps_speed": gps.speed if gps else None,
+            "gps_direction": gps.direction if gps else None,
+            "gps_timestamp": gps.gps_timestamp if gps else None,
         }
-
-    @property
-    def device_info(self) -> DeviceInfo:
-        return DeviceInfo(
-            identifiers={(DOMAIN, self._vin)},
-            name=get_vehicle_display(self._vehicle),
-            manufacturer=getattr(self._vehicle, "brand_name", None) or "BYD",
-            model=getattr(self._vehicle, "model_name", None),
-            serial_number=self._vin,
-            hw_version=getattr(self._vehicle, "tbox_version", None) or None,
-        )

@@ -6,83 +6,38 @@
 
 from __future__ import annotations
 
-import logging
 from dataclasses import dataclass
 from typing import Any
 
 from homeassistant.components.select import SelectEntity, SelectEntityDescription
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
-from pybyd import BydRemoteControlError
 from pybyd.models.control import SeatClimateParams
-from pybyd.models.hvac import HvacStatus
-from pybyd.models.realtime import SeatHeatVentState, StearingWheelHeat
+from pybyd.models.realtime import SeatHeatVentState
 
 from .const import DOMAIN
-from .coordinator import BydApi, BydDataUpdateCoordinator, get_vehicle_display
+from .coordinator import BydApi, BydDataUpdateCoordinator
+from .entity import BydVehicleEntity
 
-_LOGGER = logging.getLogger(__name__)
-
-
-SEAT_LEVEL_OPTIONS = ["off", "low", "high"]
-SEAT_LEVEL_TO_INT = {"off": 0, "low": 1, "high": 3}
-INT_TO_SEAT_LEVEL = {v: k for k, v in SEAT_LEVEL_TO_INT.items()}
-
-
-# Maps SeatHeatVentState enum → command level for set_seat_climate()
-_SEAT_STATE_TO_COMMAND: dict[SeatHeatVentState, int] = {
-    SeatHeatVentState.OFF: 0,
-    SeatHeatVentState.LOW: 1,
-    SeatHeatVentState.HIGH: 3,
-}
-
-
-def _seat_status_to_command_level(value: Any) -> int:
-    """Normalize seat status values to the command scale.
-
-    Uses the ``SeatHeatVentState`` enum when available, falling back to
-    raw int conversion for robustness.
-    """
-    if isinstance(value, SeatHeatVentState):
-        return _SEAT_STATE_TO_COMMAND.get(value, 0)
-    try:
-        level = int(value)
-    except (TypeError, ValueError):
-        return 0
-    if level <= 0:
-        return 0
-    if level == 1:
-        return 0
-    if level == 2:
-        return 1
-    if level >= 3:
-        return 3
-    return level
+# Derive options from the enum – single source of truth, no duplicate mappings.
+SEAT_LEVEL_OPTIONS = [s.name.lower() for s in SeatHeatVentState if s.value > 0]
 
 
 def _seat_status_to_option(value: Any) -> str | None:
-    """Map seat status values to a UI option."""
+    """Map a seat status value to a UI option label.
+
+    Uses ``SeatHeatVentState`` member names directly so there is no
+    separate int↔string mapping to keep in sync.
+    """
     if value is None:
         return None
-    level = _seat_status_to_command_level(value)
-    return INT_TO_SEAT_LEVEL.get(level, "off")
-
-
-# Mapping from param_key → HvacStatus attribute name
-_PARAM_TO_HVAC_ATTR: dict[str, str] = {
-    "main_heat": "main_seat_heat_state",
-    "main_ventilation": "main_seat_ventilation_state",
-    "copilot_heat": "copilot_seat_heat_state",
-    "copilot_ventilation": "copilot_seat_ventilation_state",
-    "lr_seat_heat": "lr_seat_heat_state",
-    "lr_seat_ventilation": "lr_seat_ventilation_state",
-    "rr_seat_heat": "rr_seat_heat_state",
-    "rr_seat_ventilation": "rr_seat_ventilation_state",
-}
+    if not isinstance(value, SeatHeatVentState):
+        try:
+            value = SeatHeatVentState(int(value))
+        except (TypeError, ValueError):
+            return None
+    return value.name.lower() if value.value > 0 else None
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -98,35 +53,30 @@ class BydSeatClimateDescription(SelectEntityDescription):
 SEAT_CLIMATE_DESCRIPTIONS: tuple[BydSeatClimateDescription, ...] = (
     BydSeatClimateDescription(
         key="driver_seat_heat",
-        name="Driver seat heating",
         icon="mdi:car-seat-heater",
         param_key="main_heat",
         hvac_attr="main_seat_heat_state",
     ),
     BydSeatClimateDescription(
         key="driver_seat_ventilation",
-        name="Driver seat ventilation",
         icon="mdi:car-seat-cooler",
         param_key="main_ventilation",
         hvac_attr="main_seat_ventilation_state",
     ),
     BydSeatClimateDescription(
         key="passenger_seat_heat",
-        name="Passenger seat heating",
         icon="mdi:car-seat-heater",
         param_key="copilot_heat",
         hvac_attr="copilot_seat_heat_state",
     ),
     BydSeatClimateDescription(
         key="passenger_seat_ventilation",
-        name="Passenger seat ventilation",
         icon="mdi:car-seat-cooler",
         param_key="copilot_ventilation",
         hvac_attr="copilot_seat_ventilation_state",
     ),
     BydSeatClimateDescription(
         key="rear_left_seat_heat",
-        name="Rear left seat heating",
         icon="mdi:car-seat-heater",
         param_key="lr_seat_heat",
         hvac_attr="lr_seat_heat_state",
@@ -134,7 +84,6 @@ SEAT_CLIMATE_DESCRIPTIONS: tuple[BydSeatClimateDescription, ...] = (
     ),
     BydSeatClimateDescription(
         key="rear_left_seat_ventilation",
-        name="Rear left seat ventilation",
         icon="mdi:car-seat-cooler",
         param_key="lr_seat_ventilation",
         hvac_attr="lr_seat_ventilation_state",
@@ -142,7 +91,6 @@ SEAT_CLIMATE_DESCRIPTIONS: tuple[BydSeatClimateDescription, ...] = (
     ),
     BydSeatClimateDescription(
         key="rear_right_seat_heat",
-        name="Rear right seat heating",
         icon="mdi:car-seat-heater",
         param_key="rr_seat_heat",
         hvac_attr="rr_seat_heat_state",
@@ -150,42 +98,12 @@ SEAT_CLIMATE_DESCRIPTIONS: tuple[BydSeatClimateDescription, ...] = (
     ),
     BydSeatClimateDescription(
         key="rear_right_seat_ventilation",
-        name="Rear right seat ventilation",
         icon="mdi:car-seat-cooler",
         param_key="rr_seat_ventilation",
         hvac_attr="rr_seat_ventilation_state",
         entity_registry_enabled_default=False,
     ),
 )
-
-
-def _gather_seat_climate_state(
-    hvac: HvacStatus | None,
-    realtime: Any | None,
-) -> dict[str, int]:
-    """Build current seat-climate kwargs from coordinator data.
-
-    Returns a dict with keys matching ``set_seat_climate()`` keyword
-    arguments, using HVAC data first, falling back to realtime data.
-    """
-    values: dict[str, int] = {}
-    for param_key, hvac_attr in _PARAM_TO_HVAC_ATTR.items():
-        val = None
-        if hvac is not None:
-            val = getattr(hvac, hvac_attr, None)
-        if val is None and realtime is not None:
-            val = getattr(realtime, hvac_attr, None)
-        values[param_key] = _seat_status_to_command_level(val)
-
-    # Steering wheel heat is part of set_seat_climate too
-    sw_val = None
-    if hvac is not None:
-        sw_val = getattr(hvac, "steering_wheel_heat_state", None)
-    if sw_val is None and realtime is not None:
-        sw_val = getattr(realtime, "steering_wheel_heat_state", None)
-    values["steering_wheel_heat"] = 1 if sw_val == StearingWheelHeat.ON else 0
-
-    return values
 
 
 async def async_setup_entry(
@@ -211,7 +129,7 @@ async def async_setup_entry(
     async_add_entities(entities)
 
 
-class BydSeatClimateSelect(CoordinatorEntity[BydDataUpdateCoordinator], SelectEntity):
+class BydSeatClimateSelect(BydVehicleEntity, SelectEntity):
     """Select entity for a single seat heating/ventilation level."""
 
     _attr_has_entity_name = True
@@ -236,27 +154,10 @@ class BydSeatClimateSelect(CoordinatorEntity[BydDataUpdateCoordinator], SelectEn
         self._vehicle = vehicle
         self._attr_unique_id = f"{vin}_select_{description.key}"
         self._pending_value: str | None = None
-        self._command_pending = False
 
         if description.entity_registry_enabled_default is not False:
             if self.current_option is None:
                 self._attr_entity_registry_enabled_default = False
-
-    def _get_hvac_status(self) -> HvacStatus | None:
-        hvac_map = self.coordinator.data.get("hvac", {})
-        hvac = hvac_map.get(self._vin)
-        return hvac if isinstance(hvac, HvacStatus) else None
-
-    def _get_realtime(self) -> Any | None:
-        return self.coordinator.data.get("realtime", {}).get(self._vin)
-
-    @property
-    def available(self) -> bool:
-        if not super().available:
-            return False
-        if self._vin not in self.coordinator.data.get("vehicles", {}):
-            return False
-        return True
 
     @property
     def current_option(self) -> str | None:
@@ -275,61 +176,31 @@ class BydSeatClimateSelect(CoordinatorEntity[BydDataUpdateCoordinator], SelectEn
 
     async def async_select_option(self, option: str) -> None:
         """Set the seat climate level."""
-        level = SEAT_LEVEL_TO_INT.get(option)
-        if level is None:
+        try:
+            level = SeatHeatVentState[option.upper()].to_command_level()
+        except KeyError:
             return
 
         self._pending_value = option
 
-        # Gather current state for all seat climate params
+        # Gather current state and override our specific parameter
         hvac = self._get_hvac_status()
         realtime = self._get_realtime()
-        kwargs = _gather_seat_climate_state(hvac, realtime)
-
-        # Override our specific parameter
-        kwargs[self.entity_description.param_key] = level
+        params = SeatClimateParams.from_current_state(hvac, realtime).model_copy(
+            update={self.entity_description.param_key: level}
+        )
 
         async def _call(client: Any) -> Any:
-            return await client.set_seat_climate(
-                self._vin, params=SeatClimateParams(**kwargs)
-            )
+            return await client.set_seat_climate(self._vin, params=params)
 
-        try:
-            await self._api.async_call(
-                _call,
-                vin=self._vin,
-                command=f"seat_climate_{self.entity_description.key}",
-            )
-        except BydRemoteControlError as exc:
-            _LOGGER.warning(
-                "Seat climate command sent but cloud reported failure — "
-                "updating state optimistically: %s",
-                exc,
-            )
-        except Exception as exc:  # noqa: BLE001
-            self._pending_value = None
-            raise HomeAssistantError(str(exc)) from exc
-
-        self._command_pending = True
-        self.async_write_ha_state()
+        await self._execute_command(
+            self._api,
+            _call,
+            command=f"seat_climate_{self.entity_description.key}",
+            on_rollback=lambda: setattr(self, "_pending_value", None),
+        )
 
     def _handle_coordinator_update(self) -> None:
         """Clear optimistic state when fresh data arrives."""
-        self._command_pending = False
         self._pending_value = None
         super()._handle_coordinator_update()
-
-    @property
-    def extra_state_attributes(self) -> dict[str, Any]:
-        return {"vin": self._vin}
-
-    @property
-    def device_info(self) -> DeviceInfo:
-        return DeviceInfo(
-            identifiers={(DOMAIN, self._vin)},
-            name=get_vehicle_display(self._vehicle),
-            manufacturer=getattr(self._vehicle, "brand_name", None) or "BYD",
-            model=getattr(self._vehicle, "model_name", None),
-            serial_number=self._vin,
-            hw_version=getattr(self._vehicle, "tbox_version", None) or None,
-        )

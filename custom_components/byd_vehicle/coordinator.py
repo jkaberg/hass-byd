@@ -28,7 +28,7 @@ from pybyd.models.charging import ChargingStatus
 from pybyd.models.energy import EnergyConsumption
 from pybyd.models.gps import GpsInfo
 from pybyd.models.hvac import HvacStatus
-from pybyd.models.realtime import ChargingState, VehicleRealtimeData, VehicleState
+from pybyd.models.realtime import ChargingState, VehicleRealtimeData
 from pybyd.models.vehicle import Vehicle
 
 from .const import (
@@ -46,19 +46,14 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 
-def _coerce_enum_int(value: Any) -> int | None:
-    """Return integer value for enums/raw ints, else None."""
-    if value is None:
-        return None
-    raw = getattr(value, "value", value)
-    try:
-        return int(raw)
-    except (TypeError, ValueError):
-        return None
-
-
-def _get_vehicle_name(vehicle: Vehicle) -> str:
-    return vehicle.model_name or vehicle.vin
+# Error tuples shared by telemetry and GPS _fetch closures.
+_AUTH_ERRORS = (BydAuthenticationError, BydSessionExpiredError)
+_RECOVERABLE_ERRORS = (
+    BydApiError,
+    BydTransportError,
+    BydRateLimitError,
+    BydEndpointNotSupportedError,
+)
 
 
 class BydApi:
@@ -125,20 +120,95 @@ class BydApi:
             payload,
         )
 
-    def _handle_mqtt_vehicle_info(
-        self, vin: str, data: VehicleRealtimeData
+    def _handle_mqtt_event(
+        self,
+        event: str,
+        vin: str,
+        respond_data: dict[str, Any],
     ) -> None:
-        """Handle MQTT vehicleInfo push -- dispatch to coordinator."""
+        """Handle every MQTT event from pyBYD.
+
+        Single entry-point for all MQTT-pushed data.  Dispatches to
+        event-specific helpers based on the *event* string:
+
+        - ``vehicleInfo``   -> parse into model and push to coordinator.
+        - ``remoteControl`` -> log acknowledgement and nudge coordinator.
+        - (future events)   -> logged and debug-dumped automatically.
+        """
+        _LOGGER.debug(
+            "MQTT event received: event=%s, vin=%s, keys=%s",
+            event,
+            vin[-6:] if vin else "-",
+            list(respond_data.keys()) if respond_data else [],
+        )
+
+        # Debug dump every MQTT event.
+        if self._debug_dumps_enabled:
+            dump: dict[str, Any] = {
+                "vin": vin,
+                "mqtt_event": event,
+                "respond_data": respond_data,
+            }
+            self._hass.async_create_task(
+                self._async_write_debug_dump(f"mqtt_{event}", dump)
+            )
+
+        # Dispatch to event-specific handlers.
+        if event == "vehicleInfo":
+            self._handle_vehicle_info_event(vin, respond_data)
+        elif event == "remoteControl":
+            self._handle_remote_control_event(vin, respond_data)
+        else:
+            _LOGGER.debug(
+                "Unhandled MQTT event type: event=%s, vin=%s",
+                event,
+                vin[-6:] if vin else "-",
+            )
+
+    def _handle_vehicle_info_event(
+        self,
+        vin: str,
+        respond_data: dict[str, Any],
+    ) -> None:
+        """Parse a vehicleInfo MQTT push and dispatch to the coordinator."""
         coordinator = self._coordinators.get(vin)
         if coordinator is None:
             _LOGGER.debug(
-                "MQTT vehicle info for unknown VIN: %s (known: %s)",
+                "MQTT vehicleInfo for unknown VIN: %s (known: %s)",
                 vin[-6:],
                 [v[-6:] for v in self._coordinators],
             )
             return
-        _LOGGER.debug("MQTT push received for VIN %s -- updating coordinator", vin[-6:])
+        try:
+            data = VehicleRealtimeData.model_validate(respond_data)
+        except Exception:  # noqa: BLE001
+            _LOGGER.warning(
+                "Failed to parse MQTT vehicleInfo payload for VIN %s",
+                vin[-6:],
+                exc_info=True,
+            )
+            return
+        _LOGGER.debug(
+            "MQTT vehicleInfo push for VIN %s -- updating coordinator",
+            vin[-6:],
+        )
         coordinator.handle_mqtt_realtime(data)
+
+    def _handle_remote_control_event(
+        self,
+        vin: str,
+        respond_data: dict[str, Any],
+    ) -> None:
+        """Process an MQTT remoteControl acknowledgement."""
+        serial = respond_data.get("requestSerial", "")
+        _LOGGER.info(
+            "MQTT remoteControl ack: vin=%s, serial=%s",
+            vin[-6:] if vin else "-",
+            serial,
+        )
+        coordinator = self._coordinators.get(vin)
+        if coordinator is not None:
+            coordinator.async_set_updated_data(coordinator.data)
 
     @property
     def config(self) -> BydConfig:
@@ -158,7 +228,7 @@ class BydApi:
             self._client = BydClient(
                 self._config,
                 session=self._http_session,
-                on_vehicle_info=self._handle_mqtt_vehicle_info,
+                on_mqtt_event=self._handle_mqtt_event,
             )
             await self._client.__aenter__()
         return self._client
@@ -291,34 +361,24 @@ class BydDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     def _is_vehicle_on(self, realtime: VehicleRealtimeData | None) -> bool | None:
         if realtime is None:
             return None
-        state = getattr(realtime, "vehicle_state", None)
-        if state is None:
-            return None
-        state_int = _coerce_enum_int(state)
-        if state_int is None:
-            return None
-        return state_int == int(VehicleState.ON)
+        return realtime.is_vehicle_on
 
-    def _should_fetch_hvac(
-        self, realtime: VehicleRealtimeData | None
-    ) -> bool:
+    def _should_fetch_hvac(self, realtime: VehicleRealtimeData | None) -> bool:
         # Always fetch once to establish initial HVAC state.
         if self._last_hvac is None:
             return True
         # Only poll HVAC while the vehicle is on.
         return self._is_vehicle_on(realtime) is True
 
-    def _should_fetch_charging(
-        self, realtime: VehicleRealtimeData | None
-    ) -> bool:
+    def _should_fetch_charging(self, realtime: VehicleRealtimeData | None) -> bool:
         # Always fetch once to establish initial charging state.
         if self._last_charging is None:
             return True
         if realtime is None:
             return True
-        charging_state = _coerce_enum_int(getattr(realtime, "charging_state", None))
-        if charging_state is not None:
-            return charging_state != int(ChargingState.NOT_CHARGING)
+        cs = getattr(realtime, "charging_state", None)
+        if cs is not None:
+            return cs != ChargingState.NOT_CHARGING
         # Fall back to cached charging model.
         return bool(
             getattr(self._last_charging, "is_connected", False)
@@ -338,24 +398,15 @@ class BydDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         async def _fetch(client: BydClient) -> dict[str, Any]:
             vehicle_map = {self._vin: self._vehicle}
-
-            auth_errors = (BydAuthenticationError, BydSessionExpiredError)
-            recoverable_errors = (
-                BydApiError,
-                BydTransportError,
-                BydRateLimitError,
-                BydEndpointNotSupportedError,
-            )
-
             endpoint_failures: dict[str, str] = {}
 
             # --- Realtime (always) ---
             realtime: VehicleRealtimeData | None = None
             try:
                 realtime = await client.get_vehicle_realtime(self._vin)
-            except auth_errors:
+            except _AUTH_ERRORS:
                 raise
-            except recoverable_errors as exc:
+            except _RECOVERABLE_ERRORS as exc:
                 endpoint_failures["realtime"] = f"{type(exc).__name__}: {exc}"
                 _LOGGER.warning(
                     "Realtime fetch failed: vin=%s, error=%s", self._vin, exc
@@ -365,9 +416,9 @@ class BydDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             energy: EnergyConsumption | None = None
             try:
                 energy = await client.get_energy_consumption(self._vin)
-            except auth_errors:
+            except _AUTH_ERRORS:
                 raise
-            except recoverable_errors as exc:
+            except _RECOVERABLE_ERRORS as exc:
                 endpoint_failures["energy"] = f"{type(exc).__name__}: {exc}"
                 _LOGGER.warning("Energy fetch failed: vin=%s, error=%s", self._vin, exc)
 
@@ -379,9 +430,9 @@ class BydDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             if self._should_fetch_hvac(realtime_gate):
                 try:
                     hvac = await client.get_hvac_status(self._vin)
-                except auth_errors:
+                except _AUTH_ERRORS:
                     raise
-                except recoverable_errors as exc:
+                except _RECOVERABLE_ERRORS as exc:
                     endpoint_failures["hvac"] = f"{type(exc).__name__}: {exc}"
                     _LOGGER.warning(
                         "HVAC fetch failed: vin=%s, error=%s",
@@ -399,9 +450,9 @@ class BydDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             if self._should_fetch_charging(realtime_gate):
                 try:
                     charging = await client.get_charging_status(self._vin)
-                except auth_errors:
+                except _AUTH_ERRORS:
                     raise
-                except recoverable_errors as exc:
+                except _RECOVERABLE_ERRORS as exc:
                     endpoint_failures["charging"] = f"{type(exc).__name__}: {exc}"
                     _LOGGER.warning(
                         "Charging fetch failed: vin=%s, error=%s",
@@ -507,6 +558,65 @@ class BydDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._force_next_refresh = True
         await self.async_request_refresh()
 
+    async def async_fetch_realtime(self) -> None:
+        """Force-fetch realtime data and merge into coordinator state."""
+
+        async def _fetch(client: BydClient) -> VehicleRealtimeData:
+            return await client.get_vehicle_realtime(self._vin)
+
+        data: VehicleRealtimeData = await self._api.async_call(
+            _fetch, vin=self._vin, command="fetch_realtime"
+        )
+        self._last_realtime = data
+        if isinstance(self.data, dict):
+            merged = dict(self.data)
+            merged["realtime"] = {self._vin: data}
+            self.async_set_updated_data(merged)
+
+    async def async_fetch_hvac(self) -> None:
+        """Force-fetch HVAC status and merge into coordinator state."""
+
+        async def _fetch(client: BydClient) -> HvacStatus:
+            return await client.get_hvac_status(self._vin)
+
+        data: HvacStatus = await self._api.async_call(
+            _fetch, vin=self._vin, command="fetch_hvac"
+        )
+        self._last_hvac = data
+        if isinstance(self.data, dict):
+            merged = dict(self.data)
+            merged["hvac"] = {self._vin: data}
+            self.async_set_updated_data(merged)
+
+    async def async_fetch_charging(self) -> None:
+        """Force-fetch charging status and merge into coordinator state."""
+
+        async def _fetch(client: BydClient) -> ChargingStatus:
+            return await client.get_charging_status(self._vin)
+
+        data: ChargingStatus = await self._api.async_call(
+            _fetch, vin=self._vin, command="fetch_charging"
+        )
+        self._last_charging = data
+        if isinstance(self.data, dict):
+            merged = dict(self.data)
+            merged["charging"] = {self._vin: data}
+            self.async_set_updated_data(merged)
+
+    async def async_fetch_energy(self) -> None:
+        """Force-fetch energy consumption and merge into coordinator."""
+
+        async def _fetch(client: BydClient) -> EnergyConsumption:
+            return await client.get_energy_consumption(self._vin)
+
+        data: EnergyConsumption = await self._api.async_call(
+            _fetch, vin=self._vin, command="fetch_energy"
+        )
+        if isinstance(self.data, dict):
+            merged = dict(self.data)
+            merged["energy"] = {self._vin: data}
+            self.async_set_updated_data(merged)
+
 
 class BydGpsUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Coordinator for GPS updates for a single VIN."""
@@ -554,6 +664,20 @@ class BydGpsUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._force_next_refresh = True
         await self.async_request_refresh()
 
+    async def async_fetch_gps(self) -> None:
+        """Force-fetch GPS data and merge into coordinator state."""
+
+        async def _fetch(client: BydClient) -> GpsInfo:
+            return await client.get_gps_info(self._vin)
+
+        data: GpsInfo = await self._api.async_call(
+            _fetch, vin=self._vin, command="fetch_gps"
+        )
+        if isinstance(self.data, dict):
+            merged = dict(self.data)
+            merged["gps"] = {self._vin: data}
+            self.async_set_updated_data(merged)
+
     def _is_vehicle_moving(self) -> bool:
         telemetry_data = (
             self._telemetry_coordinator.data if self._telemetry_coordinator else None
@@ -597,25 +721,15 @@ class BydGpsUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 return self.data
             return {"vehicles": {self._vin: self._vehicle}}
 
-        self._adjust_interval()
-
         async def _fetch(client: BydClient) -> dict[str, Any]:
             vehicle_map = {self._vin: self._vehicle}
-
-            auth_errors = (BydAuthenticationError, BydSessionExpiredError)
-            recoverable_errors = (
-                BydApiError,
-                BydTransportError,
-                BydRateLimitError,
-                BydEndpointNotSupportedError,
-            )
 
             gps: GpsInfo | None = None
             try:
                 gps = await client.get_gps_info(self._vin)
-            except auth_errors:
+            except _AUTH_ERRORS:
                 raise
-            except recoverable_errors as exc:
+            except _RECOVERABLE_ERRORS as exc:
                 _LOGGER.warning("GPS fetch failed: vin=%s, error=%s", self._vin, exc)
 
             gps_map: dict[str, Any] = {}
@@ -652,4 +766,4 @@ class BydGpsUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
 def get_vehicle_display(vehicle: Vehicle) -> str:
     """Return a friendly name for a vehicle."""
-    return _get_vehicle_name(vehicle)
+    return vehicle.model_name or vehicle.vin

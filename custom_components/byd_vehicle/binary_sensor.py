@@ -18,22 +18,16 @@ from homeassistant.components.binary_sensor import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
-
 from pybyd.models.realtime import (
     DoorOpenState,
     LockState,
-    VehicleState,
     WindowState,
 )
 
 from .const import DOMAIN
-from .coordinator import (
-    BydDataUpdateCoordinator,
-    get_vehicle_display,
-)
+from .coordinator import BydDataUpdateCoordinator
+from .entity import BydVehicleEntity
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -45,11 +39,11 @@ class BydBinarySensorDescription(BinarySensorEntityDescription):
     value_fn: Callable[[Any], bool | None] | None = None
 
 
-def _bool_from_int(attr: str) -> Callable[[Any], bool | None]:
-    """Create a value function that converts int (0/non-zero) to bool."""
+def _attr_truthy(attr_name: str) -> Callable[[Any], bool | None]:
+    """Return a value_fn that checks ``bool(getattr(obj, attr_name))``."""
 
     def _fn(obj: Any) -> bool | None:
-        val = getattr(obj, attr, None)
+        val = getattr(obj, attr_name, None)
         if val is None:
             return None
         return bool(val)
@@ -57,52 +51,16 @@ def _bool_from_int(attr: str) -> Callable[[Any], bool | None]:
     return _fn
 
 
-def _door_open(attr: str) -> Callable[[Any], bool | None]:
-    """Return True when the door enum is OPEN."""
+def _attr_equals(attr_name: str, target: Any) -> Callable[[Any], bool | None]:
+    """Return a value_fn that checks ``getattr(obj, attr_name) == target``."""
 
     def _fn(obj: Any) -> bool | None:
-        val = getattr(obj, attr, None)
+        val = getattr(obj, attr_name, None)
         if val is None:
             return None
-        return val == DoorOpenState.OPEN
+        return val == target
 
     return _fn
-
-
-def _window_open(attr: str) -> Callable[[Any], bool | None]:
-    """Return True when the window enum is OPEN."""
-
-    def _fn(obj: Any) -> bool | None:
-        val = getattr(obj, attr, None)
-        if val is None:
-            return None
-        return val == WindowState.OPEN
-
-    return _fn
-
-
-def _lock_unlocked(attr: str) -> Callable[[Any], bool | None]:
-    """Return True when the lock is UNLOCKED (problem state for BinarySensorDeviceClass.LOCK)."""
-
-    def _fn(obj: Any) -> bool | None:
-        val = getattr(obj, attr, None)
-        if val is None:
-            return None
-        return val == LockState.UNLOCKED
-
-    return _fn
-
-
-def _vehicle_on_from_state(obj: Any) -> bool | None:
-    """Return True when the vehicle is ON."""
-    val = getattr(obj, "vehicle_state", None)
-    if val is None:
-        return None
-    if val == VehicleState.ON:
-        return True
-    if val == VehicleState.OFF:
-        return False
-    return None
 
 
 BINARY_SENSOR_DESCRIPTIONS: tuple[BydBinarySensorDescription, ...] = (
@@ -111,35 +69,30 @@ BINARY_SENSOR_DESCRIPTIONS: tuple[BydBinarySensorDescription, ...] = (
     # =================================
     BydBinarySensorDescription(
         key="is_online",
-        name="Online",
         source="realtime",
         device_class=BinarySensorDeviceClass.CONNECTIVITY,
         value_fn=lambda r: r.is_online,
     ),
     BydBinarySensorDescription(
         key="is_charging",
-        name="Charging",
         source="realtime",
         device_class=BinarySensorDeviceClass.BATTERY_CHARGING,
         value_fn=lambda r: r.is_charging,
     ),
     BydBinarySensorDescription(
         key="is_any_door_open",
-        name="Doors",
         source="realtime",
         device_class=BinarySensorDeviceClass.DOOR,
         value_fn=lambda r: r.is_any_door_open,
     ),
     BydBinarySensorDescription(
         key="is_any_window_open",
-        name="Windows",
         source="realtime",
         device_class=BinarySensorDeviceClass.WINDOW,
         value_fn=lambda r: r.is_any_window_open,
     ),
     BydBinarySensorDescription(
         key="is_locked",
-        name="Locked",
         source="realtime",
         device_class=BinarySensorDeviceClass.LOCK,
         # is_locked returns True when locked; for BinarySensorDeviceClass.LOCK,
@@ -148,75 +101,66 @@ BINARY_SENSOR_DESCRIPTIONS: tuple[BydBinarySensorDescription, ...] = (
     ),
     BydBinarySensorDescription(
         key="charger_connected",
-        name="Charger connected",
         source="charging",
         device_class=BinarySensorDeviceClass.PLUG,
         value_fn=lambda c: c.is_connected,
     ),
     BydBinarySensorDescription(
         key="sentry_status",
-        name="Sentry mode",
         source="realtime",
         icon="mdi:shield-car",
-        value_fn=_bool_from_int("sentry_status"),
+        value_fn=_attr_truthy("sentry_status"),
     ),
     # ====================================
     # Individual doors (disabled)
     # ====================================
     BydBinarySensorDescription(
         key="left_front_door",
-        name="Front left door",
         source="realtime",
         device_class=BinarySensorDeviceClass.DOOR,
-        value_fn=_door_open("left_front_door"),
+        value_fn=_attr_equals("left_front_door", DoorOpenState.OPEN),
         entity_registry_enabled_default=False,
     ),
     BydBinarySensorDescription(
         key="right_front_door",
-        name="Front right door",
         source="realtime",
         device_class=BinarySensorDeviceClass.DOOR,
-        value_fn=_door_open("right_front_door"),
+        value_fn=_attr_equals("right_front_door", DoorOpenState.OPEN),
         entity_registry_enabled_default=False,
     ),
     BydBinarySensorDescription(
         key="left_rear_door",
-        name="Rear left door",
         source="realtime",
         device_class=BinarySensorDeviceClass.DOOR,
-        value_fn=_door_open("left_rear_door"),
+        value_fn=_attr_equals("left_rear_door", DoorOpenState.OPEN),
         entity_registry_enabled_default=False,
     ),
     BydBinarySensorDescription(
         key="right_rear_door",
-        name="Rear right door",
         source="realtime",
         device_class=BinarySensorDeviceClass.DOOR,
-        value_fn=_door_open("right_rear_door"),
+        value_fn=_attr_equals("right_rear_door", DoorOpenState.OPEN),
         entity_registry_enabled_default=False,
     ),
     BydBinarySensorDescription(
         key="trunk_lid",
-        name="Trunk",
         source="realtime",
         device_class=BinarySensorDeviceClass.DOOR,
-        value_fn=_door_open("trunk_lid"),
+        value_fn=_attr_equals("trunk_lid", DoorOpenState.OPEN),
         entity_registry_enabled_default=False,
     ),
     BydBinarySensorDescription(
         key="sliding_door",
-        name="Sliding door",
         source="realtime",
         device_class=BinarySensorDeviceClass.DOOR,
-        value_fn=_door_open("sliding_door"),
+        value_fn=_attr_equals("sliding_door", DoorOpenState.OPEN),
         entity_registry_enabled_default=False,
     ),
     BydBinarySensorDescription(
         key="forehold",
-        name="Frunk",
         source="realtime",
         device_class=BinarySensorDeviceClass.DOOR,
-        value_fn=_door_open("forehold"),
+        value_fn=_attr_equals("forehold", DoorOpenState.OPEN),
         entity_registry_enabled_default=False,
     ),
     # ====================================
@@ -224,42 +168,37 @@ BINARY_SENSOR_DESCRIPTIONS: tuple[BydBinarySensorDescription, ...] = (
     # ====================================
     BydBinarySensorDescription(
         key="left_front_window",
-        name="Front left window",
         source="realtime",
         device_class=BinarySensorDeviceClass.WINDOW,
-        value_fn=_window_open("left_front_window"),
+        value_fn=_attr_equals("left_front_window", WindowState.OPEN),
         entity_registry_enabled_default=False,
     ),
     BydBinarySensorDescription(
         key="right_front_window",
-        name="Front right window",
         source="realtime",
         device_class=BinarySensorDeviceClass.WINDOW,
-        value_fn=_window_open("right_front_window"),
+        value_fn=_attr_equals("right_front_window", WindowState.OPEN),
         entity_registry_enabled_default=False,
     ),
     BydBinarySensorDescription(
         key="left_rear_window",
-        name="Rear left window",
         source="realtime",
         device_class=BinarySensorDeviceClass.WINDOW,
-        value_fn=_window_open("left_rear_window"),
+        value_fn=_attr_equals("left_rear_window", WindowState.OPEN),
         entity_registry_enabled_default=False,
     ),
     BydBinarySensorDescription(
         key="right_rear_window",
-        name="Rear right window",
         source="realtime",
         device_class=BinarySensorDeviceClass.WINDOW,
-        value_fn=_window_open("right_rear_window"),
+        value_fn=_attr_equals("right_rear_window", WindowState.OPEN),
         entity_registry_enabled_default=False,
     ),
     BydBinarySensorDescription(
         key="skylight",
-        name="Skylight",
         source="realtime",
         device_class=BinarySensorDeviceClass.WINDOW,
-        value_fn=_window_open("skylight"),
+        value_fn=_attr_equals("skylight", WindowState.OPEN),
         entity_registry_enabled_default=False,
     ),
     # ====================================
@@ -267,42 +206,37 @@ BINARY_SENSOR_DESCRIPTIONS: tuple[BydBinarySensorDescription, ...] = (
     # ====================================
     BydBinarySensorDescription(
         key="left_front_door_lock",
-        name="Front left door lock",
         source="realtime",
         device_class=BinarySensorDeviceClass.LOCK,
-        value_fn=_lock_unlocked("left_front_door_lock"),
+        value_fn=_attr_equals("left_front_door_lock", LockState.UNLOCKED),
         entity_registry_enabled_default=False,
     ),
     BydBinarySensorDescription(
         key="right_front_door_lock",
-        name="Front right door lock",
         source="realtime",
         device_class=BinarySensorDeviceClass.LOCK,
-        value_fn=_lock_unlocked("right_front_door_lock"),
+        value_fn=_attr_equals("right_front_door_lock", LockState.UNLOCKED),
         entity_registry_enabled_default=False,
     ),
     BydBinarySensorDescription(
         key="left_rear_door_lock",
-        name="Rear left door lock",
         source="realtime",
         device_class=BinarySensorDeviceClass.LOCK,
-        value_fn=_lock_unlocked("left_rear_door_lock"),
+        value_fn=_attr_equals("left_rear_door_lock", LockState.UNLOCKED),
         entity_registry_enabled_default=False,
     ),
     BydBinarySensorDescription(
         key="right_rear_door_lock",
-        name="Rear right door lock",
         source="realtime",
         device_class=BinarySensorDeviceClass.LOCK,
-        value_fn=_lock_unlocked("right_rear_door_lock"),
+        value_fn=_attr_equals("right_rear_door_lock", LockState.UNLOCKED),
         entity_registry_enabled_default=False,
     ),
     BydBinarySensorDescription(
         key="sliding_door_lock",
-        name="Sliding door lock",
         source="realtime",
         device_class=BinarySensorDeviceClass.LOCK,
-        value_fn=_lock_unlocked("sliding_door_lock"),
+        value_fn=_attr_equals("sliding_door_lock", LockState.UNLOCKED),
         entity_registry_enabled_default=False,
     ),
     # ====================================
@@ -310,30 +244,27 @@ BINARY_SENSOR_DESCRIPTIONS: tuple[BydBinarySensorDescription, ...] = (
     # ====================================
     BydBinarySensorDescription(
         key="battery_heat_state",
-        name="Battery heating",
         source="realtime",
         icon="mdi:heat-wave",
         entity_registry_enabled_default=False,
         entity_category=EntityCategory.DIAGNOSTIC,
-        value_fn=_bool_from_int("battery_heat_state"),
+        value_fn=_attr_truthy("battery_heat_state"),
     ),
     BydBinarySensorDescription(
         key="charge_heat_state",
-        name="Charge heating",
         source="realtime",
         icon="mdi:heat-wave",
         entity_registry_enabled_default=False,
         entity_category=EntityCategory.DIAGNOSTIC,
-        value_fn=_bool_from_int("charge_heat_state"),
+        value_fn=_attr_truthy("charge_heat_state"),
     ),
     BydBinarySensorDescription(
         key="vehicle_state",
-        name="Vehicle on",
         source="realtime",
         device_class=BinarySensorDeviceClass.POWER,
         entity_registry_enabled_default=False,
         entity_category=EntityCategory.DIAGNOSTIC,
-        value_fn=_vehicle_on_from_state,
+        value_fn=lambda r: r.is_vehicle_on,
     ),
 )
 
@@ -358,7 +289,7 @@ async def async_setup_entry(
     async_add_entities(entities)
 
 
-class BydBinarySensor(CoordinatorEntity[BydDataUpdateCoordinator], BinarySensorEntity):
+class BydBinarySensor(BydVehicleEntity, BinarySensorEntity):
     """Representation of a BYD vehicle binary sensor."""
 
     _attr_has_entity_name = True
@@ -388,10 +319,9 @@ class BydBinarySensor(CoordinatorEntity[BydDataUpdateCoordinator], BinarySensorE
     # Helpers
     # ------------------------------------------------------------------
 
-    def _get_source_obj(self) -> Any | None:
+    def _get_source_obj(self, source: str = "") -> Any | None:
         """Return the model object for this sensor's source."""
-        source_map = self.coordinator.data.get(self.entity_description.source, {})
-        return source_map.get(self._vin)
+        return super()._get_source_obj(source or self.entity_description.source)
 
     def _resolve_value(self) -> bool | None:
         """Extract the current value using the description's extraction logic."""
@@ -419,15 +349,3 @@ class BydBinarySensor(CoordinatorEntity[BydDataUpdateCoordinator], BinarySensorE
     def is_on(self) -> bool | None:
         """Return the binary sensor state."""
         return self._resolve_value()
-
-    @property
-    def device_info(self) -> DeviceInfo:
-        """Return device info for this binary sensor."""
-        return DeviceInfo(
-            identifiers={(DOMAIN, self._vin)},
-            name=get_vehicle_display(self._vehicle),
-            manufacturer=getattr(self._vehicle, "brand_name", None) or "BYD",
-            model=getattr(self._vehicle, "model_name", None),
-            serial_number=self._vin,
-            hw_version=getattr(self._vehicle, "tbox_version", None) or None,
-        )
