@@ -120,20 +120,41 @@ class BydApi:
             payload,
         )
 
+    def _handle_vehicle_info(self, vin: str, data: VehicleRealtimeData) -> None:
+        """Handle typed vehicleInfo push from pyBYD.
+
+        pyBYD parses the raw MQTT payload into a ``VehicleRealtimeData``
+        model and delivers it here — no additional parsing needed.
+        """
+        coordinator = self._coordinators.get(vin)
+        if coordinator is None:
+            _LOGGER.debug(
+                "MQTT vehicleInfo for unknown VIN: %s (known: %s)",
+                vin[-6:],
+                [v[-6:] for v in self._coordinators],
+            )
+            return
+        _LOGGER.debug(
+            "MQTT vehicleInfo push for VIN %s -- updating coordinator",
+            vin[-6:],
+        )
+        coordinator.handle_mqtt_realtime(data)
+
     def _handle_mqtt_event(
         self,
         event: str,
         vin: str,
         respond_data: dict[str, Any],
     ) -> None:
-        """Handle every MQTT event from pyBYD.
+        """Handle generic MQTT events from pyBYD.
 
-        Single entry-point for all MQTT-pushed data.  Dispatches to
-        event-specific helpers based on the *event* string:
+        Covers integration-level concerns that apply to *all* MQTT
+        events: debug dumps, logging, and HA event-bus forwarding.
 
-        - ``vehicleInfo``   -> parse into model and push to coordinator.
-        - ``remoteControl`` -> log acknowledgement and nudge coordinator.
-        - (future events)   -> logged and debug-dumped automatically.
+        ``vehicleInfo`` data dispatch is handled by
+        ``_handle_vehicle_info`` (via pyBYD's ``on_vehicle_info``
+        callback) which receives the already-parsed model — so we
+        deliberately skip it here to avoid duplicate work.
         """
         _LOGGER.debug(
             "MQTT event received: event=%s, vin=%s, keys=%s",
@@ -153,46 +174,9 @@ class BydApi:
                 self._async_write_debug_dump(f"mqtt_{event}", dump)
             )
 
-        # Dispatch to event-specific handlers.
-        if event == "vehicleInfo":
-            self._handle_vehicle_info_event(vin, respond_data)
-        elif event == "remoteControl":
+        # remoteControl ack: nudge coordinator for faster entity updates.
+        if event == "remoteControl":
             self._handle_remote_control_event(vin, respond_data)
-        else:
-            _LOGGER.debug(
-                "Unhandled MQTT event type: event=%s, vin=%s",
-                event,
-                vin[-6:] if vin else "-",
-            )
-
-    def _handle_vehicle_info_event(
-        self,
-        vin: str,
-        respond_data: dict[str, Any],
-    ) -> None:
-        """Parse a vehicleInfo MQTT push and dispatch to the coordinator."""
-        coordinator = self._coordinators.get(vin)
-        if coordinator is None:
-            _LOGGER.debug(
-                "MQTT vehicleInfo for unknown VIN: %s (known: %s)",
-                vin[-6:],
-                [v[-6:] for v in self._coordinators],
-            )
-            return
-        try:
-            data = VehicleRealtimeData.model_validate(respond_data)
-        except Exception:  # noqa: BLE001
-            _LOGGER.warning(
-                "Failed to parse MQTT vehicleInfo payload for VIN %s",
-                vin[-6:],
-                exc_info=True,
-            )
-            return
-        _LOGGER.debug(
-            "MQTT vehicleInfo push for VIN %s -- updating coordinator",
-            vin[-6:],
-        )
-        coordinator.handle_mqtt_realtime(data)
 
     def _handle_remote_control_event(
         self,
@@ -228,6 +212,7 @@ class BydApi:
             self._client = BydClient(
                 self._config,
                 session=self._http_session,
+                on_vehicle_info=self._handle_vehicle_info,
                 on_mqtt_event=self._handle_mqtt_event,
             )
             await self._client.__aenter__()

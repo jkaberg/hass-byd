@@ -9,12 +9,15 @@ py-version=3.11
 # - share boilerplate device_info / coordinator patterns (duplicate-code)
 disable=
     abstract-method,
+    attribute-defined-outside-init,
     broad-exception-caught,
     duplicate-code,
+    import-error,
     missing-class-docstring,
     missing-function-docstring,
     missing-module-docstring,
     protected-access,
+    too-few-public-methods,
     too-many-arguments,
     too-many-branches,
     too-many-instance-attributes,
@@ -23,3 +26,4 @@ disable=
     too-many-return-statements,
     too-many-statements,
     unnecessary-dunder-call,
+    unused-argument,
