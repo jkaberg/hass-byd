@@ -100,12 +100,6 @@ BINARY_SENSOR_DESCRIPTIONS: tuple[BydBinarySensorDescription, ...] = (
         value_fn=lambda r: not r.is_locked,
     ),
     BydBinarySensorDescription(
-        key="charger_connected",
-        source="charging",
-        device_class=BinarySensorDeviceClass.PLUG,
-        value_fn=lambda c: c.is_connected,
-    ),
-    BydBinarySensorDescription(
         key="sentry_status",
         source="realtime",
         icon="mdi:shield-car",

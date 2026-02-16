@@ -77,18 +77,6 @@
       "right_rear_tire_pressure": {
         "name": "右後輪タイヤの空気圧"
       },
-      "soc": {
-        "name": "充電 SOC"
-      },
-      "time_to_full": {
-        "name": "フル充電までの時間"
-      },
-      "total_energy": {
-        "name": "総エネルギー消費量"
-      },
-      "avg_energy_consumption": {
-        "name": "平均エネルギー消費量"
-      },
       "temp_out_car": {
         "name": "外気温"
       },
@@ -206,21 +194,6 @@
       "upgrade_status": {
         "name": "OTA アップグレード ステータス"
       },
-      "charger_state": {
-        "name": "充電器の状態"
-      },
-      "charger_connection": {
-        "name": "充電器の接続状態"
-      },
-      "charging_update_time": {
-        "name": "充電の最終更新"
-      },
-      "electricity_consumption": {
-        "name": "電力消費量"
-      },
-      "fuel_consumption": {
-        "name": "燃費"
-      },
       "refrigerator_state": {
         "name": "冷蔵庫"
       },
@@ -255,9 +228,6 @@
       },
       "is_locked": {
         "name": "ロックされています"
-      },
-      "charger_connected": {
-        "name": "充電器が接続されています"
       },
       "sentry_status": {
         "name": "セントリーモード"

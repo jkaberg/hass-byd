@@ -269,6 +269,7 @@ class BydVehicleConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: i
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.ConfigFlowResult:
+        """Handle the user step of the config flow."""
         errors: dict[str, str] = {}
 
         if user_input is not None:
@@ -378,6 +379,7 @@ class BydVehicleConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: i
     async def async_step_reauth(
         self, _: dict[str, Any]
     ) -> config_entries.ConfigFlowResult:
+        """Handle re-authentication flow."""
         self._reauth_entry = self._get_reauth_entry()
         return await self.async_step_user()
 
@@ -386,6 +388,7 @@ class BydVehicleConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: i
     def async_get_options_flow(
         config_entry: config_entries.ConfigEntry,
     ) -> config_entries.OptionsFlow:
+        """Return the options flow handler."""
         return BydVehicleOptionsFlow(config_entry)
 
 
@@ -398,6 +401,7 @@ class BydVehicleOptionsFlow(config_entries.OptionsFlow):
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.ConfigFlowResult:
+        """Handle the initial options step."""
         if user_input is not None:
             # Store minutes (int) rather than the human label.
             if CONF_CLIMATE_DURATION in user_input:

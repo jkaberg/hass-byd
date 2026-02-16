@@ -77,18 +77,6 @@
       "right_rear_tire_pressure": {
         "name": "Pression pneu arrière droit"
       },
-      "soc": {
-        "name": "Niveau de charge (SoC)"
-      },
-      "time_to_full": {
-        "name": "Temps de charge complète"
-      },
-      "total_energy": {
-        "name": "Consommation totale d'énergie"
-      },
-      "avg_energy_consumption": {
-        "name": "Consommation énergétique moyenne"
-      },
       "temp_out_car": {
         "name": "Température extérieure"
       },
@@ -206,21 +194,6 @@
       "upgrade_status": {
         "name": "État de la mise à niveau OTA"
       },
-      "charger_state": {
-        "name": "État du chargeur"
-      },
-      "charger_connection": {
-        "name": "État de connexion du chargeur"
-      },
-      "charging_update_time": {
-        "name": "Dernière mise à jour de charge"
-      },
-      "electricity_consumption": {
-        "name": "Consommation d'électricité"
-      },
-      "fuel_consumption": {
-        "name": "Consommation de carburant"
-      },
       "refrigerator_state": {
         "name": "Réfrigérateur"
       },
@@ -255,9 +228,6 @@
       },
       "is_locked": {
         "name": "Verrouillé"
-      },
-      "charger_connected": {
-        "name": "Chargeur connecté"
       },
       "sentry_status": {
         "name": "Mode sentinelle"

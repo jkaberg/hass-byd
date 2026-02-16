@@ -77,18 +77,6 @@
       "right_rear_tire_pressure": {
         "name": "Bandenspanning rechtsachter"
       },
-      "soc": {
-        "name": "Laadniveau (SoC)"
-      },
-      "time_to_full": {
-        "name": "Tijd om volledig op te laden"
-      },
-      "total_energy": {
-        "name": "Totaal energieverbruik"
-      },
-      "avg_energy_consumption": {
-        "name": "Gemiddeld energieverbruik"
-      },
       "temp_out_car": {
         "name": "Buitentemperatuur"
       },
@@ -206,21 +194,6 @@
       "upgrade_status": {
         "name": "OTA upgradestatus"
       },
-      "charger_state": {
-        "name": "Staat van de oplader"
-      },
-      "charger_connection": {
-        "name": "Verbindingsstatus oplader"
-      },
-      "charging_update_time": {
-        "name": "Laatste laad-update"
-      },
-      "electricity_consumption": {
-        "name": "Elektriciteitsverbruik"
-      },
-      "fuel_consumption": {
-        "name": "Brandstofverbruik"
-      },
       "refrigerator_state": {
         "name": "Koelkast"
       },
@@ -255,9 +228,6 @@
       },
       "is_locked": {
         "name": "Vergrendeld"
-      },
-      "charger_connected": {
-        "name": "Oplader aangesloten"
       },
       "sentry_status": {
         "name": "Sentry-modus"

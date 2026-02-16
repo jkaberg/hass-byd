@@ -77,18 +77,6 @@
       "right_rear_tire_pressure": {
         "name": "แรงดันลมยางด้านหลังขวา"
       },
-      "soc": {
-        "name": "กำลังชาร์จ SOC"
-      },
-      "time_to_full": {
-        "name": "ถึงเวลาชาร์จเต็มแล้ว"
-      },
-      "total_energy": {
-        "name": "การใช้พลังงานทั้งหมด"
-      },
-      "avg_energy_consumption": {
-        "name": "การใช้พลังงานโดยเฉลี่ย"
-      },
       "temp_out_car": {
         "name": "อุณหภูมิภายนอก"
       },
@@ -206,21 +194,6 @@
       "upgrade_status": {
         "name": "สถานะอัปเกรด OTA"
       },
-      "charger_state": {
-        "name": "สถานะเครื่องชาร์จ"
-      },
-      "charger_connection": {
-        "name": "สถานะการเชื่อมต่อเครื่องชาร์จ"
-      },
-      "charging_update_time": {
-        "name": "การอัปเดตการชาร์จครั้งล่าสุด"
-      },
-      "electricity_consumption": {
-        "name": "ปริมาณการใช้ไฟฟ้า"
-      },
-      "fuel_consumption": {
-        "name": "ปริมาณการใช้เชื้อเพลิง"
-      },
       "refrigerator_state": {
         "name": "ตู้เย็น"
       },
@@ -255,9 +228,6 @@
       },
       "is_locked": {
         "name": "ล็อคแล้ว"
-      },
-      "charger_connected": {
-        "name": "เชื่อมต่อเครื่องชาร์จแล้ว"
       },
       "sentry_status": {
         "name": "โหมดยาม"

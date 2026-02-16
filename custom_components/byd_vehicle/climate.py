@@ -28,6 +28,7 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
+    """Set up BYD climate entities from a config entry."""
     data = hass.data[DOMAIN][entry.entry_id]
     coordinators: dict[str, BydDataUpdateCoordinator] = data["coordinators"]
     api: BydApi = data["api"]
@@ -113,6 +114,7 @@ class BydClimate(BydVehicleEntity, ClimateEntity):
 
     @property
     def hvac_mode(self) -> HVACMode:
+        """Return the current HVAC mode."""
         # After a command, prefer optimistic state until coordinator refreshes
         if self._command_pending:
             return self._last_mode
@@ -128,10 +130,12 @@ class BydClimate(BydVehicleEntity, ClimateEntity):
 
     @property
     def assumed_state(self) -> bool:
+        """Return True when state is assumed (command pending or no HVAC data)."""
         return self._command_pending or self._get_hvac_status() is None
 
     @property
     def current_temperature(self) -> float | None:
+        """Return the current interior temperature."""
         hvac = self._get_hvac_status()
         if hvac is not None and hvac.interior_temp_available:
             return hvac.temp_in_car
@@ -146,6 +150,7 @@ class BydClimate(BydVehicleEntity, ClimateEntity):
 
     @property
     def target_temperature(self) -> float | None:
+        """Return the target temperature."""
         if self._pending_target_temp is not None:
             return self._pending_target_temp
         hvac = self._get_hvac_status()
@@ -211,6 +216,7 @@ class BydClimate(BydVehicleEntity, ClimateEntity):
 
     @property
     def preset_mode(self) -> str | None:
+        """Return the active preset mode, if any."""
         hvac = self._get_hvac_status()
         if hvac is not None and hvac.is_ac_on:
             temp_c = self._clamp_temp(hvac.main_setting_temp_new)
@@ -221,6 +227,7 @@ class BydClimate(BydVehicleEntity, ClimateEntity):
         return None
 
     async def async_set_preset_mode(self, preset_mode: str) -> None:
+        """Activate a preset mode."""
         if preset_mode not in self._attr_preset_modes:
             raise HomeAssistantError(f"Unsupported preset mode: {preset_mode}")
         temp_c = (
@@ -250,6 +257,7 @@ class BydClimate(BydVehicleEntity, ClimateEntity):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
+        """Return additional HVAC attributes."""
         attrs = {**super().extra_state_attributes}
         hvac = self._get_hvac_status()
         if hvac is not None:

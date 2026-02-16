@@ -29,26 +29,6 @@
           "description": "The BYD vehicle device to fetch data for."
         }
       }
-    },
-    "fetch_charging": {
-      "name": "Fetch charging status",
-      "description": "Force-fetch the latest charging status from the BYD cloud.",
-      "fields": {
-        "device_id": {
-          "name": "Device",
-          "description": "The BYD vehicle device to fetch data for."
-        }
-      }
-    },
-    "fetch_energy": {
-      "name": "Fetch energy consumption",
-      "description": "Force-fetch the latest energy consumption data from the BYD cloud.",
-      "fields": {
-        "device_id": {
-          "name": "Device",
-          "description": "The BYD vehicle device to fetch data for."
-        }
-      }
     }
   },
   "config": {
@@ -111,10 +91,6 @@
       "right_front_tire_pressure": { "name": "Front right tire pressure" },
       "left_rear_tire_pressure": { "name": "Rear left tire pressure" },
       "right_rear_tire_pressure": { "name": "Rear right tire pressure" },
-      "soc": { "name": "Charging SOC" },
-      "time_to_full": { "name": "Time to full charge" },
-      "total_energy": { "name": "Total energy consumption" },
-      "avg_energy_consumption": { "name": "Average energy consumption" },
       "temp_out_car": { "name": "Exterior temperature" },
       "pm": { "name": "PM2.5" },
       "power_battery": { "name": "Power battery level" },
@@ -156,11 +132,6 @@
       "pwr": { "name": "Power warning" },
       "power_system": { "name": "Power system" },
       "upgrade_status": { "name": "OTA upgrade status" },
-      "charger_state": { "name": "Charger state" },
-      "charger_connection": { "name": "Charger connection state" },
-      "charging_update_time": { "name": "Charging last update" },
-      "electricity_consumption": { "name": "Electricity consumption" },
-      "fuel_consumption": { "name": "Fuel consumption" },
       "refrigerator_state": { "name": "Refrigerator" },
       "refrigerator_door_state": { "name": "Refrigerator door" },
       "last_updated": { "name": "Telemetry last updated" },
@@ -172,7 +143,6 @@
       "is_any_door_open": { "name": "Doors" },
       "is_any_window_open": { "name": "Windows" },
       "is_locked": { "name": "Locked" },
-      "charger_connected": { "name": "Charger connected" },
       "sentry_status": { "name": "Sentry mode" },
       "left_front_door": { "name": "Front left door" },
       "right_front_door": { "name": "Front right door" },

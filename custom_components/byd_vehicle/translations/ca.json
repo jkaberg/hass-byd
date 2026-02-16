@@ -77,18 +77,6 @@
       "right_rear_tire_pressure": {
         "name": "Pressió del pneumàtic posterior dret"
       },
-      "soc": {
-        "name": "Nivell de càrrega (SoC)"
-      },
-      "time_to_full": {
-        "name": "Temps per a càrrega completa"
-      },
-      "total_energy": {
-        "name": "Consum total d'energia"
-      },
-      "avg_energy_consumption": {
-        "name": "Consum amitjanat d'energia"
-      },
       "temp_out_car": {
         "name": "Temperatura exterior"
       },
@@ -206,21 +194,6 @@
       "upgrade_status": {
         "name": "Estat d'actualització OTA"
       },
-      "charger_state": {
-        "name": "Estat del carregador"
-      },
-      "charger_connection": {
-        "name": "Estat de connexió del carregador"
-      },
-      "charging_update_time": {
-        "name": "Última actualització de càrrega"
-      },
-      "electricity_consumption": {
-        "name": "Consum d'electricitat"
-      },
-      "fuel_consumption": {
-        "name": "Consum de combustible"
-      },
       "refrigerator_state": {
         "name": "Refrigerador"
       },
@@ -255,9 +228,6 @@
       },
       "is_locked": {
         "name": "Blocat"
-      },
-      "charger_connected": {
-        "name": "Carregador connectat"
       },
       "sentry_status": {
         "name": "Mode sentinella"

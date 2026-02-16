@@ -77,18 +77,6 @@
       "right_rear_tire_pressure": {
         "name": "Sağ arka lastik basıncı"
       },
-      "soc": {
-        "name": "Şarj oluyor SOC"
-      },
-      "time_to_full": {
-        "name": "Tam şarj olma süresi"
-      },
-      "total_energy": {
-        "name": "Toplam enerji tüketimi"
-      },
-      "avg_energy_consumption": {
-        "name": "Ortalama enerji tüketimi"
-      },
       "temp_out_car": {
         "name": "Dış sıcaklık"
       },
@@ -206,21 +194,6 @@
       "upgrade_status": {
         "name": "OTA yükseltme durumu"
       },
-      "charger_state": {
-        "name": "Şarj cihazı durumu"
-      },
-      "charger_connection": {
-        "name": "Şarj cihazı bağlantı durumu"
-      },
-      "charging_update_time": {
-        "name": "Şarj son güncelleme"
-      },
-      "electricity_consumption": {
-        "name": "Elektrik tüketimi"
-      },
-      "fuel_consumption": {
-        "name": "Yakıt tüketimi"
-      },
       "refrigerator_state": {
         "name": "Buzdolabı"
       },
@@ -255,9 +228,6 @@
       },
       "is_locked": {
         "name": "Kilitli"
-      },
-      "charger_connected": {
-        "name": "Şarj cihazı bağlı"
       },
       "sentry_status": {
         "name": "Nöbetçi modu"

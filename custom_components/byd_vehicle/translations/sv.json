@@ -77,18 +77,6 @@
       "right_rear_tire_pressure": {
         "name": "Höger bakre däcktryck"
       },
-      "soc": {
-        "name": "Lade-SOC"
-      },
-      "time_to_full": {
-        "name": "Tid till full laddning"
-      },
-      "total_energy": {
-        "name": "Total energiförbrukning"
-      },
-      "avg_energy_consumption": {
-        "name": "Genomsnittlig energiförbrukning"
-      },
       "temp_out_car": {
         "name": "Utetemperatur"
       },
@@ -206,21 +194,6 @@
       "upgrade_status": {
         "name": "OTA uppgraderingsstatus"
       },
-      "charger_state": {
-        "name": "Laddarens tillstånd"
-      },
-      "charger_connection": {
-        "name": "Laddarens anslutningsläge"
-      },
-      "charging_update_time": {
-        "name": "Laddar senaste uppdatering"
-      },
-      "electricity_consumption": {
-        "name": "Elförbrukning"
-      },
-      "fuel_consumption": {
-        "name": "Bränsleförbrukning"
-      },
       "refrigerator_state": {
         "name": "Kylskåp"
       },
@@ -255,9 +228,6 @@
       },
       "is_locked": {
         "name": "Låst"
-      },
-      "charger_connected": {
-        "name": "Laddare ansluten"
       },
       "sentry_status": {
         "name": "Vaktläge"

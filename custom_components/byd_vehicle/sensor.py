@@ -25,7 +25,6 @@ from homeassistant.const import (
     UnitOfPressure,
     UnitOfSpeed,
     UnitOfTemperature,
-    UnitOfTime,
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -159,38 +158,6 @@ SENSOR_DESCRIPTIONS: tuple[BydSensorDescription, ...] = (
         device_class=SensorDeviceClass.PRESSURE,
         state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:car-tire-alert",
-    ),
-    # ===============================================
-    # Charging: primary sensors (enabled by default)
-    # ===============================================
-    BydSensorDescription(
-        key="soc",
-        source="charging",
-        native_unit_of_measurement=PERCENTAGE,
-        device_class=SensorDeviceClass.BATTERY,
-        state_class=SensorStateClass.MEASUREMENT,
-    ),
-    BydSensorDescription(
-        key="time_to_full",
-        source="charging",
-        native_unit_of_measurement=UnitOfTime.MINUTES,
-        device_class=SensorDeviceClass.DURATION,
-        state_class=SensorStateClass.MEASUREMENT,
-        icon="mdi:battery-clock",
-        value_fn=lambda obj: obj.time_to_full_minutes,
-    ),
-    # =============================================
-    # Energy: primary sensors (enabled by default)
-    # =============================================
-    BydSensorDescription(
-        key="total_energy",
-        source="energy",
-        icon="mdi:lightning-bolt",
-    ),
-    BydSensorDescription(
-        key="avg_energy_consumption",
-        source="energy",
-        icon="mdi:lightning-bolt",
     ),
     # =============================================
     # HVAC: primary sensors (enabled by default)
@@ -504,49 +471,6 @@ SENSOR_DESCRIPTIONS: tuple[BydSensorDescription, ...] = (
         entity_registry_enabled_default=False,
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
-    # ============================================
-    # Charging API: disabled by default (detail)
-    # ============================================
-    BydSensorDescription(
-        key="charger_state",
-        source="charging",
-        attr_key="charging_state",
-        icon="mdi:ev-station",
-        entity_registry_enabled_default=False,
-        entity_category=EntityCategory.DIAGNOSTIC,
-    ),
-    BydSensorDescription(
-        key="charger_connection",
-        source="charging",
-        attr_key="connect_state",
-        icon="mdi:ev-plug-type2",
-        entity_registry_enabled_default=False,
-        entity_category=EntityCategory.DIAGNOSTIC,
-    ),
-    BydSensorDescription(
-        key="charging_update_time",
-        source="charging",
-        attr_key="update_time",
-        device_class=SensorDeviceClass.TIMESTAMP,
-        icon="mdi:clock-outline",
-        entity_registry_enabled_default=False,
-        entity_category=EntityCategory.DIAGNOSTIC,
-    ),
-    # ==========================================
-    # Energy API: disabled by default (detail)
-    # ==========================================
-    BydSensorDescription(
-        key="electricity_consumption",
-        source="energy",
-        icon="mdi:lightning-bolt",
-        entity_registry_enabled_default=False,
-    ),
-    BydSensorDescription(
-        key="fuel_consumption",
-        source="energy",
-        icon="mdi:gas-station",
-        entity_registry_enabled_default=False,
-    ),
     # =========================================
     # HVAC: standalone sensors (not climate)
     # =========================================
@@ -667,21 +591,9 @@ class BydSensor(BydVehicleEntity, SensorEntity):
         """Extract the current value using the description's extraction logic."""
         if self.entity_description.key == "last_updated":
             realtime = self.coordinator.data.get("realtime", {}).get(self._vin)
-            charging = self.coordinator.data.get("charging", {}).get(self._vin)
-            candidates = [
-                (
-                    _normalize_epoch(getattr(realtime, "timestamp", None))
-                    if realtime is not None
-                    else None
-                ),
-                (
-                    _normalize_epoch(getattr(charging, "update_time", None))
-                    if charging is not None
-                    else None
-                ),
-            ]
-            valid = [candidate for candidate in candidates if candidate is not None]
-            return max(valid) if valid else None
+            if realtime is None:
+                return None
+            return _normalize_epoch(getattr(realtime, "timestamp", None))
         if self.entity_description.key == "gps_last_updated":
             gps = self.coordinator.data.get("gps", {}).get(self._vin)
             return _normalize_epoch(getattr(gps, "gps_timestamp", None))

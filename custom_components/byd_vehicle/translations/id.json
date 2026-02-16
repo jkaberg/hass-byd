@@ -77,18 +77,6 @@
       "right_rear_tire_pressure": {
         "name": "Tekanan ban kanan belakang"
       },
-      "soc": {
-        "name": "Mengisi daya SOC"
-      },
-      "time_to_full": {
-        "name": "Saatnya terisi penuh"
-      },
-      "total_energy": {
-        "name": "Konsumsi energi total"
-      },
-      "avg_energy_consumption": {
-        "name": "Konsumsi energi rata-rata"
-      },
       "temp_out_car": {
         "name": "Suhu luar"
       },
@@ -206,21 +194,6 @@
       "upgrade_status": {
         "name": "Status peningkatan OTA"
       },
-      "charger_state": {
-        "name": "Status pengisi daya"
-      },
-      "charger_connection": {
-        "name": "Status koneksi pengisi daya"
-      },
-      "charging_update_time": {
-        "name": "Pembaruan pengisian terakhir"
-      },
-      "electricity_consumption": {
-        "name": "Konsumsi listrik"
-      },
-      "fuel_consumption": {
-        "name": "Konsumsi bahan bakar"
-      },
       "refrigerator_state": {
         "name": "Lemari es"
       },
@@ -255,9 +228,6 @@
       },
       "is_locked": {
         "name": "Terkunci"
-      },
-      "charger_connected": {
-        "name": "Pengisi daya tersambung"
       },
       "sentry_status": {
         "name": "Modus penjaga"

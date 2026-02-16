@@ -19,6 +19,7 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
+    """Set up BYD device tracker entities from a config entry."""
     data = hass.data[DOMAIN][entry.entry_id]
     gps_coordinators: dict[str, BydGpsUpdateCoordinator] = data["gps_coordinators"]
 
@@ -56,16 +57,19 @@ class BydDeviceTracker(BydVehicleEntity, TrackerEntity):
 
     @property
     def latitude(self) -> float | None:
+        """Return the latitude of the vehicle."""
         gps = self._get_gps()
         return gps.latitude if gps else None
 
     @property
     def longitude(self) -> float | None:
+        """Return the longitude of the vehicle."""
         gps = self._get_gps()
         return gps.longitude if gps else None
 
     @property
     def source_type(self) -> SourceType:
+        """Return the source type (GPS)."""
         return SourceType.GPS
 
     @property

@@ -20,6 +20,7 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
+    """Set up BYD lock entities from a config entry."""
     data = hass.data[DOMAIN][entry.entry_id]
     coordinators: dict[str, BydDataUpdateCoordinator] = data["coordinators"]
     api: BydApi = data["api"]
@@ -77,6 +78,7 @@ class BydLock(BydVehicleEntity, LockEntity):
 
     @property
     def is_locked(self) -> bool | None:
+        """Return True if all doors are locked."""
         if self._command_pending:
             return self._last_locked
         parsed = self._get_realtime_locks()
@@ -86,12 +88,15 @@ class BydLock(BydVehicleEntity, LockEntity):
 
     @property
     def assumed_state(self) -> bool:
+        """Return True when lock state is assumed."""
         if self._command_pending:
             return True
         parsed = self._get_realtime_locks()
         return parsed is None
 
     async def async_lock(self, **_: Any) -> None:
+        """Lock the vehicle."""
+
         async def _call(client: Any) -> Any:
             return await client.lock(self._vin)
 
@@ -105,6 +110,8 @@ class BydLock(BydVehicleEntity, LockEntity):
         )
 
     async def async_unlock(self, **_: Any) -> None:
+        """Unlock the vehicle."""
+
         async def _call(client: Any) -> Any:
             return await client.unlock(self._vin)
 

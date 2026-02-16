@@ -77,18 +77,6 @@
       "right_rear_tire_pressure": {
         "name": "Dekktrykk bak høyre"
       },
-      "soc": {
-        "name": "Lader SOC"
-      },
-      "time_to_full": {
-        "name": "Tid til full lading"
-      },
-      "total_energy": {
-        "name": "Totalt energiforbruk"
-      },
-      "avg_energy_consumption": {
-        "name": "Gjennomsnittlig energiforbruk"
-      },
       "temp_out_car": {
         "name": "Utvendig temperatur"
       },
@@ -206,21 +194,6 @@
       "upgrade_status": {
         "name": "OTA oppgraderingsstatus"
       },
-      "charger_state": {
-        "name": "Ladertilstand"
-      },
-      "charger_connection": {
-        "name": "Ladertilkoblingstilstand"
-      },
-      "charging_update_time": {
-        "name": "Lader siste oppdatering"
-      },
-      "electricity_consumption": {
-        "name": "Strømforbruk"
-      },
-      "fuel_consumption": {
-        "name": "Drivstofforbruk"
-      },
       "refrigerator_state": {
         "name": "Kjøleskap"
       },
@@ -255,9 +228,6 @@
       },
       "is_locked": {
         "name": "Låst"
-      },
-      "charger_connected": {
-        "name": "Lader tilkoblet"
       },
       "sentry_status": {
         "name": "Vaktmodus"

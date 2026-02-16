@@ -92,7 +92,7 @@ class BydBatteryHeatSwitch(BydVehicleEntity, SwitchEntity):
             return getattr(realtime, "battery_heat_state", None) is None
         return True
 
-    async def async_turn_on(self, **kwargs: Any) -> None:
+    async def async_turn_on(self, **_kwargs: Any) -> None:
         """Turn on battery heat."""
 
         async def _call(client: Any) -> Any:
@@ -108,7 +108,7 @@ class BydBatteryHeatSwitch(BydVehicleEntity, SwitchEntity):
             on_rollback=lambda: setattr(self, "_last_state", None),
         )
 
-    async def async_turn_off(self, **kwargs: Any) -> None:
+    async def async_turn_off(self, **_kwargs: Any) -> None:
         """Turn off battery heat."""
 
         async def _call(client: Any) -> Any:
@@ -166,7 +166,7 @@ class BydCarOnSwitch(BydVehicleEntity, SwitchEntity):
         """Return True if HVAC state is unavailable."""
         return self._get_hvac_status() is None
 
-    async def async_turn_on(self, **kwargs: Any) -> None:
+    async def async_turn_on(self, **_kwargs: Any) -> None:
         """Turn on car-on (start climate at 21°C)."""
 
         async def _call(client: Any) -> Any:
@@ -187,7 +187,7 @@ class BydCarOnSwitch(BydVehicleEntity, SwitchEntity):
         # Refresh coordinator so the climate entity immediately reflects this.
         await self.coordinator.async_force_refresh()
 
-    async def async_turn_off(self, **kwargs: Any) -> None:
+    async def async_turn_off(self, **_kwargs: Any) -> None:
         """Turn off car-on (stop climate)."""
 
         async def _call(client: Any) -> Any:
@@ -232,6 +232,7 @@ class BydSteeringWheelHeatSwitch(BydVehicleEntity, SwitchEntity):
 
     @property
     def is_on(self) -> bool | None:
+        """Return whether steering wheel heating is on."""
         if self._command_pending:
             return self._last_state
         # Vehicle off → steering wheel heat cannot be running.
@@ -251,6 +252,7 @@ class BydSteeringWheelHeatSwitch(BydVehicleEntity, SwitchEntity):
 
     @property
     def assumed_state(self) -> bool:
+        """Return True when the state is assumed."""
         hvac = self._get_hvac_status()
         if hvac is not None:
             return hvac.is_steering_wheel_heating is None
@@ -279,11 +281,11 @@ class BydSteeringWheelHeatSwitch(BydVehicleEntity, SwitchEntity):
             on_rollback=lambda: setattr(self, "_last_state", None),
         )
 
-    async def async_turn_on(self, **kwargs: Any) -> None:
+    async def async_turn_on(self, **_kwargs: Any) -> None:
         """Turn on steering wheel heating."""
         await self._set_steering_wheel_heat(True)
 
-    async def async_turn_off(self, **kwargs: Any) -> None:
+    async def async_turn_off(self, **_kwargs: Any) -> None:
         """Turn off steering wheel heating."""
         await self._set_steering_wheel_heat(False)
 
@@ -311,6 +313,7 @@ class BydDisablePollingSwitch(BydVehicleEntity, RestoreEntity, SwitchEntity):
         self._disabled = False
 
     async def async_added_to_hass(self) -> None:
+        """Restore last state on startup."""
         await super().async_added_to_hass()
         last = await self.async_get_last_state()
         if last is not None:
@@ -325,6 +328,7 @@ class BydDisablePollingSwitch(BydVehicleEntity, RestoreEntity, SwitchEntity):
 
     @property
     def is_on(self) -> bool:
+        """Return True when polling is disabled."""
         return self._disabled
 
     def _apply(self) -> None:
@@ -334,10 +338,12 @@ class BydDisablePollingSwitch(BydVehicleEntity, RestoreEntity, SwitchEntity):
             gps.set_polling_enabled(not self._disabled)
         self.async_write_ha_state()
 
-    async def async_turn_on(self, **kwargs: Any) -> None:
+    async def async_turn_on(self, **_kwargs: Any) -> None:
+        """Disable polling."""
         self._disabled = True
         self._apply()
 
-    async def async_turn_off(self, **kwargs: Any) -> None:
+    async def async_turn_off(self, **_kwargs: Any) -> None:
+        """Re-enable polling."""
         self._disabled = False
         self._apply()

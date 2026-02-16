@@ -77,18 +77,6 @@
       "right_rear_tire_pressure": {
         "name": "Ciśnienie w oponie tylnej prawej"
       },
-      "soc": {
-        "name": "Ładowanie SOC"
-      },
-      "time_to_full": {
-        "name": "Czas na pełne naładowanie"
-      },
-      "total_energy": {
-        "name": "Całkowite zużycie energii"
-      },
-      "avg_energy_consumption": {
-        "name": "Średnie zużycie energii"
-      },
       "temp_out_car": {
         "name": "Temperatura zewnętrzna"
       },
@@ -206,21 +194,6 @@
       "upgrade_status": {
         "name": "Stan aktualizacji OTA"
       },
-      "charger_state": {
-        "name": "Stan ładowarki"
-      },
-      "charger_connection": {
-        "name": "Stan połączenia ładowarki"
-      },
-      "charging_update_time": {
-        "name": "Ostatnia aktualizacja ładowania"
-      },
-      "electricity_consumption": {
-        "name": "Zużycie energii elektrycznej"
-      },
-      "fuel_consumption": {
-        "name": "Zużycie paliwa"
-      },
       "refrigerator_state": {
         "name": "Lodówka"
       },
@@ -255,9 +228,6 @@
       },
       "is_locked": {
         "name": "Zamknięty"
-      },
-      "charger_connected": {
-        "name": "Ładowarka podłączona"
       },
       "sentry_status": {
         "name": "Tryb wartowniczy"

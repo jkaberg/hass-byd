@@ -77,18 +77,6 @@
       "right_rear_tire_pressure": {
         "name": "Jobb hátsó guminyomás"
       },
-      "soc": {
-        "name": "Töltés SOC"
-      },
-      "time_to_full": {
-        "name": "Idő a teljes feltöltésig"
-      },
-      "total_energy": {
-        "name": "Teljes energiafogyasztás"
-      },
-      "avg_energy_consumption": {
-        "name": "Átlagos energiafogyasztás"
-      },
       "temp_out_car": {
         "name": "Külső hőmérséklet"
       },
@@ -206,21 +194,6 @@
       "upgrade_status": {
         "name": "OTA frissítési állapot"
       },
-      "charger_state": {
-        "name": "Töltő állapot"
-      },
-      "charger_connection": {
-        "name": "Töltő csatlakozási állapot"
-      },
-      "charging_update_time": {
-        "name": "Töltés utolsó frissítése"
-      },
-      "electricity_consumption": {
-        "name": "Villamosenergia fogyasztás"
-      },
-      "fuel_consumption": {
-        "name": "Üzemanyag fogyasztás"
-      },
       "refrigerator_state": {
         "name": "Hűtőszekrény"
       },
@@ -255,9 +228,6 @@
       },
       "is_locked": {
         "name": "Zárva"
-      },
-      "charger_connected": {
-        "name": "Töltő csatlakoztatva"
       },
       "sentry_status": {
         "name": "Őrszem mód"

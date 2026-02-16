@@ -21,19 +21,3 @@ fetch_hvac:
       selector:
         device:
           integration: byd_vehicle
-
-fetch_charging:
-  fields:
-    device_id:
-      required: true
-      selector:
-        device:
-          integration: byd_vehicle
-
-fetch_energy:
-  fields:
-    device_id:
-      required: true
-      selector:
-        device:
-          integration: byd_vehicle

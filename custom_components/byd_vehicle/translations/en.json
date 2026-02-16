@@ -29,26 +29,6 @@
           "description": "The BYD vehicle device to fetch data for."
         }
       }
-    },
-    "fetch_charging": {
-      "name": "Fetch charging status",
-      "description": "Force-fetch the latest charging status from the BYD cloud.",
-      "fields": {
-        "device_id": {
-          "name": "Device",
-          "description": "The BYD vehicle device to fetch data for."
-        }
-      }
-    },
-    "fetch_energy": {
-      "name": "Fetch energy consumption",
-      "description": "Force-fetch the latest energy consumption data from the BYD cloud.",
-      "fields": {
-        "device_id": {
-          "name": "Device",
-          "description": "The BYD vehicle device to fetch data for."
-        }
-      }
     }
   },
   "config": {
@@ -128,18 +108,6 @@
       },
       "right_rear_tire_pressure": {
         "name": "Rear right tire pressure"
-      },
-      "soc": {
-        "name": "Charging SOC"
-      },
-      "time_to_full": {
-        "name": "Time to full charge"
-      },
-      "total_energy": {
-        "name": "Total energy consumption"
-      },
-      "avg_energy_consumption": {
-        "name": "Average energy consumption"
       },
       "temp_out_car": {
         "name": "Exterior temperature"
@@ -258,21 +226,6 @@
       "upgrade_status": {
         "name": "OTA upgrade status"
       },
-      "charger_state": {
-        "name": "Charger state"
-      },
-      "charger_connection": {
-        "name": "Charger connection state"
-      },
-      "charging_update_time": {
-        "name": "Charging last update"
-      },
-      "electricity_consumption": {
-        "name": "Electricity consumption"
-      },
-      "fuel_consumption": {
-        "name": "Fuel consumption"
-      },
       "refrigerator_state": {
         "name": "Refrigerator"
       },
@@ -307,9 +260,6 @@
       },
       "is_locked": {
         "name": "Locked"
-      },
-      "charger_connected": {
-        "name": "Charger connected"
       },
       "sentry_status": {
         "name": "Sentry mode"

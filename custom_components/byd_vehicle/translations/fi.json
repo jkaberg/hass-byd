@@ -77,18 +77,6 @@
       "right_rear_tire_pressure": {
         "name": "Oikea takarenkaan paine"
       },
-      "soc": {
-        "name": "Latauksen varaustaso"
-      },
-      "time_to_full": {
-        "name": "Aika täyteen lataukseen"
-      },
-      "total_energy": {
-        "name": "Kokonaisenergiankulutus"
-      },
-      "avg_energy_consumption": {
-        "name": "Keskimääräinen energiankulutus"
-      },
       "temp_out_car": {
         "name": "Ulkolämpötila"
       },
@@ -212,21 +200,6 @@
       "upgrade_status": {
         "name": "OTA-päivityksen tila"
       },
-      "charger_state": {
-        "name": "Laturin tila"
-      },
-      "charger_connection": {
-        "name": "Laturin yhteystila"
-      },
-      "charging_update_time": {
-        "name": "Latauksen viimeisin päivitys"
-      },
-      "electricity_consumption": {
-        "name": "Sähkönkulutus"
-      },
-      "fuel_consumption": {
-        "name": "Polttoaineenkulutus"
-      },
       "refrigerator_state": {
         "name": "Jääkaappi"
       },
@@ -255,9 +228,6 @@
       },
       "is_locked": {
         "name": "Lukittu"
-      },
-      "charger_connected": {
-        "name": "Laturi kytketty"
       },
       "sentry_status": {
         "name": "Vartiotila"

@@ -77,18 +77,6 @@
       "right_rear_tire_pressure": {
         "name": "右后轮胎气压"
       },
-      "soc": {
-        "name": "充电SOC"
-      },
-      "time_to_full": {
-        "name": "充满电时间"
-      },
-      "total_energy": {
-        "name": "能源消耗总量"
-      },
-      "avg_energy_consumption": {
-        "name": "平均能耗"
-      },
       "temp_out_car": {
         "name": "外部温度"
       },
@@ -206,21 +194,6 @@
       "upgrade_status": {
         "name": "OTA 升级状态"
       },
-      "charger_state": {
-        "name": "充电状态"
-      },
-      "charger_connection": {
-        "name": "充电器连接状态"
-      },
-      "charging_update_time": {
-        "name": "充电上次更新"
-      },
-      "electricity_consumption": {
-        "name": "耗电量"
-      },
-      "fuel_consumption": {
-        "name": "油耗"
-      },
       "refrigerator_state": {
         "name": "冰箱"
       },
@@ -255,9 +228,6 @@
       },
       "is_locked": {
         "name": "锁定"
-      },
-      "charger_connected": {
-        "name": "充电器已连接"
       },
       "sentry_status": {
         "name": "哨兵模式"

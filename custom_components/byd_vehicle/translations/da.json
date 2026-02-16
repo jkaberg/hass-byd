@@ -77,18 +77,6 @@
       "right_rear_tire_pressure": {
         "name": "Højre bagerste dæktryk"
       },
-      "soc": {
-        "name": "Oplader SOC"
-      },
-      "time_to_full": {
-        "name": "Tid til fuld opladning"
-      },
-      "total_energy": {
-        "name": "Samlet energiforbrug"
-      },
-      "avg_energy_consumption": {
-        "name": "Gennemsnitligt energiforbrug"
-      },
       "temp_out_car": {
         "name": "Udvendig temperatur"
       },
@@ -206,21 +194,6 @@
       "upgrade_status": {
         "name": "OTA opgraderingsstatus"
       },
-      "charger_state": {
-        "name": "Opladertilstand"
-      },
-      "charger_connection": {
-        "name": "Opladerforbindelsestilstand"
-      },
-      "charging_update_time": {
-        "name": "Oplader sidste opdatering"
-      },
-      "electricity_consumption": {
-        "name": "Elforbrug"
-      },
-      "fuel_consumption": {
-        "name": "Brændstofforbrug"
-      },
       "refrigerator_state": {
         "name": "Køleskab"
       },
@@ -255,9 +228,6 @@
       },
       "is_locked": {
         "name": "Låst"
-      },
-      "charger_connected": {
-        "name": "Oplader tilsluttet"
       },
       "sentry_status": {
         "name": "Vagtfunktion"

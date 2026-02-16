@@ -169,7 +169,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if unload_ok:
         entry_data = hass.data[DOMAIN].pop(entry.entry_id, None)
         if entry_data and "api" in entry_data:
-            await entry_data["api"]._invalidate_client()
+            await entry_data["api"].async_shutdown()
         _LOGGER.debug("Unloaded BYD config entry %s", entry.entry_id)
         # Unregister services when no entries remain.
         if not hass.data.get(DOMAIN):
@@ -192,15 +192,11 @@ async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
 _SERVICE_FETCH_REALTIME = "fetch_realtime"
 _SERVICE_FETCH_GPS = "fetch_gps"
 _SERVICE_FETCH_HVAC = "fetch_hvac"
-_SERVICE_FETCH_CHARGING = "fetch_charging"
-_SERVICE_FETCH_ENERGY = "fetch_energy"
 
 _ALL_SERVICES = (
     _SERVICE_FETCH_REALTIME,
     _SERVICE_FETCH_GPS,
     _SERVICE_FETCH_HVAC,
-    _SERVICE_FETCH_CHARGING,
-    _SERVICE_FETCH_ENERGY,
 )
 
 
@@ -274,25 +270,11 @@ def _async_register_services(hass: HomeAssistant) -> None:
             coordinator, _ = _get_coordinators(hass, entry_id, vin)
             await coordinator.async_fetch_hvac()
 
-    async def _handle_fetch_charging(call: ServiceCall) -> None:
-        for entry_id, vin in _resolve_vins_from_call(hass, call):
-            coordinator, _ = _get_coordinators(hass, entry_id, vin)
-            await coordinator.async_fetch_charging()
-
-    async def _handle_fetch_energy(call: ServiceCall) -> None:
-        for entry_id, vin in _resolve_vins_from_call(hass, call):
-            coordinator, _ = _get_coordinators(hass, entry_id, vin)
-            await coordinator.async_fetch_energy()
-
     hass.services.async_register(
         DOMAIN, _SERVICE_FETCH_REALTIME, _handle_fetch_realtime
     )
     hass.services.async_register(DOMAIN, _SERVICE_FETCH_GPS, _handle_fetch_gps)
     hass.services.async_register(DOMAIN, _SERVICE_FETCH_HVAC, _handle_fetch_hvac)
-    hass.services.async_register(
-        DOMAIN, _SERVICE_FETCH_CHARGING, _handle_fetch_charging
-    )
-    hass.services.async_register(DOMAIN, _SERVICE_FETCH_ENERGY, _handle_fetch_energy)
 
     _LOGGER.debug("Registered %s domain services", len(_ALL_SERVICES))
 

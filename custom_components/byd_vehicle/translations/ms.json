@@ -77,18 +77,6 @@
       "right_rear_tire_pressure": {
         "name": "Tekanan tayar kanan belakang"
       },
-      "soc": {
-        "name": "Mengecas SOC"
-      },
-      "time_to_full": {
-        "name": "Masa untuk mengecas penuh"
-      },
-      "total_energy": {
-        "name": "Jumlah penggunaan tenaga"
-      },
-      "avg_energy_consumption": {
-        "name": "Penggunaan tenaga purata"
-      },
       "temp_out_car": {
         "name": "Suhu luaran"
       },
@@ -206,21 +194,6 @@
       "upgrade_status": {
         "name": "Status naik taraf OTA"
       },
-      "charger_state": {
-        "name": "Keadaan pengecas"
-      },
-      "charger_connection": {
-        "name": "Keadaan sambungan pengecas"
-      },
-      "charging_update_time": {
-        "name": "Kemas kini pengecasan terakhir"
-      },
-      "electricity_consumption": {
-        "name": "Penggunaan elektrik"
-      },
-      "fuel_consumption": {
-        "name": "Penggunaan bahan api"
-      },
       "refrigerator_state": {
         "name": "Peti ais"
       },
@@ -255,9 +228,6 @@
       },
       "is_locked": {
         "name": "Terkunci"
-      },
-      "charger_connected": {
-        "name": "Pengecas disambungkan"
       },
       "sentry_status": {
         "name": "Mod sentry"

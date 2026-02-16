@@ -77,18 +77,6 @@
       "right_rear_tire_pressure": {
         "name": "뒤 우측 타이어 공기압"
       },
-      "soc": {
-        "name": "충전 중 SOC"
-      },
-      "time_to_full": {
-        "name": "완전 충전 시간"
-      },
-      "total_energy": {
-        "name": "총 에너지 소비량"
-      },
-      "avg_energy_consumption": {
-        "name": "평균 에너지 소비"
-      },
       "temp_out_car": {
         "name": "외부 온도"
       },
@@ -206,21 +194,6 @@
       "upgrade_status": {
         "name": "OTA 업그레이드 상태"
       },
-      "charger_state": {
-        "name": "충전기 상태"
-      },
-      "charger_connection": {
-        "name": "충전기 연결 상태"
-      },
-      "charging_update_time": {
-        "name": "충전 마지막 업데이트"
-      },
-      "electricity_consumption": {
-        "name": "전력 소비"
-      },
-      "fuel_consumption": {
-        "name": "연료 소비"
-      },
       "refrigerator_state": {
         "name": "냉장고"
       },
@@ -255,9 +228,6 @@
       },
       "is_locked": {
         "name": "잠김"
-      },
-      "charger_connected": {
-        "name": "충전기 연결됨"
       },
       "sentry_status": {
         "name": "감시 모드"

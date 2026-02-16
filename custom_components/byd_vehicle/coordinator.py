@@ -24,11 +24,9 @@ from pybyd import (
     BydTransportError,
 )
 from pybyd.config import BydConfig, DeviceProfile
-from pybyd.models.charging import ChargingStatus
-from pybyd.models.energy import EnergyConsumption
 from pybyd.models.gps import GpsInfo
 from pybyd.models.hvac import HvacStatus
-from pybyd.models.realtime import ChargingState, VehicleRealtimeData
+from pybyd.models.realtime import VehicleRealtimeData
 from pybyd.models.vehicle import Vehicle
 
 from .const import (
@@ -190,7 +188,25 @@ class BydApi:
 
     @property
     def config(self) -> BydConfig:
+        """Return the BYD client configuration."""
         return self._config
+
+    @property
+    def debug_dumps_enabled(self) -> bool:
+        """Whether debug dumps are currently enabled."""
+        return self._debug_dumps_enabled
+
+    async def async_write_debug_dump(
+        self,
+        category: str,
+        payload: dict[str, Any],
+    ) -> None:
+        """Write a debug dump file (public entry point for coordinators)."""
+        await self._async_write_debug_dump(category, payload)
+
+    async def async_shutdown(self) -> None:
+        """Tear down the pyBYD client (for use during unload)."""
+        await self._invalidate_client()
 
     async def _ensure_client(self) -> BydClient:
         """Return a ready-to-use client, creating one if needed.
@@ -209,7 +225,7 @@ class BydApi:
                 on_vehicle_info=self._handle_vehicle_info,
                 on_mqtt_event=self._handle_mqtt_event,
             )
-            await self._client.__aenter__()
+            await self._client.async_start()
         return self._client
 
     async def _invalidate_client(self) -> None:
@@ -220,7 +236,7 @@ class BydApi:
                 self._entry.entry_id,
             )
             try:
-                await self._client.__aexit__(None, None, None)
+                await self._client.async_close()
             except Exception:  # noqa: BLE001
                 pass
             self._client = None
@@ -326,7 +342,6 @@ class BydDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # Local state tracking for conditional fetching.
         self._last_realtime: VehicleRealtimeData | None = None
         self._last_hvac: HvacStatus | None = None
-        self._last_charging: ChargingStatus | None = None
 
     def handle_mqtt_realtime(self, data: VehicleRealtimeData) -> None:
         """Accept an MQTT-pushed realtime update and push to entities."""
@@ -337,10 +352,16 @@ class BydDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         new_data["realtime"] = {self._vin: data}
         self.async_set_updated_data(new_data)
 
-    def _is_vehicle_on(self, realtime: VehicleRealtimeData | None) -> bool | None:
+    @staticmethod
+    def _is_vehicle_on(realtime: VehicleRealtimeData | None) -> bool | None:
         if realtime is None:
             return None
         return realtime.is_vehicle_on
+
+    @property
+    def is_vehicle_on(self) -> bool:
+        """Whether the vehicle is currently powered on (based on last realtime)."""
+        return self._is_vehicle_on(self._last_realtime) is True
 
     def _should_fetch_hvac(self, realtime: VehicleRealtimeData | None) -> bool:
         # Always fetch once to establish initial HVAC state.
@@ -348,21 +369,6 @@ class BydDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             return True
         # Only poll HVAC while the vehicle is on.
         return self._is_vehicle_on(realtime) is True
-
-    def _should_fetch_charging(self, realtime: VehicleRealtimeData | None) -> bool:
-        # Always fetch once to establish initial charging state.
-        if self._last_charging is None:
-            return True
-        if realtime is None:
-            return True
-        cs = getattr(realtime, "charging_state", None)
-        if cs is not None:
-            return cs != ChargingState.NOT_CHARGING
-        # Fall back to cached charging model.
-        return bool(
-            getattr(self._last_charging, "is_connected", False)
-            or getattr(self._last_charging, "is_charging", False)
-        )
 
     async def _async_update_data(self) -> dict[str, Any]:
         _LOGGER.debug("Telemetry refresh started: vin=%s", self._vin[-6:])
@@ -391,16 +397,6 @@ class BydDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     "Realtime fetch failed: vin=%s, error=%s", self._vin, exc
                 )
 
-            # --- Energy (always) ---
-            energy: EnergyConsumption | None = None
-            try:
-                energy = await client.get_energy_consumption(self._vin)
-            except _AUTH_ERRORS:
-                raise
-            except _RECOVERABLE_ERRORS as exc:
-                endpoint_failures["energy"] = f"{type(exc).__name__}: {exc}"
-                _LOGGER.warning("Energy fetch failed: vin=%s, error=%s", self._vin, exc)
-
             # Use fresh realtime or fall back to previous cycle.
             realtime_gate = realtime or self._last_realtime
 
@@ -424,56 +420,26 @@ class BydDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     self._vin[-6:],
                 )
 
-            # --- Charging (conditional) ---
-            charging: ChargingStatus | None = None
-            if self._should_fetch_charging(realtime_gate):
-                try:
-                    charging = await client.get_charging_status(self._vin)
-                except _AUTH_ERRORS:
-                    raise
-                except _RECOVERABLE_ERRORS as exc:
-                    endpoint_failures["charging"] = f"{type(exc).__name__}: {exc}"
-                    _LOGGER.warning(
-                        "Charging fetch failed: vin=%s, error=%s",
-                        self._vin,
-                        exc,
-                    )
-            else:
-                _LOGGER.debug(
-                    "Charging fetch skipped: vin=%s, reason=not_charging_or_unplugged",
-                    self._vin[-6:],
-                )
-
             # Update local state for next cycle's conditional decisions.
             if realtime is not None:
                 self._last_realtime = realtime
             if hvac is not None:
                 self._last_hvac = hvac
-            if charging is not None:
-                self._last_charging = charging
 
             # Build result maps, falling back to last-known data.
             realtime_map: dict[str, Any] = {}
-            energy_map: dict[str, Any] = {}
             hvac_map: dict[str, Any] = {}
-            charging_map: dict[str, Any] = {}
 
             vehicle_on = self._is_vehicle_on(realtime or self._last_realtime)
 
             effective_realtime = realtime or self._last_realtime
             if effective_realtime is not None:
                 realtime_map[self._vin] = effective_realtime
-            effective_energy = energy
-            if effective_energy is not None:
-                energy_map[self._vin] = effective_energy
             # Only fall back to cached HVAC when the vehicle is on;
             # stale HVAC data is meaningless once the vehicle turns off.
             effective_hvac = hvac or (self._last_hvac if vehicle_on else None)
             if effective_hvac is not None:
                 hvac_map[self._vin] = effective_hvac
-            effective_charging = charging or self._last_charging
-            if effective_charging is not None:
-                charging_map[self._vin] = effective_charging
 
             if self._vin not in realtime_map:
                 raise UpdateFailed(
@@ -489,55 +455,45 @@ class BydDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 )
 
             # Debug dumps via model serialization.
-            if self._api._debug_dumps_enabled:
+            if self._api.debug_dumps_enabled:
                 dump: dict[str, Any] = {"vin": self._vin, "sections": {}}
                 if effective_realtime is not None:
                     dump["sections"]["realtime"] = effective_realtime.model_dump(
                         mode="json"
                     )
-                if effective_energy is not None:
-                    dump["sections"]["energy"] = effective_energy.model_dump(
-                        mode="json"
-                    )
                 if effective_hvac is not None:
                     dump["sections"]["hvac"] = effective_hvac.model_dump(mode="json")
-                if effective_charging is not None:
-                    dump["sections"]["charging"] = effective_charging.model_dump(
-                        mode="json"
-                    )
-                self._api._hass.async_create_task(
-                    self._api._async_write_debug_dump("telemetry", dump)
+                self.hass.async_create_task(
+                    self._api.async_write_debug_dump("telemetry", dump)
                 )
 
             return {
                 "vehicles": vehicle_map,
                 "realtime": realtime_map,
-                "energy": energy_map,
                 "hvac": hvac_map,
-                "charging": charging_map,
             }
 
         data = await self._api.async_call(_fetch)
         _LOGGER.debug(
-            "Telemetry refresh succeeded: vin=%s, realtime=%s, "
-            "energy=%s, hvac=%s, charging=%s",
+            "Telemetry refresh succeeded: vin=%s, realtime=%s, hvac=%s",
             self._vin[-6:],
             self._vin in data.get("realtime", {}),
-            self._vin in data.get("energy", {}),
             self._vin in data.get("hvac", {}),
-            self._vin in data.get("charging", {}),
         )
         return data
 
     @property
     def polling_enabled(self) -> bool:
+        """Whether scheduled polling is currently enabled."""
         return self._polling_enabled
 
     def set_polling_enabled(self, enabled: bool) -> None:
+        """Enable or disable scheduled polling."""
         self._polling_enabled = bool(enabled)
         self.update_interval = self._fixed_interval if self._polling_enabled else None
 
     async def async_force_refresh(self) -> None:
+        """Schedule an immediate data refresh."""
         self._force_next_refresh = True
         await self.async_request_refresh()
 
@@ -569,35 +525,6 @@ class BydDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if isinstance(self.data, dict):
             merged = dict(self.data)
             merged["hvac"] = {self._vin: data}
-            self.async_set_updated_data(merged)
-
-    async def async_fetch_charging(self) -> None:
-        """Force-fetch charging status and merge into coordinator state."""
-
-        async def _fetch(client: BydClient) -> ChargingStatus:
-            return await client.get_charging_status(self._vin)
-
-        data: ChargingStatus = await self._api.async_call(
-            _fetch, vin=self._vin, command="fetch_charging"
-        )
-        self._last_charging = data
-        if isinstance(self.data, dict):
-            merged = dict(self.data)
-            merged["charging"] = {self._vin: data}
-            self.async_set_updated_data(merged)
-
-    async def async_fetch_energy(self) -> None:
-        """Force-fetch energy consumption and merge into coordinator."""
-
-        async def _fetch(client: BydClient) -> EnergyConsumption:
-            return await client.get_energy_consumption(self._vin)
-
-        data: EnergyConsumption = await self._api.async_call(
-            _fetch, vin=self._vin, command="fetch_energy"
-        )
-        if isinstance(self.data, dict):
-            merged = dict(self.data)
-            merged["energy"] = {self._vin: data}
             self.async_set_updated_data(merged)
 
 
@@ -637,13 +564,16 @@ class BydGpsUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     @property
     def polling_enabled(self) -> bool:
+        """Whether scheduled GPS polling is currently enabled."""
         return self._polling_enabled
 
     def set_polling_enabled(self, enabled: bool) -> None:
+        """Enable or disable scheduled GPS polling."""
         self._polling_enabled = bool(enabled)
         self.update_interval = self._current_interval if self._polling_enabled else None
 
     async def async_force_refresh(self) -> None:
+        """Schedule an immediate GPS refresh."""
         self._force_next_refresh = True
         await self.async_request_refresh()
 
@@ -661,33 +591,14 @@ class BydGpsUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             merged["gps"] = {self._vin: data}
             self.async_set_updated_data(merged)
 
-    def _is_vehicle_moving(self) -> bool:
-        telemetry_data = (
-            self._telemetry_coordinator.data if self._telemetry_coordinator else None
-        )
-        realtime_map = (
-            telemetry_data.get("realtime", {})
-            if isinstance(telemetry_data, dict)
-            else {}
-        )
-        realtime = realtime_map.get(self._vin)
-        speed = getattr(realtime, "speed", None) if realtime is not None else None
-        if speed is None:
-            gps = (
-                self.data.get("gps", {}).get(self._vin)
-                if isinstance(self.data, dict)
-                else None
-            )
-            speed = getattr(gps, "speed", None) if gps is not None else None
-        return bool(speed is not None and speed > 0)
-
     def _adjust_interval(self) -> None:
         if not self._smart_polling:
             self._current_interval = self._fixed_interval
         else:
             self._current_interval = (
                 self._active_interval
-                if self._is_vehicle_moving()
+                if self._telemetry_coordinator is not None
+                and self._telemetry_coordinator.is_vehicle_on
                 else self._inactive_interval
             )
         if self._polling_enabled:
@@ -723,13 +634,13 @@ class BydGpsUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 raise UpdateFailed(f"GPS fetch failed for {self._vin}")
 
             # Debug dump for GPS.
-            if self._api._debug_dumps_enabled and gps is not None:
+            if self._api.debug_dumps_enabled and gps is not None:
                 dump = {
                     "vin": self._vin,
                     "sections": {"gps": gps.model_dump(mode="json")},
                 }
-                self._api._hass.async_create_task(
-                    self._api._async_write_debug_dump("gps", dump)
+                self.hass.async_create_task(
+                    self._api.async_write_debug_dump("gps", dump)
                 )
 
             return {

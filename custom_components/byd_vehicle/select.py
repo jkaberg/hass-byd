@@ -161,6 +161,7 @@ class BydSeatClimateSelect(BydVehicleEntity, SelectEntity):
 
     @property
     def current_option(self) -> str | None:
+        """Return the currently selected option."""
         if self._pending_value is not None:
             return self._pending_value
         if self._command_pending:

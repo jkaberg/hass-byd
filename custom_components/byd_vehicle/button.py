@@ -158,6 +158,7 @@ class BydForcePollButton(BydVehicleEntity, ButtonEntity):
         return self.coordinator.data.get("vehicles", {}).get(self._vin) is not None
 
     async def async_press(self) -> None:
+        """Force-refresh all coordinators for this vehicle."""
         try:
             await self.coordinator.async_force_refresh()
             gps = self._gps_coordinator

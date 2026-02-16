@@ -77,18 +77,6 @@
       "right_rear_tire_pressure": {
         "name": "Orqa o'ng g'ildirak bosimi"
       },
-      "soc": {
-        "name": "SOC quvvatlanmoqda"
-      },
-      "time_to_full": {
-        "name": "To'liq zaryadlash vaqti"
-      },
-      "total_energy": {
-        "name": "Umumiy energiya iste'moli"
-      },
-      "avg_energy_consumption": {
-        "name": "O'rtacha energiya iste'moli"
-      },
       "temp_out_car": {
         "name": "Tashqi harorat"
       },
@@ -206,21 +194,6 @@
       "upgrade_status": {
         "name": "OTA yangilanish holati"
       },
-      "charger_state": {
-        "name": "Zaryadlovchi holati"
-      },
-      "charger_connection": {
-        "name": "Zaryadlovchining ulanish holati"
-      },
-      "charging_update_time": {
-        "name": "Zaryadlash oxirgi yangilanishi"
-      },
-      "electricity_consumption": {
-        "name": "Elektr energiyasi iste'moli"
-      },
-      "fuel_consumption": {
-        "name": "Yoqilg'i iste'moli"
-      },
       "refrigerator_state": {
         "name": "Muzlatgich"
       },
@@ -255,9 +228,6 @@
       },
       "is_locked": {
         "name": "Qulflangan"
-      },
-      "charger_connected": {
-        "name": "Zaryadlovchi ulangan"
       },
       "sentry_status": {
         "name": "Kuzatuv rejimi"
