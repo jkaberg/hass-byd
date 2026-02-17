@@ -66,18 +66,17 @@ jobs:
       - name: Update manifest.json
         if: steps.compare.outputs.needs_update == 'true'
         run: |
-          NEW_VERSION="${{ steps.pybyd.outputs.latest_tag }}"
-          
           # Update the pybyd version in manifest.json
-          python - <<'PY'
+          NEW_VERSION="${{ steps.pybyd.outputs.latest_tag }}" python - <<'PY'
           import json
           from pathlib import Path
+          import os
           
           manifest_path = Path("custom_components/byd_vehicle/manifest.json")
           data = json.loads(manifest_path.read_text(encoding="utf-8"))
           
-          # Update the pybyd requirement while preserving other requirements
-          new_version = "${{ steps.pybyd.outputs.latest_tag }}"
+          # Update the pybyd requirement
+          new_version = os.environ["NEW_VERSION"]
           for i, req in enumerate(data.get("requirements", [])):
               if isinstance(req, str) and req.startswith("pybyd"):
                   data["requirements"][i] = f"pybyd>={new_version}"
