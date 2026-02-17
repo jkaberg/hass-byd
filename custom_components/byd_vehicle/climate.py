@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 
 from homeassistant.components.climate import ClimateEntity, ClimateEntityFeature
@@ -115,12 +116,11 @@ class BydClimate(BydVehicleEntity, ClimateEntity):
     @property
     def hvac_mode(self) -> HVACMode:
         """Return the current HVAC mode."""
-        # After a command, prefer optimistic state until coordinator refreshes
+        # After a command, prefer optimistic state until coordinator confirms.
         if self._command_pending:
             return self._last_mode
         # If the vehicle is off, HVAC cannot be running regardless of
-        # cached data (defence-in-depth; coordinator already omits stale
-        # HVAC, but guard here too).
+        # cached data (remote climate start also sets power_gear ON).
         if not self._is_vehicle_on():
             return HVACMode.OFF
         hvac = self._get_hvac_status()
@@ -184,8 +184,9 @@ class BydClimate(BydVehicleEntity, ClimateEntity):
         self._last_mode = hvac_mode
         await self._execute_command(self._api, _call, command=self._last_command)
 
-        # Refresh coordinator so the car-on switch (and HVAC snapshot) updates quickly.
-        await self.coordinator.async_force_refresh()
+        # Schedule a delayed refresh so the BYD cloud has time to update.
+        # The optimistic state covers the UI in the interim.
+        self._schedule_delayed_refresh()
 
     async def async_set_temperature(self, **kwargs: Any) -> None:
         """Set target temperature."""
@@ -252,8 +253,29 @@ class BydClimate(BydVehicleEntity, ClimateEntity):
 
     def _handle_coordinator_update(self) -> None:
         """Clear optimistic state when fresh data arrives from the coordinator."""
-        self._pending_target_temp = None
+        if not self._command_pending:
+            self._pending_target_temp = None
         super()._handle_coordinator_update()
+
+    def _is_command_confirmed(self) -> bool:
+        """Check whether HVAC data confirms the last climate command."""
+        hvac = self._get_hvac_status()
+        if hvac is None:
+            return False
+        ac_on = hvac.is_ac_on
+        expected_on = self._last_mode != HVACMode.OFF
+        return ac_on == expected_on
+
+    _DELAYED_REFRESH_SECONDS = 20
+
+    def _schedule_delayed_refresh(self) -> None:
+        """Schedule a coordinator refresh after a short delay."""
+
+        async def _delayed() -> None:
+            await asyncio.sleep(self._DELAYED_REFRESH_SECONDS)
+            await self.coordinator.async_force_refresh()
+
+        self.hass.async_create_task(_delayed())
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:

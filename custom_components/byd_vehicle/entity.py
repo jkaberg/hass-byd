@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable
+from time import monotonic
 from typing import Any
 
 from homeassistant.exceptions import HomeAssistantError
@@ -21,6 +22,9 @@ from .coordinator import BydApi, get_vehicle_display
 
 _LOGGER = logging.getLogger(__name__)
 
+#: Maximum seconds to hold optimistic state before falling back to API data.
+_OPTIMISTIC_TTL_SECONDS: float = 300.0
+
 
 class BydVehicleEntity(CoordinatorEntity[DataUpdateCoordinator[dict[str, Any]]]):
     """Mixin providing common properties for BYD vehicle entities.
@@ -31,6 +35,7 @@ class BydVehicleEntity(CoordinatorEntity[DataUpdateCoordinator[dict[str, Any]]])
     _vin: str
     _vehicle: Any
     _command_pending: bool = False
+    _commanded_at: float | None = None
 
     @property
     def device_info(self) -> DeviceInfo:
@@ -122,9 +127,26 @@ class BydVehicleEntity(CoordinatorEntity[DataUpdateCoordinator[dict[str, Any]]])
                 on_rollback()
             raise HomeAssistantError(str(exc)) from exc
         self._command_pending = True
+        self._commanded_at = monotonic()
         self.async_write_ha_state()
 
+    def _is_command_confirmed(self) -> bool:
+        """Return True when coordinator data confirms the commanded state.
+
+        Subclasses should override this to compare coordinator data
+        against the expected state.  The default returns ``True``
+        (always confirm immediately) for backwards compatibility.
+        """
+        return True
+
     def _handle_coordinator_update(self) -> None:
-        """Clear optimistic command-pending flag on fresh data."""
-        self._command_pending = False
+        """Clear optimistic flag when data confirms the command or TTL expires."""
+        if self._command_pending:
+            ttl_expired = (
+                self._commanded_at is not None
+                and (monotonic() - self._commanded_at) >= _OPTIMISTIC_TTL_SECONDS
+            )
+            if self._is_command_confirmed() or ttl_expired:
+                self._command_pending = False
+                self._commanded_at = None
         super()._handle_coordinator_update()

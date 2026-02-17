@@ -24,19 +24,53 @@ from .entity import BydVehicleEntity
 SEAT_LEVEL_OPTIONS = [s.name.lower() for s in SeatHeatVentState if s.value > 0]
 
 
+def _is_seat_available(
+    hvac_attr: str,
+    coordinator: BydDataUpdateCoordinator,
+    vin: str,
+) -> bool:
+    """Return False when the API positively reports UNAVAILABLE (0) for a seat.
+
+    If data is absent (None) the feature is assumed to *potentially* exist
+    so we return True – the entity can always be pruned later.
+    """
+    from pybyd.models.hvac import HvacStatus  # noqa: PLC0415
+
+    hvac = coordinator.data.get("hvac", {}).get(vin)
+    if isinstance(hvac, HvacStatus):
+        val = getattr(hvac, hvac_attr, None)
+        if val is not None and isinstance(val, SeatHeatVentState):
+            return val != SeatHeatVentState.UNAVAILABLE
+
+    realtime = coordinator.data.get("realtime", {}).get(vin)
+    if realtime is not None:
+        val = getattr(realtime, hvac_attr, None)
+        if val is not None and isinstance(val, SeatHeatVentState):
+            return val != SeatHeatVentState.UNAVAILABLE
+
+    # No data yet – assume available until proven otherwise.
+    return True
+
+
 def _seat_status_to_option(value: Any) -> str | None:
     """Map a seat status value to a UI option label.
 
     Uses ``SeatHeatVentState`` member names directly so there is no
     separate int↔string mapping to keep in sync.
+
+    Returns ``"off"`` when *value* is ``None`` (data not yet available)
+    because the entity already passed the creation-time availability
+    filter — the safe assumption is the feature exists but is idle.
+    Returns ``None`` only for ``UNAVAILABLE`` (value 0) to signal the
+    feature is genuinely absent.
     """
     if value is None:
-        return None
+        return "off"
     if not isinstance(value, SeatHeatVentState):
         try:
             value = SeatHeatVentState(int(value))
         except (TypeError, ValueError):
-            return None
+            return "off"
     return value.name.lower() if value.value > 0 else None
 
 
@@ -122,6 +156,10 @@ async def async_setup_entry(
         if vehicle is None:
             continue
         for description in SEAT_CLIMATE_DESCRIPTIONS:
+            # Skip entities whose seat hardware is positively reported
+            # as UNAVAILABLE (value 0) by the API.
+            if not _is_seat_available(description.hvac_attr, coordinator, vin):
+                continue
             entities.append(
                 BydSeatClimateSelect(coordinator, api, vin, vehicle, description)
             )
@@ -155,10 +193,6 @@ class BydSeatClimateSelect(BydVehicleEntity, SelectEntity):
         self._attr_unique_id = f"{vin}_select_{description.key}"
         self._pending_value: str | None = None
 
-        if description.entity_registry_enabled_default is not False:
-            if self.current_option is None:
-                self._attr_entity_registry_enabled_default = False
-
     @property
     def current_option(self) -> str | None:
         """Return the currently selected option."""
@@ -173,7 +207,9 @@ class BydSeatClimateSelect(BydVehicleEntity, SelectEntity):
             val = getattr(hvac, self.entity_description.hvac_attr, None)
         if val is None and realtime is not None:
             val = getattr(realtime, self.entity_description.hvac_attr, None)
-        return _seat_status_to_option(val)
+        option = _seat_status_to_option(val)
+        # Fallback: entity was created so the feature exists – default to 'off'.
+        return option if option is not None else "off"
 
     async def async_select_option(self, option: str) -> None:
         """Set the seat climate level."""
@@ -202,6 +238,21 @@ class BydSeatClimateSelect(BydVehicleEntity, SelectEntity):
         )
 
     def _handle_coordinator_update(self) -> None:
-        """Clear optimistic state when fresh data arrives."""
-        self._pending_value = None
+        """Clear optimistic state only when fresh data confirms the command."""
+        if self._pending_value is not None and self._is_command_confirmed():
+            self._pending_value = None
         super()._handle_coordinator_update()
+
+    def _is_command_confirmed(self) -> bool:
+        """Check whether coordinator data matches the pending selection."""
+        if self._pending_value is None:
+            return True
+        hvac = self._get_hvac_status()
+        realtime = self._get_realtime()
+        val = None
+        if hvac is not None:
+            val = getattr(hvac, self.entity_description.hvac_attr, None)
+        if val is None and realtime is not None:
+            val = getattr(realtime, self.entity_description.hvac_attr, None)
+        option = _seat_status_to_option(val)
+        return option == self._pending_value

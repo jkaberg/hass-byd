@@ -363,9 +363,14 @@ class BydDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Whether the vehicle is currently powered on (based on last realtime)."""
         return self._is_vehicle_on(self._last_realtime) is True
 
-    def _should_fetch_hvac(self, realtime: VehicleRealtimeData | None) -> bool:
+    def _should_fetch_hvac(
+        self, realtime: VehicleRealtimeData | None, *, force: bool = False
+    ) -> bool:
         # Always fetch once to establish initial HVAC state.
         if self._last_hvac is None:
+            return True
+        # Always fetch when a force-refresh was requested (e.g. after a command).
+        if force:
             return True
         # Only poll HVAC while the vehicle is on.
         return self._is_vehicle_on(realtime) is True
@@ -402,7 +407,7 @@ class BydDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
             # --- HVAC (conditional) ---
             hvac: HvacStatus | None = None
-            if self._should_fetch_hvac(realtime_gate):
+            if self._should_fetch_hvac(realtime_gate, force=force):
                 try:
                     hvac = await client.get_hvac_status(self._vin)
                 except _AUTH_ERRORS:
@@ -430,13 +435,13 @@ class BydDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             realtime_map: dict[str, Any] = {}
             hvac_map: dict[str, Any] = {}
 
-            vehicle_on = self._is_vehicle_on(realtime or self._last_realtime)
-
             effective_realtime = realtime or self._last_realtime
             if effective_realtime is not None:
                 realtime_map[self._vin] = effective_realtime
+            vehicle_on = self._is_vehicle_on(realtime or self._last_realtime)
             # Only fall back to cached HVAC when the vehicle is on;
-            # stale HVAC data is meaningless once the vehicle turns off.
+            # stale HVAC data is meaningless once the vehicle turns off
+            # (remote climate start also sets power_gear ON).
             effective_hvac = hvac or (self._last_hvac if vehicle_on else None)
             if effective_hvac is not None:
                 hvac_map[self._vin] = effective_hvac

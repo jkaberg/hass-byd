@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 
 from homeassistant.components.switch import SwitchEntity
@@ -153,7 +154,8 @@ class BydCarOnSwitch(BydVehicleEntity, SwitchEntity):
         """Return whether car-on (climate) is on."""
         if self._command_pending:
             return self._last_state
-        # Vehicle off → climate cannot be running (defence-in-depth).
+        # Vehicle off → climate cannot be running (remote start also
+        # sets power_gear ON, so this guard is correct).
         if not self._is_vehicle_on():
             return False
         hvac = self._get_hvac_status()
@@ -184,8 +186,8 @@ class BydCarOnSwitch(BydVehicleEntity, SwitchEntity):
             command="car_on",
             on_rollback=lambda: setattr(self, "_last_state", None),
         )
-        # Refresh coordinator so the climate entity immediately reflects this.
-        await self.coordinator.async_force_refresh()
+        # Schedule a delayed refresh so the BYD cloud has time to update.
+        self._schedule_delayed_refresh()
 
     async def async_turn_off(self, **_kwargs: Any) -> None:
         """Turn off car-on (stop climate)."""
@@ -200,7 +202,25 @@ class BydCarOnSwitch(BydVehicleEntity, SwitchEntity):
             command="car_off",
             on_rollback=lambda: setattr(self, "_last_state", None),
         )
-        await self.coordinator.async_force_refresh()
+        self._schedule_delayed_refresh()
+
+    def _is_command_confirmed(self) -> bool:
+        """Check whether HVAC data confirms the car-on/off command."""
+        hvac = self._get_hvac_status()
+        if hvac is None:
+            return False
+        return bool(hvac.is_ac_on) == bool(self._last_state)
+
+    _DELAYED_REFRESH_SECONDS = 20
+
+    def _schedule_delayed_refresh(self) -> None:
+        """Schedule a coordinator refresh after a short delay."""
+
+        async def _delayed() -> None:
+            await asyncio.sleep(self._DELAYED_REFRESH_SECONDS)
+            await self.coordinator.async_force_refresh()
+
+        self.hass.async_create_task(_delayed())
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
