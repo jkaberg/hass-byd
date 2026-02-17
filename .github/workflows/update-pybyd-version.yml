@@ -35,6 +35,10 @@ jobs:
         run: |
           # Extract current pybyd version from manifest.json
           CURRENT_VERSION=$(jq -r '.requirements[] | select(startswith("pybyd")) | split(">=")[1]' custom_components/byd_vehicle/manifest.json)
+          if [ -z "$CURRENT_VERSION" ] || [ "$CURRENT_VERSION" = "null" ]; then
+            echo "Failed to extract current pyBYD version from manifest.json"
+            exit 1
+          fi
           echo "Current version in manifest: $CURRENT_VERSION"
           echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
 
