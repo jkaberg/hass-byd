@@ -7,7 +7,7 @@ import json
 import logging
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from time import perf_counter
+from time import monotonic, perf_counter
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
@@ -51,6 +51,12 @@ _LOGGER = logging.getLogger(__name__)
 #: Seconds to wait after an MQTT remoteControl ack before fetching HVAC
 #: state from the API.  Gives the BYD cloud time to propagate.
 _MQTT_HVAC_FETCH_DELAY_S: float = 3.0
+
+#: Maximum seconds to hold the optimistic HVAC guard.  During this
+#: window, API responses that contradict the expected A/C state are
+#: discarded so stale cloud data doesn't overwrite the optimistic patch.
+#: The guard clears early when an API response *confirms* the expected state.
+_OPTIMISTIC_HVAC_GUARD_TTL_S: float = 60.0
 
 #: Seat / steering-wheel HVAC fields that are reset when climate is stopped.
 _SEAT_HVAC_FIELDS: tuple[str, ...] = (
@@ -188,25 +194,32 @@ class BydApi:
                 self._async_write_debug_dump(f"mqtt_{event}", dump)
             )
 
-        # remoteControl ack: nudge coordinator for faster entity updates.
-        if event == "remoteControl":
-            self._handle_remote_control_event(vin, respond_data)
-
-    def _handle_remote_control_event(
+    def _handle_command_ack(
         self,
+        event: str,
         vin: str,
         respond_data: dict[str, Any],
     ) -> None:
-        """Process an MQTT remoteControl acknowledgement.
+        """Process a genuine remote-control command ack from pyBYD.
 
-        The ack only contains *controlState* and *requestSerial* — no
-        actual HVAC / seat data.  We nudge entities so they can
-        re-evaluate their optimistic state, then schedule a short-delay
-        HVAC fetch to pull the real post-command state from the API.
+        Called via pyBYD's ``on_command_ack`` callback which fires only
+        for MQTT ``remoteControl`` events that are **not** correlated to
+        an in-flight data poll (GPS, realtime).  This ensures GPS poll
+        responses never trigger spurious data refreshes.
+
+        After a command completes we schedule short-delay refreshes for
+        **both** HVAC and realtime data.  Different command types need
+        different data sources for confirmation:
+
+        - Climate / seat / steering-wheel → HVAC
+        - Lock / unlock / battery heat / close windows → Realtime
+
+        Scheduling both is intentional: each call is a cheap HTTP POST
+        (<1 s) and commands are user-initiated, infrequent events.
         """
         serial = respond_data.get("requestSerial", "")
         _LOGGER.debug(
-            "MQTT remoteControl ack: vin=%s, serial=%s",
+            "Command ack: vin=%s, serial=%s",
             vin[-6:] if vin else "-",
             serial,
         )
@@ -214,10 +227,13 @@ class BydApi:
         if coordinator is not None:
             # Nudge entities so optimistic states are re-evaluated.
             coordinator.async_set_updated_data(coordinator.data)
-            # Schedule HVAC fetch after a short grace period so the
+            # Schedule data refreshes after a short grace period so the
             # BYD cloud has time to propagate the new state.
             self._hass.async_create_task(
                 coordinator.async_fetch_hvac_delayed(_MQTT_HVAC_FETCH_DELAY_S)
+            )
+            self._hass.async_create_task(
+                coordinator.async_fetch_realtime_delayed(_MQTT_HVAC_FETCH_DELAY_S)
             )
 
     @property
@@ -258,6 +274,7 @@ class BydApi:
                 session=self._http_session,
                 on_vehicle_info=self._handle_vehicle_info,
                 on_mqtt_event=self._handle_mqtt_event,
+                on_command_ack=self._handle_command_ack,
             )
             await self._client.async_start()
         return self._client
@@ -376,6 +393,10 @@ class BydDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # Local state tracking for conditional fetching.
         self._last_realtime: VehicleRealtimeData | None = None
         self._last_hvac: HvacStatus | None = None
+        # Optimistic HVAC guard — prevents stale API data from
+        # overwriting a recent optimistic patch.
+        self._optimistic_hvac_until: float | None = None
+        self._optimistic_ac_expected: bool | None = None
 
     def handle_mqtt_realtime(self, data: VehicleRealtimeData) -> None:
         """Accept an MQTT-pushed realtime update and push to entities."""
@@ -408,6 +429,43 @@ class BydDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             return True
         # Only poll HVAC while the vehicle is on.
         return self._is_vehicle_on(realtime) is True
+
+    def _accept_hvac_update(self, hvac: HvacStatus) -> bool:
+        """Return ``True`` if *hvac* should replace current coordinator data.
+
+        While the optimistic guard is active and the fetched data does
+        **not** confirm the expected A/C state, the update is rejected
+        so stale cloud data doesn't overwrite the optimistic patch.
+        """
+        if self._optimistic_hvac_until is None:
+            return True
+        if monotonic() >= self._optimistic_hvac_until:
+            # Guard expired — accept whatever the API returns.
+            _LOGGER.debug(
+                "Optimistic HVAC guard expired for %s — accepting API data",
+                self._vin[-6:],
+            )
+            self._optimistic_hvac_until = None
+            self._optimistic_ac_expected = None
+            return True
+        if hvac.is_ac_on == self._optimistic_ac_expected:
+            # API confirms the expected state — accept and clear guard.
+            _LOGGER.debug(
+                "Optimistic HVAC guard confirmed for %s — accepting API data",
+                self._vin[-6:],
+            )
+            self._optimistic_hvac_until = None
+            self._optimistic_ac_expected = None
+            return True
+        _LOGGER.debug(
+            "Discarding stale HVAC data for %s (expected ac_on=%s, got ac_on=%s, "
+            "guard active for %.0fs more)",
+            self._vin[-6:],
+            self._optimistic_ac_expected,
+            hvac.is_ac_on,
+            self._optimistic_hvac_until - monotonic(),
+        )
+        return False
 
     async def _async_update_data(self) -> dict[str, Any]:
         _LOGGER.debug("Telemetry refresh started: vin=%s", self._vin[-6:])
@@ -453,6 +511,9 @@ class BydDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                         self._vin,
                         exc,
                     )
+                # Discard stale HVAC that contradicts the optimistic guard.
+                if hvac is not None and not self._accept_hvac_update(hvac):
+                    hvac = None
             else:
                 _LOGGER.debug(
                     "HVAC fetch skipped: vin=%s, reason=vehicle_not_on",
@@ -560,6 +621,8 @@ class BydDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         data: HvacStatus = await self._api.async_call(
             _fetch, vin=self._vin, command="fetch_hvac"
         )
+        if not self._accept_hvac_update(data):
+            return
         self._last_hvac = data
         if isinstance(self.data, dict):
             merged = dict(self.data)
@@ -573,7 +636,20 @@ class BydDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             await self.async_fetch_hvac()
         except Exception:  # noqa: BLE001
             _LOGGER.debug(
-                "MQTT-triggered HVAC fetch failed for %s — will retry at next poll",
+                "Command-triggered HVAC fetch failed for %s — will retry at next poll",
+                self._vin[-6:],
+                exc_info=True,
+            )
+
+    async def async_fetch_realtime_delayed(self, delay: float) -> None:
+        """Wait *delay* seconds, then force-fetch realtime and merge."""
+        await asyncio.sleep(delay)
+        try:
+            await self.async_fetch_realtime()
+        except Exception:  # noqa: BLE001
+            _LOGGER.debug(
+                "Command-triggered realtime fetch failed "
+                "for %s — will retry at next poll",
                 self._vin[-6:],
                 exc_info=True,
             )
@@ -639,10 +715,21 @@ class BydDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         merged = dict(self.data)
         merged["hvac"] = {self._vin: patched}
         self.async_set_updated_data(merged)
+        # Arm the optimistic guard so stale API responses are discarded
+        # until the cloud confirms the expected state.
+        if ac_on is not None:
+            self._optimistic_hvac_until = monotonic() + _OPTIMISTIC_HVAC_GUARD_TTL_S
+            self._optimistic_ac_expected = ac_on
+        guard = (
+            f"ac_on={ac_on} for {_OPTIMISTIC_HVAC_GUARD_TTL_S}s"
+            if ac_on is not None
+            else "none"
+        )
         _LOGGER.debug(
-            "Optimistic HVAC update applied: vin=%s, updates=%s",
+            "Optimistic HVAC update applied: " "vin=%s, updates=%s, guard=%s",
             self._vin[-6:],
             list(updates.keys()),
+            guard,
         )
 
 
