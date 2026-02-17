@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 from datetime import UTC, datetime, timedelta
@@ -25,8 +26,12 @@ from pybyd import (
 )
 from pybyd.config import BydConfig, DeviceProfile
 from pybyd.models.gps import GpsInfo
-from pybyd.models.hvac import HvacStatus
-from pybyd.models.realtime import VehicleRealtimeData
+from pybyd.models.hvac import HvacOverallStatus, HvacStatus
+from pybyd.models.realtime import (
+    SeatHeatVentState,
+    StearingWheelHeat,
+    VehicleRealtimeData,
+)
 from pybyd.models.vehicle import Vehicle
 
 from .const import (
@@ -42,6 +47,23 @@ from .const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+#: Seconds to wait after an MQTT remoteControl ack before fetching HVAC
+#: state from the API.  Gives the BYD cloud time to propagate.
+_MQTT_HVAC_FETCH_DELAY_S: float = 3.0
+
+#: Seat / steering-wheel HVAC fields that are reset when climate is stopped.
+_SEAT_HVAC_FIELDS: tuple[str, ...] = (
+    "main_seat_heat_state",
+    "main_seat_ventilation_state",
+    "copilot_seat_heat_state",
+    "copilot_seat_ventilation_state",
+    "lr_seat_heat_state",
+    "lr_seat_ventilation_state",
+    "rr_seat_heat_state",
+    "rr_seat_ventilation_state",
+)
+_STEERING_WHEEL_FIELD: str = "steering_wheel_heat_state"
 
 
 # Error tuples shared by telemetry and GPS _fetch closures.
@@ -175,16 +197,28 @@ class BydApi:
         vin: str,
         respond_data: dict[str, Any],
     ) -> None:
-        """Process an MQTT remoteControl acknowledgement."""
+        """Process an MQTT remoteControl acknowledgement.
+
+        The ack only contains *controlState* and *requestSerial* — no
+        actual HVAC / seat data.  We nudge entities so they can
+        re-evaluate their optimistic state, then schedule a short-delay
+        HVAC fetch to pull the real post-command state from the API.
+        """
         serial = respond_data.get("requestSerial", "")
-        _LOGGER.info(
+        _LOGGER.debug(
             "MQTT remoteControl ack: vin=%s, serial=%s",
             vin[-6:] if vin else "-",
             serial,
         )
         coordinator = self._coordinators.get(vin)
         if coordinator is not None:
+            # Nudge entities so optimistic states are re-evaluated.
             coordinator.async_set_updated_data(coordinator.data)
+            # Schedule HVAC fetch after a short grace period so the
+            # BYD cloud has time to propagate the new state.
+            self._hass.async_create_task(
+                coordinator.async_fetch_hvac_delayed(_MQTT_HVAC_FETCH_DELAY_S)
+            )
 
     @property
     def config(self) -> BydConfig:
@@ -531,6 +565,85 @@ class BydDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             merged = dict(self.data)
             merged["hvac"] = {self._vin: data}
             self.async_set_updated_data(merged)
+
+    async def async_fetch_hvac_delayed(self, delay: float) -> None:
+        """Wait *delay* seconds, then force-fetch HVAC and merge."""
+        await asyncio.sleep(delay)
+        try:
+            await self.async_fetch_hvac()
+        except Exception:  # noqa: BLE001
+            _LOGGER.debug(
+                "MQTT-triggered HVAC fetch failed for %s — will retry at next poll",
+                self._vin[-6:],
+                exc_info=True,
+            )
+
+    def apply_optimistic_hvac(
+        self,
+        *,
+        ac_on: bool | None = None,
+        target_temp: float | None = None,
+        reset_seats: bool = False,
+    ) -> None:
+        """Patch the coordinator HVAC data optimistically and notify entities.
+
+        This gives *all* listening entities (climate, A/C switch, seat
+        selects, etc.) an immediate view of the expected post-command
+        state without waiting for the next API poll.
+
+        Parameters
+        ----------
+        ac_on:
+            If not ``None``, sets ``status`` to ``HvacOverallStatus.ON``
+            or ``HvacOverallStatus.OFF``.
+        target_temp:
+            If not ``None``, updates ``main_setting_temp_new`` (°C).
+        reset_seats:
+            If ``True``, sets all seat heat/ventilation fields to
+            ``SeatHeatVentState.OFF`` and steering-wheel heat to
+            ``StearingWheelHeat.OFF``.  Use when stopping climate,
+            since the BYD car resets these.
+        """
+        if not isinstance(self.data, dict):
+            return
+        current_hvac: HvacStatus | None = self.data.get("hvac", {}).get(self._vin)
+        if current_hvac is None:
+            # No baseline HVAC data to patch — entities fall back to their
+            # own per-entity optimistic state; the delayed refresh will
+            # provide real data shortly.
+            return
+
+        updates: dict[str, Any] = {}
+        if ac_on is not None:
+            updates["status"] = HvacOverallStatus.ON if ac_on else HvacOverallStatus.OFF
+        if target_temp is not None:
+            updates["main_setting_temp_new"] = target_temp
+        if reset_seats:
+            for field in _SEAT_HVAC_FIELDS:
+                # Only reset seats that were actually active.
+                val = getattr(current_hvac, field, None)
+                if val is not None and val not in (
+                    SeatHeatVentState.OFF,
+                    SeatHeatVentState.UNAVAILABLE,
+                ):
+                    updates[field] = SeatHeatVentState.OFF
+            sw_val = getattr(current_hvac, _STEERING_WHEEL_FIELD, None)
+            if sw_val is not None and sw_val != StearingWheelHeat.OFF:
+                updates[_STEERING_WHEEL_FIELD] = StearingWheelHeat.OFF
+
+        if not updates:
+            return
+
+        patched = current_hvac.model_copy(update=updates)
+        self._last_hvac = patched
+        merged = dict(self.data)
+        merged["hvac"] = {self._vin: patched}
+        self.async_set_updated_data(merged)
+        _LOGGER.debug(
+            "Optimistic HVAC update applied: vin=%s, updates=%s",
+            self._vin[-6:],
+            list(updates.keys()),
+        )
 
 
 class BydGpsUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):

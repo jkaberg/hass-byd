@@ -184,6 +184,19 @@ class BydClimate(BydVehicleEntity, ClimateEntity):
         self._last_mode = hvac_mode
         await self._execute_command(self._api, _call, command=self._last_command)
 
+        # Optimistic coordinator-level HVAC update so that *all* entities
+        # (A/C switch, seats, etc.) see the new state immediately.
+        if hvac_mode == HVACMode.OFF:
+            self.coordinator.apply_optimistic_hvac(
+                ac_on=False,
+                reset_seats=True,
+            )
+        else:
+            self.coordinator.apply_optimistic_hvac(
+                ac_on=True,
+                target_temp=temp,
+            )
+
         # Schedule a delayed refresh so the BYD cloud has time to update.
         # The optimistic state covers the UI in the interim.
         self._schedule_delayed_refresh()

@@ -186,6 +186,12 @@ class BydCarOnSwitch(BydVehicleEntity, SwitchEntity):
             command="car_on",
             on_rollback=lambda: setattr(self, "_last_state", None),
         )
+        # Optimistic coordinator-level HVAC update so that *all* entities
+        # (climate, seats, etc.) see the new state immediately.
+        self.coordinator.apply_optimistic_hvac(
+            ac_on=True,
+            target_temp=self._DEFAULT_TEMP_C,
+        )
         # Schedule a delayed refresh so the BYD cloud has time to update.
         self._schedule_delayed_refresh()
 
@@ -201,6 +207,12 @@ class BydCarOnSwitch(BydVehicleEntity, SwitchEntity):
             _call,
             command="car_off",
             on_rollback=lambda: setattr(self, "_last_state", None),
+        )
+        # Optimistic coordinator-level HVAC update: mark A/C off and
+        # reset seat heat/vent (the BYD car turns them off with climate).
+        self.coordinator.apply_optimistic_hvac(
+            ac_on=False,
+            reset_seats=True,
         )
         self._schedule_delayed_refresh()
 
