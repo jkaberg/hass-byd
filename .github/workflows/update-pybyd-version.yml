@@ -20,8 +20,13 @@ jobs:
       - name: Get latest pyBYD tag
         id: pybyd
         run: |
-          # Get the latest tag from jkaberg/pyBYD repository
-          LATEST_TAG=$(curl -s https://api.github.com/repos/jkaberg/pyBYD/tags | jq -r '.[0].name')
+          # Get the latest tag from jkaberg/pyBYD repository with authentication and basic error handling
+          LATEST_TAG=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            https://api.github.com/repos/jkaberg/pyBYD/tags | jq -r '.[0].name')
+          if [ -z "$LATEST_TAG" ] || [ "$LATEST_TAG" = "null" ]; then
+            echo "Failed to fetch latest pyBYD tag from GitHub API"
+            exit 1
+          fi
           echo "Latest pyBYD tag: $LATEST_TAG"
           echo "latest_tag=$LATEST_TAG" >> $GITHUB_OUTPUT
 
