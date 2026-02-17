@@ -1,0 +1,115 @@
+name: Update pyBYD Version
+
+on:
+  schedule:
+    # Run daily at 00:00 UTC to check for new pyBYD releases
+    - cron: '0 0 * * *'
+  workflow_dispatch: # Allow manual trigger
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  check-and-update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Get latest pyBYD tag
+        id: pybyd
+        run: |
+          # Get the latest tag from jkaberg/pyBYD repository with authentication and basic error handling
+          LATEST_TAG=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            https://api.github.com/repos/jkaberg/pyBYD/tags | jq -r '.[0].name')
+          if [ -z "$LATEST_TAG" ] || [ "$LATEST_TAG" = "null" ]; then
+            echo "Failed to fetch latest pyBYD tag from GitHub API"
+            exit 1
+          fi
+          echo "Latest pyBYD tag: $LATEST_TAG"
+          echo "latest_tag=$LATEST_TAG" >> $GITHUB_OUTPUT
+
+      - name: Get current pyBYD version from manifest
+        id: current
+        run: |
+          # Extract current pybyd version from manifest.json
+          CURRENT_VERSION=$(jq -r '.requirements[] | select(startswith("pybyd")) | split(">=")[1]' custom_components/byd_vehicle/manifest.json)
+          if [ -z "$CURRENT_VERSION" ] || [ "$CURRENT_VERSION" = "null" ]; then
+            echo "Failed to extract current pyBYD version from manifest.json"
+            exit 1
+          fi
+          echo "Current version in manifest: $CURRENT_VERSION"
+          echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Compare versions
+        id: compare
+        run: |
+          LATEST="${{ steps.pybyd.outputs.latest_tag }}"
+          CURRENT="${{ steps.current.outputs.current_version }}"
+          
+          if [ "$LATEST" = "$CURRENT" ]; then
+            echo "Version is up-to-date"
+            echo "needs_update=false" >> $GITHUB_OUTPUT
+          else
+            # Use version-aware comparison to determine if LATEST is newer than CURRENT
+            FIRST_SORTED="$(printf '%s\n%s\n' "$CURRENT" "$LATEST" | sort -V | head -n1)"
+            if [ "$FIRST_SORTED" = "$CURRENT" ] && [ "$LATEST" != "$CURRENT" ]; then
+              echo "Newer version available: $LATEST (current: $CURRENT)"
+              echo "needs_update=true" >> $GITHUB_OUTPUT
+            else
+              echo "Current version ($CURRENT) is newer than or equal to latest tag ($LATEST); no update needed"
+              echo "needs_update=false" >> $GITHUB_OUTPUT
+            fi
+          fi
+
+      - name: Update manifest.json
+        if: steps.compare.outputs.needs_update == 'true'
+        run: |
+          # Update the pybyd version in manifest.json
+          NEW_VERSION="${{ steps.pybyd.outputs.latest_tag }}" python - <<'PY'
+          import json
+          from pathlib import Path
+          import os
+          
+          manifest_path = Path("custom_components/byd_vehicle/manifest.json")
+          data = json.loads(manifest_path.read_text(encoding="utf-8"))
+          
+          # Update the pybyd requirement
+          new_version = os.environ["NEW_VERSION"]
+          for i, req in enumerate(data.get("requirements", [])):
+              if isinstance(req, str) and req.startswith("pybyd"):
+                  data["requirements"][i] = f"pybyd>={new_version}"
+                  break
+          else:
+              # If no existing pybyd requirement is found, append it
+              data.setdefault("requirements", []).append(f"pybyd>={new_version}")
+           
+          manifest_path.write_text(
+              json.dumps(data, indent=2, ensure_ascii=True) + "\n",
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Create Pull Request
+        if: steps.compare.outputs.needs_update == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "Bump pyBYD version to ${{ steps.pybyd.outputs.latest_tag }}"
+          title: "Update pyBYD to version ${{ steps.pybyd.outputs.latest_tag }}"
+          body: |
+            This PR updates the pyBYD dependency to the latest version.
+            
+            - Previous version: `${{ steps.current.outputs.current_version }}`
+            - New version: `${{ steps.pybyd.outputs.latest_tag }}`
+            
+            **Changes:**
+            - Updated `pybyd` requirement in `manifest.json`
+            
+            This PR was automatically created by the [Update pyBYD Version workflow](${{ github.server_url }}/${{ github.repository }}/actions/workflows/update-pybyd-version.yml).
+            
+            Please review the [pyBYD changelog](https://github.com/jkaberg/pyBYD/compare/${{ steps.current.outputs.current_version }}...${{ steps.pybyd.outputs.latest_tag }}) for details on what changed.
+          branch: automated/update-pybyd-${{ steps.pybyd.outputs.latest_tag }}
+          delete-branch: true
+          labels: dependencies
