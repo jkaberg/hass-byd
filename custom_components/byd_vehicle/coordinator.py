@@ -533,11 +533,10 @@ class BydDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             effective_realtime = realtime or self._last_realtime
             if effective_realtime is not None:
                 realtime_map[self._vin] = effective_realtime
-            vehicle_on = self._is_vehicle_on(realtime or self._last_realtime)
-            # Only fall back to cached HVAC when the vehicle is on;
-            # stale HVAC data is meaningless once the vehicle turns off
-            # (remote climate start also sets power_gear ON).
-            effective_hvac = hvac or (self._last_hvac if vehicle_on else None)
+            # Always fall back to cached HVAC – even when the vehicle is
+            # off the last-known seat/climate state is still meaningful
+            # for entity availability and select options.
+            effective_hvac = hvac or self._last_hvac
             if effective_hvac is not None:
                 hvac_map[self._vin] = effective_hvac
 
@@ -700,7 +699,7 @@ class BydDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 val = getattr(current_hvac, field, None)
                 if val is not None and val not in (
                     SeatHeatVentState.OFF,
-                    SeatHeatVentState.UNAVAILABLE,
+                    SeatHeatVentState.NO_DATA,
                 ):
                     updates[field] = SeatHeatVentState.OFF
             sw_val = getattr(current_hvac, _STEERING_WHEEL_FIELD, None)

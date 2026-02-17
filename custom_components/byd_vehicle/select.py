@@ -24,45 +24,15 @@ from .entity import BydVehicleEntity
 SEAT_LEVEL_OPTIONS = [s.name.lower() for s in SeatHeatVentState if s.value > 0]
 
 
-def _is_seat_available(
-    hvac_attr: str,
-    coordinator: BydDataUpdateCoordinator,
-    vin: str,
-) -> bool:
-    """Return False when the API positively reports UNAVAILABLE (0) for a seat.
-
-    If data is absent (None) the feature is assumed to *potentially* exist
-    so we return True – the entity can always be pruned later.
-    """
-    from pybyd.models.hvac import HvacStatus  # noqa: PLC0415
-
-    hvac = coordinator.data.get("hvac", {}).get(vin)
-    if isinstance(hvac, HvacStatus):
-        val = getattr(hvac, hvac_attr, None)
-        if val is not None and isinstance(val, SeatHeatVentState):
-            return val != SeatHeatVentState.UNAVAILABLE
-
-    realtime = coordinator.data.get("realtime", {}).get(vin)
-    if realtime is not None:
-        val = getattr(realtime, hvac_attr, None)
-        if val is not None and isinstance(val, SeatHeatVentState):
-            return val != SeatHeatVentState.UNAVAILABLE
-
-    # No data yet – assume available until proven otherwise.
-    return True
-
-
 def _seat_status_to_option(value: Any) -> str | None:
     """Map a seat status value to a UI option label.
 
     Uses ``SeatHeatVentState`` member names directly so there is no
     separate int↔string mapping to keep in sync.
 
-    Returns ``"off"`` when *value* is ``None`` (data not yet available)
-    because the entity already passed the creation-time availability
-    filter — the safe assumption is the feature exists but is idle.
-    Returns ``None`` only for ``UNAVAILABLE`` (value 0) to signal the
-    feature is genuinely absent.
+    Returns ``"off"`` when *value* is ``None`` or ``NO_DATA`` (0) because
+    the entity exists but no data has been received yet (vehicle may be
+    off). The safe assumption is the feature exists but is idle.
     """
     if value is None:
         return "off"
@@ -71,7 +41,9 @@ def _seat_status_to_option(value: Any) -> str | None:
             value = SeatHeatVentState(int(value))
         except (TypeError, ValueError):
             return "off"
-    return value.name.lower() if value.value > 0 else None
+    if value == SeatHeatVentState.NO_DATA:
+        return "off"
+    return value.name.lower() if value.value > 0 else "off"
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -156,10 +128,6 @@ async def async_setup_entry(
         if vehicle is None:
             continue
         for description in SEAT_CLIMATE_DESCRIPTIONS:
-            # Skip entities whose seat hardware is positively reported
-            # as UNAVAILABLE (value 0) by the API.
-            if not _is_seat_available(description.hvac_attr, coordinator, vin):
-                continue
             entities.append(
                 BydSeatClimateSelect(coordinator, api, vin, vehicle, description)
             )
