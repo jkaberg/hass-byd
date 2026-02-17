@@ -74,6 +74,7 @@ BASE_URLS: dict[str, str] = {
 }
 
 COUNTRY_OPTIONS: dict[str, tuple[str, str]] = {
+    "Argentina": ("AR", "es"),
     "Australia": ("AU", "en"),
     "Austria": ("AT", "de"),
     "Belgium": ("BE", "en"),
