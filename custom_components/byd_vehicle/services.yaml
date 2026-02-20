@@ -21,3 +21,68 @@ fetch_hvac:
       selector:
         device:
           integration: byd_vehicle
+
+toggle_smart_charging:
+  fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: byd_vehicle
+    enable:
+      required: false
+      default: true
+      selector:
+        boolean:
+
+save_charging_schedule:
+  fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: byd_vehicle
+    target_soc:
+      required: true
+      selector:
+        number:
+          min: 50
+          max: 100
+          step: 1
+          mode: box
+    start_hour:
+      required: true
+      selector:
+        number:
+          min: 0
+          max: 23
+          step: 1
+          mode: box
+    start_minute:
+      required: true
+      selector:
+        number:
+          min: 0
+          max: 59
+          step: 1
+          mode: box
+    end_hour:
+      required: true
+      selector:
+        number:
+          min: 0
+          max: 23
+          step: 1
+          mode: box
+    end_minute:
+      required: true
+      selector:
+        number:
+          min: 0
+          max: 59
+          step: 1
+          mode: box
+    enable:
+      required: false
+      selector:
+        boolean:
