@@ -10,25 +10,25 @@
           "password": "Passwort",
           "control_pin": "Steuerungs-PIN (optional, 6-stellig)",
           "country_code": "Land",
-          "poll_interval": "Abfrageintervall (Sekunden)",
-          "gps_poll_interval": "GPS Abfrageintervall (Sekunden)",
-          "smart_gps_polling": "Intelligente GPS-Abfrage",
-          "gps_active_interval": "GPS aktives Intervall (Sekunden)",
-          "gps_inactive_interval": "GPS inaktives Intervall (Sekunden)",
-          "climate_duration": "Klimadauer (time_span)",
+          "poll_interval": "Abfrageintervall Telemetriedaten (Sekunden)",
+          "gps_poll_interval": "Abfrageintervall GPS Position (Sekunden)",
+          "smart_gps_polling": "Intelligente GPS-Positionsabfrage",
+          "gps_active_interval": "Abfrageintervall GPS Position aktives Fahrzeug (Sekunden)",
+          "gps_inactive_interval": "Abfrageintervall GPS Position inaktives Fahrzeug (Sekunden)",
+          "climate_duration": "Dauer der Klimatisierung (time_span)",
           "debug_dumps": "API-Antworten als Debug-Dump"
         }
       }
     },
     "error": {
       "cannot_connect": "Verbindung konnte nicht hergestellt werden",
-      "invalid_control_pin": "Ungültiger Steuerungs-PIN oder Cloud-Steuerung ist vorübergehend gesperrt",
+      "invalid_control_pin": "Ungültige PIN oder Cloud-Steuerung ist vorübergehend gesperrt",
       "invalid_auth": "Ungültige Authentifizierung",
-      "unknown": "Unerwarteter Fehler"
+      "unknown": "Unbekannter Fehler"
     },
     "abort": {
       "already_configured": "Dieses Konto ist bereits konfiguriert",
-      "wrong_account": "Das Konto stimmt nicht mit dem Konto überein, das erneut authentifiziert wird",
+      "wrong_account": "Das Konto stimmt nicht mit dem Konto überein, das zuvor authentifiziert wurde",
       "reauth_successful": "Die erneute Authentifizierung war erfolgreich"
     }
   },
@@ -40,9 +40,9 @@
           "poll_interval": "Abfrageintervall (Sekunden)",
           "gps_poll_interval": "GPS Abfrageintervall (Sekunden)",
           "smart_gps_polling": "Intelligente GPS-Abfrage",
-          "gps_active_interval": "GPS aktives Intervall (Sekunden)",
-          "gps_inactive_interval": "GPS inaktives Intervall (Sekunden)",
-          "climate_duration": "Klimadauer (time_span)",
+          "gps_active_interval": "GPS Abfrageintervall aktives Fahrzeug (Sekunden)",
+          "gps_inactive_interval": "GPS Abfrageintervall inaktives Fahrzeug (Sekunden)",
+          "climate_duration": "Dauer der Klimatisierung (time_span)",
           "debug_dumps": "API-Antworten als Debug-Dump"
         }
       }
@@ -51,7 +51,7 @@
   "entity": {
     "sensor": {
       "elec_percent": {
-        "name": "Batteriestand"
+        "name": "Ladezustand"
       },
       "endurance_mileage": {
         "name": "Reichweite"
@@ -63,7 +63,7 @@
         "name": "Geschwindigkeit"
       },
       "temp_in_car": {
-        "name": "Kabinentemperatur"
+        "name": "Innenraumtemperatur"
       },
       "left_front_tire_pressure": {
         "name": "Reifendruck vorne links"
@@ -96,7 +96,7 @@
         "name": "Kilometerzähler V2"
       },
       "power_gear": {
-        "name": "Gangposition"
+        "name": "Schaltstellung"
       },
       "charging_state": {
         "name": "Ladezustand"
@@ -105,7 +105,7 @@
         "name": "Ladezustand"
       },
       "wait_status": {
-        "name": "Ladewartestatus"
+        "name": "Ladestatus: warten"
       },
       "full_hour": {
         "name": "Stunden bis voll"
@@ -117,16 +117,16 @@
         "name": "Geplantes Laden"
       },
       "booking_charging_hour": {
-        "name": "Geplante Ladestunde"
+        "name": "Geplante Stunde"
       },
       "booking_charging_minute": {
-        "name": "Geplante Lademinute"
+        "name": "Geplante Minute"
       },
       "left_front_tire_status": {
         "name": "Status des Reifens vorne links"
       },
       "right_front_tire_status": {
-        "name": "Status des Vorderreifens rechts"
+        "name": "Status des Reifens vorne rechts"
       },
       "left_rear_tire_status": {
         "name": "Status des Reifens hinten links"
@@ -138,7 +138,7 @@
         "name": "TPMS-Status"
       },
       "rapid_tire_leak": {
-        "name": "Schnelles Reifenleck"
+        "name": "Plötzlicher Druckverlust"
       },
       "total_power": {
         "name": "Gesamtleistung"
@@ -150,13 +150,13 @@
         "name": "Energieverbrauch (letzte 50km)"
       },
       "oil_endurance": {
-        "name": "Kraftstoffreichweite"
+        "name": "Restreichweite (Kraftstoff)"
       },
       "oil_percent": {
-        "name": "Kraftstoffstand"
+        "name": "Kraftstofffüllstand"
       },
       "total_oil": {
-        "name": "Gesamtkraftstoffverbrauch"
+        "name": "Gesamtverbrauch"
       },
       "engine_status": {
         "name": "Motorstatus"
@@ -168,7 +168,7 @@
         "name": "Elektrische Servolenkung"
       },
       "esp": {
-        "name": "Elektronische Stabilität"
+        "name": "ESP-Warnung"
       },
       "abs_warning": {
         "name": "ABS-Warnung"
@@ -180,7 +180,7 @@
         "name": "Airbagwarnung"
       },
       "ect": {
-        "name": "Warnung vor Kühlmitteltemperatur"
+        "name": "Kühlmitteltemperatur zu hoch"
       },
       "ect_value": {
         "name": "Kühlmitteltemperatur"
@@ -218,7 +218,7 @@
         "name": "Online"
       },
       "is_charging": {
-        "name": "Aufladen"
+        "name": "Laden"
       },
       "is_any_door_open": {
         "name": "Türen offen"
@@ -233,16 +233,16 @@
         "name": "Sentry-Modus"
       },
       "left_front_door": {
-        "name": "Vordere linke Tür"
+        "name": "Tür vorne links"
       },
       "right_front_door": {
         "name": "Tür vorne rechts"
       },
       "left_rear_door": {
-        "name": "Hintere linke Tür"
+        "name": "Tür hinten links"
       },
       "right_rear_door": {
-        "name": "Hintere rechte Tür"
+        "name": "Tür hinten reschts"
       },
       "trunk_lid": {
         "name": "Kofferraum"
@@ -266,7 +266,7 @@
         "name": "Fenster hinten rechts"
       },
       "skylight": {
-        "name": "Schiebedach"
+        "name": "Panoramadach"
       },
       "left_front_door_lock": {
         "name": "Türschloss vorne links"
@@ -284,7 +284,7 @@
         "name": "Schiebetürschloss"
       },
       "battery_heat_state": {
-        "name": "Batterieheizung"
+        "name": "Batterievorkonditionierung"
       },
       "charge_heat_state": {
         "name": "Ladeheizung"
@@ -309,7 +309,7 @@
     },
     "select": {
       "driver_seat_heat": {
-        "name": "Fahrersitzheizung",
+        "name": "Sitzheizung Fahrer",
         "state": {
           "off": "Aus",
           "low": "Niedrig",
@@ -317,7 +317,7 @@
         }
       },
       "driver_seat_ventilation": {
-        "name": "Belüftung des Fahrersitzes",
+        "name": "Sitzbelüftung Fahrer",
         "state": {
           "off": "Aus",
           "low": "Niedrig",
@@ -325,7 +325,7 @@
         }
       },
       "passenger_seat_heat": {
-        "name": "Beifahrersitzheizung",
+        "name": "Sitzheizung Beifahrer",
         "state": {
           "off": "Aus",
           "low": "Niedrig",
@@ -333,7 +333,7 @@
         }
       },
       "passenger_seat_ventilation": {
-        "name": "Belüftung des Beifahrersitzes",
+        "name": "Sitzbelüftung Beifahrer",
         "state": {
           "off": "Aus",
           "low": "Niedrig",
@@ -393,7 +393,7 @@
         "state_attributes": {
           "preset_mode": {
             "state": {
-              "max_heat": "Max. Heizung",
+              "max_heat": "Maximale Heizung",
               "max_cool": "Maximale Kühlung"
             }
           }
@@ -402,7 +402,7 @@
     },
     "lock": {
       "lock": {
-        "name": "Sperren"
+        "name": "Abschliessen"
       }
     },
     "device_tracker": {
