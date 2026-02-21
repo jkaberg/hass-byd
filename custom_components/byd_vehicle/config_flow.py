@@ -26,6 +26,7 @@ from .const import (
     CONF_CLIMATE_DURATION,
     CONF_CONTROL_PIN,
     CONF_COUNTRY_CODE,
+    CONF_DISTANCE_UNIT_MODE,
     CONF_DEBUG_DUMPS,
     CONF_DEVICE_PROFILE,
     CONF_GPS_ACTIVE_INTERVAL,
@@ -37,6 +38,7 @@ from .const import (
     COUNTRY_OPTIONS,
     DEFAULT_CLIMATE_DURATION,
     DEFAULT_COUNTRY,
+    DEFAULT_DISTANCE_UNIT_MODE,
     DEFAULT_DEBUG_DUMPS,
     DEFAULT_GPS_ACTIVE_INTERVAL,
     DEFAULT_GPS_INACTIVE_INTERVAL,
@@ -44,6 +46,9 @@ from .const import (
     DEFAULT_POLL_INTERVAL,
     DEFAULT_SMART_GPS_POLLING,
     DOMAIN,
+    DISTANCE_UNIT_MODE_FOLLOW_HA,
+    DISTANCE_UNIT_MODE_IMPERIAL,
+    DISTANCE_UNIT_MODE_METRIC,
     MAX_GPS_ACTIVE_INTERVAL,
     MAX_GPS_INACTIVE_INTERVAL,
     MAX_GPS_POLL_INTERVAL,
@@ -72,6 +77,15 @@ _CLIMATE_DURATION_LEGACY_CODE_TO_MINUTES: dict[int, int] = {
     3: 20,
     4: 25,
     5: 30,
+}
+
+_DISTANCE_UNIT_LABEL_TO_MODE: dict[str, str] = {
+    "Follow Home Assistant": DISTANCE_UNIT_MODE_FOLLOW_HA,
+    "Metric (km, km/h)": DISTANCE_UNIT_MODE_METRIC,
+    "Imperial (mi, mph)": DISTANCE_UNIT_MODE_IMPERIAL,
+}
+_DISTANCE_UNIT_MODE_TO_LABEL: dict[str, str] = {
+    mode: label for label, mode in _DISTANCE_UNIT_LABEL_TO_MODE.items()
 }
 
 
@@ -116,6 +130,19 @@ def _climate_duration_label_to_minutes(label: Any) -> int:
         except (TypeError, ValueError, IndexError):
             return DEFAULT_CLIMATE_DURATION
     return _normalize_climate_duration_minutes(stripped)
+
+
+def _distance_unit_default_label(value: Any) -> str:
+    mode = value if value in _DISTANCE_UNIT_MODE_TO_LABEL else DEFAULT_DISTANCE_UNIT_MODE
+    return _DISTANCE_UNIT_MODE_TO_LABEL.get(
+        mode, _DISTANCE_UNIT_MODE_TO_LABEL[DEFAULT_DISTANCE_UNIT_MODE]
+    )
+
+
+def _distance_unit_label_to_mode(label: Any) -> str:
+    if not isinstance(label, str):
+        return DEFAULT_DISTANCE_UNIT_MODE
+    return _DISTANCE_UNIT_LABEL_TO_MODE.get(label, DEFAULT_DISTANCE_UNIT_MODE)
 
 
 async def _validate_input(hass: HomeAssistant, data: dict[str, Any]) -> None:
@@ -220,6 +247,12 @@ class BydVehicleConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: i
                         DEFAULT_DEBUG_DUMPS,
                     ),
                 ): bool,
+                vol.Optional(
+                    CONF_DISTANCE_UNIT_MODE,
+                    default=_distance_unit_default_label(
+                        defaults.get(CONF_DISTANCE_UNIT_MODE, DEFAULT_DISTANCE_UNIT_MODE)
+                    ),
+                ): vol.In(list(_DISTANCE_UNIT_LABEL_TO_MODE)),
             }
         )
 
@@ -263,6 +296,10 @@ class BydVehicleConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: i
             CONF_DEBUG_DUMPS: options.get(
                 CONF_DEBUG_DUMPS,
                 DEFAULT_DEBUG_DUMPS,
+            ),
+            CONF_DISTANCE_UNIT_MODE: options.get(
+                CONF_DISTANCE_UNIT_MODE,
+                DEFAULT_DISTANCE_UNIT_MODE,
             ),
         }
 
@@ -330,6 +367,9 @@ class BydVehicleConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: i
                             user_input[CONF_CLIMATE_DURATION]
                         ),
                         CONF_DEBUG_DUMPS: user_input[CONF_DEBUG_DUMPS],
+                        CONF_DISTANCE_UNIT_MODE: _distance_unit_label_to_mode(
+                            user_input[CONF_DISTANCE_UNIT_MODE]
+                        ),
                     }
 
                     self.hass.config_entries.async_update_entry(
@@ -367,6 +407,9 @@ class BydVehicleConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: i
                             user_input[CONF_CLIMATE_DURATION]
                         ),
                         CONF_DEBUG_DUMPS: user_input[CONF_DEBUG_DUMPS],
+                        CONF_DISTANCE_UNIT_MODE: _distance_unit_label_to_mode(
+                            user_input[CONF_DISTANCE_UNIT_MODE]
+                        ),
                     },
                 )
 
@@ -409,6 +452,13 @@ class BydVehicleOptionsFlow(config_entries.OptionsFlow):
                     **user_input,
                     CONF_CLIMATE_DURATION: _climate_duration_label_to_minutes(
                         user_input[CONF_CLIMATE_DURATION]
+                    ),
+                }
+            if CONF_DISTANCE_UNIT_MODE in user_input:
+                user_input = {
+                    **user_input,
+                    CONF_DISTANCE_UNIT_MODE: _distance_unit_label_to_mode(
+                        user_input[CONF_DISTANCE_UNIT_MODE]
                     ),
                 }
             return self.async_create_entry(title="", data=user_input)
@@ -463,6 +513,15 @@ class BydVehicleOptionsFlow(config_entries.OptionsFlow):
                         DEFAULT_DEBUG_DUMPS,
                     ),
                 ): bool,
+                vol.Optional(
+                    CONF_DISTANCE_UNIT_MODE,
+                    default=_distance_unit_default_label(
+                        self._config_entry.options.get(
+                            CONF_DISTANCE_UNIT_MODE,
+                            DEFAULT_DISTANCE_UNIT_MODE,
+                        )
+                    ),
+                ): vol.In(list(_DISTANCE_UNIT_LABEL_TO_MODE)),
             }
         )
 

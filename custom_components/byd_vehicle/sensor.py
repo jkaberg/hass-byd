@@ -30,7 +30,13 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from pybyd.models.realtime import TirePressureUnit
 
-from .const import DOMAIN
+from .const import (
+    CONF_DISTANCE_UNIT_MODE,
+    DEFAULT_DISTANCE_UNIT_MODE,
+    DISTANCE_UNIT_MODE_FOLLOW_HA,
+    DISTANCE_UNIT_MODE_IMPERIAL,
+    DOMAIN,
+)
 from .coordinator import BydDataUpdateCoordinator
 from .entity import BydVehicleEntity
 
@@ -548,6 +554,7 @@ _TIRE_UNIT_MAP = {
     TirePressureUnit.PSI: UnitOfPressure.PSI,
     TirePressureUnit.KPA: UnitOfPressure.KPA,
 }
+_KM_TO_MILES = 0.621371
 
 
 class BydSensor(BydVehicleEntity, SensorEntity):
@@ -624,6 +631,11 @@ class BydSensor(BydVehicleEntity, SensorEntity):
     def native_unit_of_measurement(self) -> str | None:
         """Return the unit; tire pressures resolve dynamically."""
         desc_unit = self.entity_description.native_unit_of_measurement
+        if self._distance_units_mode() == DISTANCE_UNIT_MODE_IMPERIAL:
+            if desc_unit == UnitOfLength.KILOMETERS:
+                return UnitOfLength.MILES
+            if desc_unit == UnitOfSpeed.KILOMETERS_PER_HOUR:
+                return UnitOfSpeed.MILES_PER_HOUR
         if self.entity_description.key not in _TIRE_PRESSURE_KEYS:
             return desc_unit
         obj = self._get_source_obj()
@@ -634,6 +646,44 @@ class BydSensor(BydVehicleEntity, SensorEntity):
         return desc_unit
 
     @property
+    def device_class(self) -> SensorDeviceClass | None:
+        """Avoid HA auto-converting speed/distance when imperial mode is forced."""
+        base = self.entity_description.device_class
+        if self._distance_units_mode() == DISTANCE_UNIT_MODE_IMPERIAL and base in (
+            SensorDeviceClass.DISTANCE,
+            SensorDeviceClass.SPEED,
+        ):
+            return None
+        return base
+
+    @property
     def native_value(self) -> Any:
         """Return the sensor value."""
-        return self._resolve_value()
+        value = self._resolve_value()
+        if value is None:
+            return None
+
+        if self._distance_units_mode() != DISTANCE_UNIT_MODE_IMPERIAL:
+            return value
+
+        desc_unit = self.entity_description.native_unit_of_measurement
+        try:
+            numeric = float(value)
+        except (TypeError, ValueError):
+            return value
+
+        if desc_unit == UnitOfLength.KILOMETERS:
+            return round(numeric * _KM_TO_MILES, 1)
+        if desc_unit == UnitOfSpeed.KILOMETERS_PER_HOUR:
+            return round(numeric * _KM_TO_MILES, 1)
+        return value
+
+    def _distance_units_mode(self) -> str:
+        """Resolve distance unit mode from entry options, with HA fallback."""
+        options = getattr(getattr(self.coordinator, "config_entry", None), "options", {})
+        configured = options.get(CONF_DISTANCE_UNIT_MODE, DEFAULT_DISTANCE_UNIT_MODE)
+        if configured != DISTANCE_UNIT_MODE_FOLLOW_HA:
+            return configured
+        if self.hass.config.units.length_unit == UnitOfLength.MILES:
+            return DISTANCE_UNIT_MODE_IMPERIAL
+        return DEFAULT_DISTANCE_UNIT_MODE
