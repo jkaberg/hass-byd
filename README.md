@@ -66,6 +66,20 @@ Integration**, and search for **BYD Vehicle**.
 | Climate duration | int | no | 1 | Climate run duration in minutes for start-climate commands (allowed range: 1-60). |
 | Debug dump API responses | bool | no | false | When enabled, writes redacted BYD API request/response traces to local JSON files for troubleshooting. |
 
+### Distance/speed display units
+
+You can control BYD distance and speed units per integration entry:
+
+1. Open **Settings > Devices & Services**
+2. Open your **BYD Vehicle** integration
+3. Click **Configure**
+4. Set **Distance/speed display units** to one of:
+   - **Follow Home Assistant**
+   - **Metric (km, km/h)**
+   - **Imperial (mi, mph)**
+
+This setting only affects BYD distance/speed entities and does not require changing global Home Assistant unit preferences.
+
 
 ## Notes
 

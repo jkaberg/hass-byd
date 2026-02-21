@@ -49,7 +49,7 @@
           "gps_inactive_interval": "GPS inactive interval (seconds)",
           "climate_duration": "Climate duration (time_span)",
           "debug_dumps": "Debug dump API responses",
-          "distance_unit_mode": "Distance/speed unit mode"
+          "distance_unit_mode": "Distance/speed display units"
         }
       }
     },
@@ -77,7 +77,7 @@
           "gps_inactive_interval": "GPS inactive interval (seconds)",
           "climate_duration": "Climate duration (time_span)",
           "debug_dumps": "Debug dump API responses",
-          "distance_unit_mode": "Distance/speed unit mode"
+          "distance_unit_mode": "Distance/speed display units"
         }
       }
     }
