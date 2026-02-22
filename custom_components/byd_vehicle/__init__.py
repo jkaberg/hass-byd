@@ -259,6 +259,21 @@ def _get_entry_data(hass: HomeAssistant, entry_id: str) -> dict[str, Any]:
     return hass.data[DOMAIN][entry_id]
 
 
+def _validated_int_field(
+    call: ServiceCall, field: str, min_value: int, max_value: int
+) -> int:
+    """Read and validate an integer service field."""
+    try:
+        value = int(call.data[field])
+    except (KeyError, TypeError, ValueError) as err:
+        raise HomeAssistantError(f"Invalid value for '{field}'") from err
+    if value < min_value or value > max_value:
+        raise HomeAssistantError(
+            f"'{field}' must be between {min_value} and {max_value}"
+        )
+    return value
+
+
 def _async_register_services(hass: HomeAssistant) -> None:
     """Register domain services (idempotent — safe to call multiple times)."""
 
@@ -299,13 +314,20 @@ def _async_register_services(hass: HomeAssistant) -> None:
             await coordinator.async_fetch_realtime()
 
     async def _handle_save_charging_schedule(call: ServiceCall) -> None:
+        # Validate numeric fields defensively for programmatic callers.
+        target_soc = _validated_int_field(call, "target_soc", 50, 100)
+        start_hour = _validated_int_field(call, "start_hour", 0, 23)
+        start_minute = _validated_int_field(call, "start_minute", 0, 59)
+        end_hour = _validated_int_field(call, "end_hour", 0, 23)
+        end_minute = _validated_int_field(call, "end_minute", 0, 59)
+
         schedule = SmartChargingSchedule(
             vin="",
-            target_soc=int(call.data["target_soc"]),
-            start_hour=int(call.data["start_hour"]),
-            start_minute=int(call.data["start_minute"]),
-            end_hour=int(call.data["end_hour"]),
-            end_minute=int(call.data["end_minute"]),
+            target_soc=target_soc,
+            start_hour=start_hour,
+            start_minute=start_minute,
+            end_hour=end_hour,
+            end_minute=end_minute,
             smart_charge_switch=1,
             raw={},
         )
