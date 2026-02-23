@@ -228,7 +228,9 @@ SENSOR_DESCRIPTIONS: tuple[BydSensorDescription, ...] = (
         entity_registry_enabled_default=False,
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
-    # Charging detail from realtime
+    # Charging detail from realtime.
+    # NOTE: charge_state/charging_state are currently surfaced as raw diagnostic
+    # values because API semantics appear to vary by model/region.
     BydSensorDescription(
         key="charging_state",
         source="realtime",

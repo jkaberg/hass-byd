@@ -90,6 +90,25 @@ Integration**, and search for **BYD Vehicle**.
 - A unique device fingerprint is generated per config entry to identify the
   integration to the BYD API.
 
+### Charging sensor semantics (field observations)
+
+BYD exposes multiple charging-related fields and their meaning is not yet fully
+documented by the upstream API. In practice:
+
+- `binary_sensor.<vin>_is_charging` is best treated as "actively charging now".
+- `sensor.<vin>_charge_state` can change even when active charging is `off`.
+- On at least one vehicle/region, `charge_state` was observed as:
+  - `15` while unplugged
+  - `-1` after charge-port/cable interaction (before active charging started)
+
+These integer values should currently be treated as **model/region-specific raw
+diagnostics**. If you automate against them, prefer combining them with:
+
+- `is_charging`
+- scheduled charging state
+- location/home state
+- explicit user notifications/fallbacks
+
 ### Debug dumps
 
 When **Debug dump API responses** is enabled in integration options, BYD API
