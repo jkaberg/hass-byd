@@ -145,6 +145,7 @@ env.bak/
 venv.bak/
 .claude
 CLAUDE.md
+GEMINI.md
 .github/copilot-instructions.md
 
 # Spyder project settings
