@@ -71,7 +71,7 @@ class BydLock(BydVehicleEntity, LockEntity):
         ]
         parsed: list[bool] = []
         for value in lock_values:
-            if value is None:
+            if value is None or value == LockState.UNKNOWN:
                 return None
             parsed.append(value == LockState.LOCKED)
         return parsed

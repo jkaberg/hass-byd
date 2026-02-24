@@ -22,6 +22,7 @@ from homeassistant.const import (
     PERCENTAGE,
     EntityCategory,
     UnitOfLength,
+    UnitOfPower,
     UnitOfPressure,
     UnitOfSpeed,
     UnitOfTemperature,
@@ -158,6 +159,14 @@ SENSOR_DESCRIPTIONS: tuple[BydSensorDescription, ...] = (
         device_class=SensorDeviceClass.PRESSURE,
         state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:car-tire-alert",
+    ),
+    BydSensorDescription(
+        key="battery_power",
+        attr_key="gl",
+        source="realtime",
+        native_unit_of_measurement=UnitOfPower.WATT,
+        device_class=SensorDeviceClass.POWER,
+        state_class=SensorStateClass.MEASUREMENT,
     ),
     # =============================================
     # HVAC: primary sensors (enabled by default)

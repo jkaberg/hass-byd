@@ -397,6 +397,9 @@ class BydDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # overwriting a recent optimistic patch.
         self._optimistic_hvac_until: float | None = None
         self._optimistic_ac_expected: bool | None = None
+        # Tracks whether the realtime HTTP endpoint is permanently unsupported
+        # for this vehicle; once True, warnings are downgraded to DEBUG.
+        self._realtime_endpoint_unsupported: bool = False
 
     def handle_mqtt_realtime(self, data: VehicleRealtimeData) -> None:
         """Accept an MQTT-pushed realtime update and push to entities."""
@@ -488,6 +491,21 @@ class BydDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 realtime = await client.get_vehicle_realtime(self._vin)
             except _AUTH_ERRORS:
                 raise
+            except BydEndpointNotSupportedError as exc:
+                endpoint_failures["realtime"] = f"{type(exc).__name__}: {exc}"
+                if not self._realtime_endpoint_unsupported:
+                    _LOGGER.warning(
+                        "Realtime HTTP endpoint not supported for vin=%s — "
+                        "will rely on MQTT push for realtime data (logged once only)",
+                        self._vin,
+                    )
+                    self._realtime_endpoint_unsupported = True
+                else:
+                    _LOGGER.debug(
+                        "Realtime HTTP endpoint not supported for vin=%s"
+                        " (expected, using MQTT)",
+                        self._vin[-6:],
+                    )
             except _RECOVERABLE_ERRORS as exc:
                 endpoint_failures["realtime"] = f"{type(exc).__name__}: {exc}"
                 _LOGGER.warning(
@@ -541,10 +559,20 @@ class BydDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 hvac_map[self._vin] = effective_hvac
 
             if self._vin not in realtime_map:
-                raise UpdateFailed(
-                    f"Realtime state unavailable for {self._vin}; "
-                    "no data returned from API"
-                )
+                if self._realtime_endpoint_unsupported:
+                    # HTTP endpoint not supported; wait for MQTT push to provide
+                    # realtime data. Return coordinator data without realtime so
+                    # entities are unavailable rather than the coordinator
+                    # entering a failed state.
+                    _LOGGER.debug(
+                        "Realtime unavailable for vin=%s — waiting for MQTT push",
+                        self._vin[-6:],
+                    )
+                else:
+                    raise UpdateFailed(
+                        f"Realtime state unavailable for {self._vin}; "
+                        "no data returned from API"
+                    )
 
             if endpoint_failures:
                 _LOGGER.warning(
@@ -725,7 +753,7 @@ class BydDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             else "none"
         )
         _LOGGER.debug(
-            "Optimistic HVAC update applied: " "vin=%s, updates=%s, guard=%s",
+            "Optimistic HVAC update applied: vin=%s, updates=%s, guard=%s",
             self._vin[-6:],
             list(updates.keys()),
             guard,

@@ -92,6 +92,7 @@
       "left_rear_tire_pressure": { "name": "Rear left tire pressure" },
       "right_rear_tire_pressure": { "name": "Rear right tire pressure" },
       "temp_out_car": { "name": "Exterior temperature" },
+      "battery_power": { "name": "Battery power" },
       "pm": { "name": "PM2.5" },
       "power_battery": { "name": "Power battery level" },
       "ev_endurance": { "name": "EV endurance" },
@@ -140,6 +141,7 @@
     "binary_sensor": {
       "is_online": { "name": "Online" },
       "is_charging": { "name": "Charging" },
+      "is_charger_connected": { "name": "Charger connected" },
       "is_any_door_open": { "name": "Doors" },
       "is_any_window_open": { "name": "Windows" },
       "is_locked": { "name": "Locked" },

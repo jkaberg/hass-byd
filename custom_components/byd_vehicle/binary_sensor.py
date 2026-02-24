@@ -20,6 +20,7 @@ from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from pybyd.models.realtime import (
+    ChargingState,
     DoorOpenState,
     LockState,
     WindowState,
@@ -78,6 +79,13 @@ BINARY_SENSOR_DESCRIPTIONS: tuple[BydBinarySensorDescription, ...] = (
         source="realtime",
         device_class=BinarySensorDeviceClass.BATTERY_CHARGING,
         value_fn=lambda r: r.is_charging,
+    ),
+    BydBinarySensorDescription(
+        key="is_charger_connected",
+        source="realtime",
+        device_class=BinarySensorDeviceClass.PLUG,
+        value_fn=lambda r: r.charging_state
+        in (ChargingState.CONNECTED, ChargingState.CHARGING),
     ),
     BydBinarySensorDescription(
         key="is_any_door_open",
