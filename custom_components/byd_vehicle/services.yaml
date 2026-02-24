@@ -21,3 +21,55 @@ fetch_hvac:
       selector:
         device:
           integration: byd_vehicle
+
+set_charging_schedule:
+  fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: byd_vehicle
+    target_soc:
+      required: true
+      selector:
+        number:
+          min: 20
+          max: 100
+          step: 5
+          unit_of_measurement: "%"
+    start_hour:
+      required: true
+      selector:
+        number:
+          min: 0
+          max: 23
+    start_minute:
+      required: true
+      selector:
+        number:
+          min: 0
+          max: 59
+    end_hour:
+      required: true
+      selector:
+        number:
+          min: 0
+          max: 23
+    end_minute:
+      required: true
+      selector:
+        number:
+          min: 0
+          max: 59
+
+rename_vehicle:
+  fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: byd_vehicle
+    name:
+      required: true
+      selector:
+        text:

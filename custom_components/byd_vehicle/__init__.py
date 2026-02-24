@@ -5,9 +5,11 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import ConfigEntryNotReady, HomeAssistantError
+from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from pybyd import BydClient
@@ -193,11 +195,43 @@ async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
 _SERVICE_FETCH_REALTIME = "fetch_realtime"
 _SERVICE_FETCH_GPS = "fetch_gps"
 _SERVICE_FETCH_HVAC = "fetch_hvac"
+_SERVICE_SET_CHARGING_SCHEDULE = "set_charging_schedule"
+_SERVICE_RENAME_VEHICLE = "rename_vehicle"
 
 _ALL_SERVICES = (
     _SERVICE_FETCH_REALTIME,
     _SERVICE_FETCH_GPS,
     _SERVICE_FETCH_HVAC,
+    _SERVICE_SET_CHARGING_SCHEDULE,
+    _SERVICE_RENAME_VEHICLE,
+)
+
+_SET_CHARGING_SCHEDULE_SCHEMA = vol.Schema(
+    {
+        vol.Required("device_id"): cv.string,
+        vol.Required("target_soc"): vol.All(
+            vol.Coerce(int), vol.Range(min=20, max=100)
+        ),
+        vol.Required("start_hour"): vol.All(
+            vol.Coerce(int), vol.Range(min=0, max=23)
+        ),
+        vol.Required("start_minute"): vol.All(
+            vol.Coerce(int), vol.Range(min=0, max=59)
+        ),
+        vol.Required("end_hour"): vol.All(
+            vol.Coerce(int), vol.Range(min=0, max=23)
+        ),
+        vol.Required("end_minute"): vol.All(
+            vol.Coerce(int), vol.Range(min=0, max=59)
+        ),
+    }
+)
+
+_RENAME_VEHICLE_SCHEMA = vol.Schema(
+    {
+        vol.Required("device_id"): cv.string,
+        vol.Required("name"): vol.All(cv.string, vol.Length(min=1, max=32)),
+    }
 )
 
 
@@ -271,11 +305,55 @@ def _async_register_services(hass: HomeAssistant) -> None:
             coordinator, _ = _get_coordinators(hass, entry_id, vin)
             await coordinator.async_fetch_hvac()
 
+    async def _handle_set_charging_schedule(call: ServiceCall) -> None:
+        from .pybyd_ext import SmartChargingConfig, save_charging_schedule
+
+        for entry_id, vin in _resolve_vins_from_call(hass, call):
+            entry_data: dict[str, Any] = hass.data[DOMAIN][entry_id]
+            api: BydApi = entry_data["api"]
+            config = SmartChargingConfig(
+                target_soc=call.data["target_soc"],
+                start_hour=call.data["start_hour"],
+                start_minute=call.data["start_minute"],
+                end_hour=call.data["end_hour"],
+                end_minute=call.data["end_minute"],
+            )
+
+            async def _call(client: BydClient) -> dict:
+                return await save_charging_schedule(client, vin, config)
+
+            await api.async_call(_call)
+
+    async def _handle_rename_vehicle(call: ServiceCall) -> None:
+        from .pybyd_ext import rename_vehicle
+
+        for entry_id, vin in _resolve_vins_from_call(hass, call):
+            entry_data: dict[str, Any] = hass.data[DOMAIN][entry_id]
+            api: BydApi = entry_data["api"]
+            new_name = call.data["name"]
+
+            async def _call(client: BydClient) -> dict:
+                return await rename_vehicle(client, vin, name=new_name)
+
+            await api.async_call(_call)
+
     hass.services.async_register(
         DOMAIN, _SERVICE_FETCH_REALTIME, _handle_fetch_realtime
     )
     hass.services.async_register(DOMAIN, _SERVICE_FETCH_GPS, _handle_fetch_gps)
     hass.services.async_register(DOMAIN, _SERVICE_FETCH_HVAC, _handle_fetch_hvac)
+    hass.services.async_register(
+        DOMAIN,
+        _SERVICE_SET_CHARGING_SCHEDULE,
+        _handle_set_charging_schedule,
+        schema=_SET_CHARGING_SCHEDULE_SCHEMA,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        _SERVICE_RENAME_VEHICLE,
+        _handle_rename_vehicle,
+        schema=_RENAME_VEHICLE_SCHEMA,
+    )
 
     _LOGGER.debug("Registered %s domain services", len(_ALL_SERVICES))
 
