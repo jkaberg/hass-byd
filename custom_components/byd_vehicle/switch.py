@@ -76,8 +76,7 @@ class BydBatteryHeatSwitch(BydVehicleEntity, SwitchEntity):
         """Return whether battery heat is on."""
         if self._command_pending:
             return self._last_state
-        realtime_map = self.coordinator.data.get("realtime", {})
-        realtime = realtime_map.get(self._vin)
+        realtime = self._get_realtime()
         if realtime is not None:
             heating = realtime.is_battery_heating
             if heating is not None:
@@ -87,11 +86,22 @@ class BydBatteryHeatSwitch(BydVehicleEntity, SwitchEntity):
     @property
     def assumed_state(self) -> bool:
         """Return True if we have no realtime data."""
-        realtime_map = self.coordinator.data.get("realtime", {})
-        realtime = realtime_map.get(self._vin)
+        realtime = self._get_realtime()
         if realtime is not None:
             return getattr(realtime, "battery_heat_state", None) is None
         return True
+
+    def _is_command_confirmed(self) -> bool:
+        """Return True when realtime data confirms the battery heat command."""
+        if self._last_state is None:
+            return True
+        realtime = self._get_realtime()
+        if realtime is None:
+            return False
+        heating = getattr(realtime, "is_battery_heating", None)
+        if heating is None:
+            return False
+        return bool(heating) == bool(self._last_state)
 
     async def async_turn_on(self, **_kwargs: Any) -> None:
         """Turn on battery heat."""
@@ -292,6 +302,22 @@ class BydSteeringWheelHeatSwitch(BydVehicleEntity, SwitchEntity):
         if realtime is not None:
             return realtime.is_steering_wheel_heating is None
         return True
+
+    def _is_command_confirmed(self) -> bool:
+        """Return True when data confirms the steering wheel heat command."""
+        if self._last_state is None:
+            return True
+        hvac = self._get_hvac_status()
+        if hvac is not None:
+            val = hvac.is_steering_wheel_heating
+            if val is not None:
+                return bool(val) == bool(self._last_state)
+        realtime = self._get_realtime()
+        if realtime is not None:
+            val = realtime.is_steering_wheel_heating
+            if val is not None:
+                return bool(val) == bool(self._last_state)
+        return False
 
     async def _set_steering_wheel_heat(self, on: bool) -> None:
         """Send seat climate command with steering wheel heat toggled."""

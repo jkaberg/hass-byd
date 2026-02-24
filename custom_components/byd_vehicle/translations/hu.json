@@ -8,7 +8,7 @@
           "base_url": "Régió",
           "username": "Felhasználónév",
           "password": "Jelszó",
-          "control_pin": "Vezérlő PIN kód (nem kötelező, 6 számjegyű)",
+          "control_pin": "Vezérlés PIN kódja (nem kötelező, 6 számjegyű)",
           "country_code": "Ország",
           "poll_interval": "Lekérdezési időköz (mp)",
           "gps_poll_interval": "GPS lekérdezési időköz (mp)",
@@ -16,7 +16,7 @@
           "gps_active_interval": "GPS aktív időköz (mp)",
           "gps_inactive_interval": "GPS inaktív időköz (mp)",
           "climate_duration": "Klíma időtartam",
-          "debug_dumps": "API válaszok hibakeresési mentése"
+          "debug_dumps": "API válaszok mentése hibakereséshez"
         }
       }
     },
@@ -43,7 +43,7 @@
           "gps_active_interval": "GPS aktív időköz (mp)",
           "gps_inactive_interval": "GPS inaktív időköz (mp)",
           "climate_duration": "Klíma időtartam",
-          "debug_dumps": "API válaszok hibakeresési mentése"
+          "debug_dumps": "API válaszok mentése hibakereséshez"
         }
       }
     }
@@ -63,7 +63,7 @@
         "name": "Sebesség"
       },
       "temp_in_car": {
-        "name": "Kabinhőmérséklet"
+        "name": "Utastér hőmérséklet"
       },
       "left_front_tire_pressure": {
         "name": "Bal első guminyomás"
@@ -304,7 +304,7 @@
         "name": "Ablakok bezására"
       },
       "force_poll": {
-        "name": "Lekérdezés kényszerítése"
+        "name": "Kényszerített lekérdezés"
       }
     },
     "select": {
@@ -378,7 +378,7 @@
         "name": "Akkumulátor előfűtése"
       },
       "car_on": {
-        "name": "Klíma bekapcsolása"
+        "name": "Autó indítása"
       },
       "steering_wheel_heat": {
         "name": "Kormányfűtés"
@@ -402,7 +402,7 @@
     },
     "lock": {
       "lock": {
-        "name": "Lezárás"
+        "name": "Zárolás"
       }
     },
     "device_tracker": {

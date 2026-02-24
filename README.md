@@ -2,9 +2,9 @@
 
 ## PLEASE READ FIRST!
 
-This integration and the subsequent library is an alpha stage, especially the library needs work to map out all the available API states.
-
-You have been warned.
+> [!WARNING]
+> This integration and the subsequent library is in an alpha stage, especially the library needs work to map out all the available API states.
+> You have been warned.
 
 
 ## Description
@@ -14,12 +14,9 @@ using the [pyBYD](https://github.com/jkaberg/pyBYD) library. It provides
 extensive vehicle telemetry, GPS tracking, climate control, door locks, seat
 climate, and remote commands for BYD vehicles.
 
-Requires `pybyd>=0.0.12`.
-
 ## Installation
 
-This integration is not in the default HACS store. Install it as a custom
-repository.
+This integration is not in the default HACS store. Install it as a custom repository.
 
 ### HACS (Custom Repository)
 
@@ -44,10 +41,11 @@ repository.
 
 Configuration is done entirely through the Home Assistant UI (config flow).
 
-**IMPORTANT**: Please use an shared account (not the account you use with the app) for the integration; using the same account as the app will log you out in the app. It's also vital that you set up and command pin in the app prior to setting up the integration, an command pin must be set for commands to work.
+> [!IMPORTANT]
+> **IMPORTANT**: Please use an shared account (not the account you use with the app) for the integration; using the same account as the app will log you out in the app. It's also vital that you set up and command pin in the app prior to setting up the integration, an command pin must be set for commands to work.
 
-
-**INVALID AUTHENTICATION**: This is exactly that, or that you've choosen the wrong Region. We haven't worked out an proper Country->Region mapping so please try an diffrent region and try again. The Region corresponds to which servers the integration will use.
+> [!IMPORTANT]
+> **INVALID AUTHENTICATION**: This is exactly that, or that you've choosen the wrong Region. We haven't worked out an proper Country->Region mapping so please try an diffrent region and try again. The Region corresponds to which servers the integration will use.
 
 Go to **Settings > Devices & Services > Integrations**, click **Add
 Integration**, and search for **BYD Vehicle**.

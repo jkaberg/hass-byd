@@ -94,6 +94,15 @@ class BydLock(BydVehicleEntity, LockEntity):
         parsed = self._get_realtime_locks()
         return parsed is None
 
+    def _is_command_confirmed(self) -> bool:
+        """Return True when realtime lock data matches the commanded state."""
+        if self._last_locked is None:
+            return True
+        parsed = self._get_realtime_locks()
+        if parsed is None:
+            return False
+        return all(parsed) == self._last_locked
+
     async def async_lock(self, **_: Any) -> None:
         """Lock the vehicle."""
 

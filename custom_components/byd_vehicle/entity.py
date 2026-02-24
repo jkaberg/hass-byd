@@ -133,9 +133,14 @@ class BydVehicleEntity(CoordinatorEntity[DataUpdateCoordinator[dict[str, Any]]])
     def _is_command_confirmed(self) -> bool:
         """Return True when coordinator data confirms the commanded state.
 
-        Subclasses should override this to compare coordinator data
-        against the expected state.  The default returns ``True``
-        (always confirm immediately) for backwards compatibility.
+        **Any entity that calls** ``_execute_command()`` **must override this
+        method.**  The default ``True`` causes the optimistic flag to be
+        cleared on the very next coordinator update — before the car has
+        actually acted — making the UI revert to stale API data instantly.
+
+        Override to compare the relevant coordinator fields against the
+        expected state and return ``False`` while data has not yet caught
+        up, so the optimistic display is held until confirmation arrives.
         """
         return True
 
