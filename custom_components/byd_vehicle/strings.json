@@ -29,6 +29,50 @@
           "description": "The BYD vehicle device to fetch data for."
         }
       }
+    },
+    "set_charging_schedule": {
+      "name": "Set charging schedule",
+      "description": "Configure the smart charging schedule (target SOC and time window).",
+      "fields": {
+        "device_id": {
+          "name": "Device",
+          "description": "The BYD vehicle device to configure."
+        },
+        "target_soc": {
+          "name": "Target SOC",
+          "description": "Target state of charge (%)."
+        },
+        "start_hour": {
+          "name": "Start hour",
+          "description": "Charging window start hour (0-23)."
+        },
+        "start_minute": {
+          "name": "Start minute",
+          "description": "Charging window start minute (0-59)."
+        },
+        "end_hour": {
+          "name": "End hour",
+          "description": "Charging window end hour (0-23)."
+        },
+        "end_minute": {
+          "name": "End minute",
+          "description": "Charging window end minute (0-59)."
+        }
+      }
+    },
+    "rename_vehicle": {
+      "name": "Rename vehicle",
+      "description": "Change the vehicle alias in the BYD cloud.",
+      "fields": {
+        "device_id": {
+          "name": "Device",
+          "description": "The BYD vehicle device to rename."
+        },
+        "name": {
+          "name": "Vehicle name",
+          "description": "New name for the vehicle (1-32 characters)."
+        }
+      }
     }
   },
   "config": {
@@ -135,6 +179,33 @@
       "upgrade_status": { "name": "OTA upgrade status" },
       "refrigerator_state": { "name": "Refrigerator" },
       "refrigerator_door_state": { "name": "Refrigerator door" },
+      "refrigerator_temp": { "name": "Refrigerator temperature" },
+      "air_conditioning_mode": { "name": "AC mode" },
+      "air_run_state": { "name": "AC run state" },
+      "copilot_setting_temp_new": { "name": "Passenger set temperature" },
+      "copilot_temp": { "name": "Passenger zone temperature" },
+      "electric_defrost_status": { "name": "Electric defrost" },
+      "front_defrost_status": { "name": "Front defrost" },
+      "rapid_decrease_temp_state": { "name": "Rapid cool" },
+      "rapid_increase_temp_state": { "name": "Rapid heat" },
+      "wind_mode": { "name": "Fan mode" },
+      "wind_position": { "name": "Airflow direction" },
+      "wiper_heat_status": { "name": "Wiper heating" },
+      "pm25_state_out_car": { "name": "Outdoor air quality" },
+      "cycle_choice": { "name": "Recirculation mode" },
+      "air_temp_level": { "name": "Air temperature level" },
+      "air_condition_temp_range": { "name": "A/C temperature range" },
+      "lr_third_heat_state": { "name": "Left rear third row heat" },
+      "rr_third_heat_state": { "name": "Right rear third row heat" },
+      "lr_third_ventilation_state": { "name": "Left rear third row ventilation" },
+      "rr_third_ventilation_state": { "name": "Right rear third row ventilation" },
+      "vehicle_state": { "name": "Vehicle state" },
+      "vehicle_state_info": { "name": "Vehicle state info" },
+      "tire_press_unit": { "name": "Tire pressure unit" },
+      "auto_plate": { "name": "License plate" },
+      "auto_bought_time": { "name": "Purchase date" },
+      "tbox_version": { "name": "T-Box version" },
+      "yun_active_time": { "name": "Cloud activation time" },
       "last_updated": { "name": "Telemetry last updated" },
       "gps_last_updated": { "name": "GPS last updated" }
     },
@@ -243,7 +314,12 @@
       "battery_heat": { "name": "Battery heat" },
       "car_on": { "name": "A/C on" },
       "steering_wheel_heat": { "name": "Steering wheel heating" },
-      "disable_polling": { "name": "Disable polling" }
+      "disable_polling": { "name": "Disable polling" },
+      "smart_charging": { "name": "Smart charging" },
+      "push_notifications": { "name": "Push notifications" }
+    },
+    "image": {
+      "vehicle_image": { "name": "Vehicle image" }
     },
     "climate": {
       "climate": {
