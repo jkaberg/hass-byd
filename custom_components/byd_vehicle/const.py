@@ -81,6 +81,7 @@ COUNTRY_OPTIONS: dict[str, tuple[str, str]] = {
     "Brazil": ("BR", "pt"),
     "Colombia": ("CO", "es"),
     "Costa Rica": ("CR", "es"),
+    "Czech Republic": ("CZ", "cs"),
     "Denmark": ("DK", "da"),
     "El Salvador": ("SV", "es"),
     "Finland": ("FI", "fi"),

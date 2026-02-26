@@ -39,6 +39,42 @@ class BydBinarySensorDescription(BinarySensorEntityDescription):
     value_fn: Callable[[Any], bool | None] | None = None
 
 
+def _as_charging_state(value: Any) -> ChargingState | None:
+    """Normalize an arbitrary value to ``ChargingState`` when possible."""
+    if isinstance(value, ChargingState):
+        return value
+    if value is None:
+        return None
+    try:
+        return ChargingState(int(value))
+    except (TypeError, ValueError):
+        return None
+
+
+def _is_charging_from_realtime(obj: Any) -> bool | None:
+    """Return whether the vehicle is actively charging from realtime state."""
+    resolved = getattr(obj, "is_charging", None)
+    if isinstance(resolved, bool):
+        return resolved
+
+    state = _as_charging_state(getattr(obj, "charge_state", None))
+    if state in (None, ChargingState.UNKNOWN):
+        return None
+    return state == ChargingState.CHARGING
+
+
+def _is_plug_connected_from_realtime(obj: Any) -> bool | None:
+    """Return whether charging gun is connected from realtime state."""
+    resolved = getattr(obj, "is_charger_connected", None)
+    if isinstance(resolved, bool):
+        return resolved
+
+    state = _as_charging_state(getattr(obj, "charge_state", None))
+    if state in (None, ChargingState.UNKNOWN):
+        return None
+    return state in (ChargingState.CONNECTED, ChargingState.CHARGING)
+
+
 def _attr_truthy(attr_name: str) -> Callable[[Any], bool | None]:
     """Return a value_fn that checks ``bool(getattr(obj, attr_name))``."""
 
@@ -77,15 +113,13 @@ BINARY_SENSOR_DESCRIPTIONS: tuple[BydBinarySensorDescription, ...] = (
         key="is_charging",
         source="realtime",
         device_class=BinarySensorDeviceClass.BATTERY_CHARGING,
-        value_fn=lambda r: r.charging_state == ChargingState.CHARGING,
+        value_fn=_is_charging_from_realtime,
     ),
     BydBinarySensorDescription(
         key="is_charger_connected",
         source="realtime",
         device_class=BinarySensorDeviceClass.PLUG,
-        value_fn=lambda r: (
-            r.charging_state in (ChargingState.CONNECTED, ChargingState.CHARGING)
-        ),
+        value_fn=_is_plug_connected_from_realtime,
     ),
     BydBinarySensorDescription(
         key="is_any_door_open",
