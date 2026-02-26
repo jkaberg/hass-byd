@@ -1,8 +1,7 @@
 name: Feature request
 description: Suggest an improvement for the BYD vehicle integration.
 title: "[Feature]: "
-labels:
-  - enhancement
+labels: [enhancement]
 body:
   - type: textarea
     id: problem
