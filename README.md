@@ -131,3 +131,41 @@ Where to view logs:
 
 Tip: enable debug logging only while troubleshooting, as it can produce large
 log volumes and may include sensitive vehicle metadata.
+
+## Services
+
+The integration registers these Home Assistant services under the
+`byd_vehicle` domain:
+
+- `byd_vehicle.fetch_realtime`: Force refresh realtime telemetry.
+- `byd_vehicle.fetch_gps`: Force refresh GPS location.
+- `byd_vehicle.fetch_hvac`: Force refresh HVAC state.
+- `byd_vehicle.toggle_smart_charging`: Enable or disable smart charging.
+- `byd_vehicle.save_charging_schedule`: Save smart charging schedule and target
+  SOC.
+
+All services require selecting a BYD device (`device_id`) so actions are scoped
+to the intended vehicle.
+
+### Example: enable smart charging
+
+```yaml
+service: byd_vehicle.toggle_smart_charging
+data:
+  device_id: <your_byd_device_id>
+  enable: true
+```
+
+### Example: save charging window and target SOC
+
+```yaml
+service: byd_vehicle.save_charging_schedule
+data:
+  device_id: <your_byd_device_id>
+  target_soc: 100
+  start_hour: 0
+  start_minute: 30
+  end_hour: 7
+  end_minute: 30
+  enable: true
+```

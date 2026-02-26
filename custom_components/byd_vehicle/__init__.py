@@ -11,6 +11,7 @@ from homeassistant.exceptions import ConfigEntryNotReady, HomeAssistantError
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from pybyd import BydClient
+from pybyd.models.smart_charging import SmartChargingSchedule
 
 from .const import (
     CONF_DEVICE_PROFILE,
@@ -193,11 +194,15 @@ async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
 _SERVICE_FETCH_REALTIME = "fetch_realtime"
 _SERVICE_FETCH_GPS = "fetch_gps"
 _SERVICE_FETCH_HVAC = "fetch_hvac"
+_SERVICE_TOGGLE_SMART_CHARGING = "toggle_smart_charging"
+_SERVICE_SAVE_CHARGING_SCHEDULE = "save_charging_schedule"
 
 _ALL_SERVICES = (
     _SERVICE_FETCH_REALTIME,
     _SERVICE_FETCH_GPS,
     _SERVICE_FETCH_HVAC,
+    _SERVICE_TOGGLE_SMART_CHARGING,
+    _SERVICE_SAVE_CHARGING_SCHEDULE,
 )
 
 
@@ -249,6 +254,26 @@ def _get_coordinators(
     return telemetry, gps
 
 
+def _get_entry_data(hass: HomeAssistant, entry_id: str) -> dict[str, Any]:
+    """Return integration entry data."""
+    return hass.data[DOMAIN][entry_id]
+
+
+def _validated_int_field(
+    call: ServiceCall, field: str, min_value: int, max_value: int
+) -> int:
+    """Read and validate an integer service field."""
+    try:
+        value = int(call.data[field])
+    except (KeyError, TypeError, ValueError) as err:
+        raise HomeAssistantError(f"Invalid value for '{field}'") from err
+    if value < min_value or value > max_value:
+        raise HomeAssistantError(
+            f"'{field}' must be between {min_value} and {max_value}"
+        )
+    return value
+
+
 def _async_register_services(hass: HomeAssistant) -> None:
     """Register domain services (idempotent — safe to call multiple times)."""
 
@@ -271,11 +296,77 @@ def _async_register_services(hass: HomeAssistant) -> None:
             coordinator, _ = _get_coordinators(hass, entry_id, vin)
             await coordinator.async_fetch_hvac()
 
+    async def _handle_toggle_smart_charging(call: ServiceCall) -> None:
+        enable = bool(call.data.get("enable", True))
+        for entry_id, vin in _resolve_vins_from_call(hass, call):
+            entry_data = _get_entry_data(hass, entry_id)
+            api: BydApi = entry_data["api"]
+
+            async def _call(client: BydClient) -> Any:
+                return await client.toggle_smart_charging(vin, enable=enable)
+
+            await api.async_call(
+                _call,
+                vin=vin,
+                command=f"toggle_smart_charging_{'on' if enable else 'off'}",
+            )
+            coordinator, _ = _get_coordinators(hass, entry_id, vin)
+            await coordinator.async_fetch_realtime()
+
+    async def _handle_save_charging_schedule(call: ServiceCall) -> None:
+        # Validate numeric fields defensively for programmatic callers.
+        target_soc = _validated_int_field(call, "target_soc", 50, 100)
+        start_hour = _validated_int_field(call, "start_hour", 0, 23)
+        start_minute = _validated_int_field(call, "start_minute", 0, 59)
+        end_hour = _validated_int_field(call, "end_hour", 0, 23)
+        end_minute = _validated_int_field(call, "end_minute", 0, 59)
+
+        schedule = SmartChargingSchedule(
+            vin="",
+            target_soc=target_soc,
+            start_hour=start_hour,
+            start_minute=start_minute,
+            end_hour=end_hour,
+            end_minute=end_minute,
+            smart_charge_switch=1,
+            raw={},
+        )
+        for entry_id, vin in _resolve_vins_from_call(hass, call):
+            entry_data = _get_entry_data(hass, entry_id)
+            api: BydApi = entry_data["api"]
+            schedule_for_vin = schedule.model_copy(update={"vin": vin})
+
+            async def _call(client: BydClient) -> Any:
+                return await client.save_charging_schedule(vin, schedule_for_vin)
+
+            await api.async_call(_call, vin=vin, command="save_charging_schedule")
+
+            if "enable" in call.data:
+                enable = bool(call.data["enable"])
+
+                async def _toggle(client: BydClient) -> Any:
+                    return await client.toggle_smart_charging(vin, enable=enable)
+
+                await api.async_call(
+                    _toggle,
+                    vin=vin,
+                    command=f"toggle_smart_charging_{'on' if enable else 'off'}",
+                )
+
+            coordinator, _ = _get_coordinators(hass, entry_id, vin)
+            await coordinator.async_fetch_realtime()
+
     hass.services.async_register(
         DOMAIN, _SERVICE_FETCH_REALTIME, _handle_fetch_realtime
     )
     hass.services.async_register(DOMAIN, _SERVICE_FETCH_GPS, _handle_fetch_gps)
     hass.services.async_register(DOMAIN, _SERVICE_FETCH_HVAC, _handle_fetch_hvac)
+    hass.services.async_register(
+        DOMAIN, _SERVICE_TOGGLE_SMART_CHARGING, _handle_toggle_smart_charging
+    )
+    hass.services.async_register(
+        DOMAIN, _SERVICE_SAVE_CHARGING_SCHEDULE, _handle_save_charging_schedule
+    )
 
     _LOGGER.debug("Registered %s domain services", len(_ALL_SERVICES))
 

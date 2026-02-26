@@ -29,6 +29,54 @@
           "description": "The BYD vehicle device to fetch data for."
         }
       }
+    },
+    "toggle_smart_charging": {
+      "name": "Toggle smart charging",
+      "description": "Enable or disable BYD smart charging for the selected vehicle.",
+      "fields": {
+        "device_id": {
+          "name": "Device",
+          "description": "The BYD vehicle device to control."
+        },
+        "enable": {
+          "name": "Enable",
+          "description": "True to enable smart charging, false to disable."
+        }
+      }
+    },
+    "save_charging_schedule": {
+      "name": "Save charging schedule",
+      "description": "Set the BYD smart charging window and target SOC.",
+      "fields": {
+        "device_id": {
+          "name": "Device",
+          "description": "The BYD vehicle device to control."
+        },
+        "target_soc": {
+          "name": "Target SOC",
+          "description": "Target battery level percentage."
+        },
+        "start_hour": {
+          "name": "Start hour",
+          "description": "Charging start hour (0-23)."
+        },
+        "start_minute": {
+          "name": "Start minute",
+          "description": "Charging start minute (0-59)."
+        },
+        "end_hour": {
+          "name": "End hour",
+          "description": "Charging end hour (0-23)."
+        },
+        "end_minute": {
+          "name": "End minute",
+          "description": "Charging end minute (0-59)."
+        },
+        "enable": {
+          "name": "Enable after save",
+          "description": "Optional: immediately enable/disable smart charging after saving."
+        }
+      }
     }
   },
   "config": {
