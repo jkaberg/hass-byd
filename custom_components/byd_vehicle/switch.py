@@ -164,13 +164,18 @@ class BydCarOnSwitch(BydVehicleEntity, SwitchEntity):
         """Return whether car-on (climate) is on."""
         if self._command_pending:
             return self._last_state
-        # Vehicle off → climate cannot be running (remote start also
-        # sets power_gear ON, so this guard is correct).
-        if not self._is_vehicle_on():
-            return False
         hvac = self._get_hvac_status()
         if hvac is not None:
-            return bool(hvac.is_ac_on)
+            ac_on = bool(hvac.is_ac_on)
+            if not ac_on:
+                return False
+            # ac_on=True: trust unless vehicle is off AND no recent HVAC command
+            # (guards against stale ac_on=True after natural vehicle shutdown).
+            if not self._is_vehicle_on() and not self.coordinator.hvac_command_pending:
+                return False
+            return True
+        if not self._is_vehicle_on():
+            return False
         return self._last_state
 
     @property
@@ -231,7 +236,14 @@ class BydCarOnSwitch(BydVehicleEntity, SwitchEntity):
         hvac = self._get_hvac_status()
         if hvac is None:
             return False
-        return bool(hvac.is_ac_on) == bool(self._last_state)
+        if bool(hvac.is_ac_on) != bool(self._last_state):
+            return False
+        # For turn-on: wait for realtime to confirm vehicle is on before
+        # clearing _command_pending (prevents premature confirmation from
+        # the optimistic HVAC patch).
+        if self._last_state and not self._is_vehicle_on():
+            return False
+        return True
 
     _DELAYED_REFRESH_SECONDS = 20
 
@@ -323,8 +335,8 @@ class BydSteeringWheelHeatSwitch(BydVehicleEntity, SwitchEntity):
         """Send seat climate command with steering wheel heat toggled."""
         hvac = self._get_hvac_status()
         realtime = self._get_realtime()
-        params = SeatClimateParams.from_current_state(hvac, realtime).model_copy(
-            update={"steering_wheel_heat": 1 if on else 0}
+        params = SeatClimateParams.from_current_state(hvac, realtime).with_change(
+            "steering_wheel_heat_state", 1 if on else 3
         )
 
         async def _call(client: Any) -> Any:

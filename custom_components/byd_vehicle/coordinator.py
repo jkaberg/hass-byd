@@ -45,6 +45,7 @@ from .const import (
     DEFAULT_LANGUAGE,
     DOMAIN,
 )
+from .value_guard import guard_gps_coordinates
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -421,6 +422,14 @@ class BydDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Whether the vehicle is currently powered on (based on last realtime)."""
         return self._is_vehicle_on(self._last_realtime) is True
 
+    @property
+    def hvac_command_pending(self) -> bool:
+        """Return True while a coordinator-level optimistic HVAC guard is active."""
+        return (
+            self._optimistic_hvac_until is not None
+            and monotonic() < self._optimistic_hvac_until
+        )
+
     def _should_fetch_hvac(
         self, realtime: VehicleRealtimeData | None, *, force: bool = False
     ) -> bool:
@@ -793,6 +802,7 @@ class BydGpsUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._current_interval = self._fixed_interval
         self._polling_enabled = True
         self._force_next_refresh = False
+        self._last_gps: GpsInfo | None = None
 
     @property
     def polling_enabled(self) -> bool:
@@ -815,12 +825,16 @@ class BydGpsUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         async def _fetch(client: BydClient) -> GpsInfo:
             return await client.get_gps_info(self._vin)
 
-        data: GpsInfo = await self._api.async_call(
+        raw: GpsInfo = await self._api.async_call(
             _fetch, vin=self._vin, command="fetch_gps"
         )
+        data = guard_gps_coordinates(self._last_gps, raw)
+        if data is not None:
+            self._last_gps = data
         if isinstance(self.data, dict):
             merged = dict(self.data)
-            merged["gps"] = {self._vin: data}
+            if data is not None:
+                merged["gps"] = {self._vin: data}
             self.async_set_updated_data(merged)
 
     def _adjust_interval(self) -> None:
@@ -858,9 +872,22 @@ class BydGpsUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             except _RECOVERABLE_ERRORS as exc:
                 _LOGGER.warning("GPS fetch failed: vin=%s, error=%s", self._vin, exc)
 
+            # Guard: keep previous known-good GPS when coordinates are unavailable
+            # (e.g. car in garage). Debug dump still uses raw gps to capture API truth.
+            guarded_gps = guard_gps_coordinates(self._last_gps, gps)
+            if guarded_gps is not gps and gps is not None:
+                _LOGGER.debug(
+                    "GPS coordinates unavailable for vin=%s (lat=%s, lon=%s) "
+                    "— keeping previous known-good location",
+                    self._vin[-6:],
+                    gps.latitude,
+                    gps.longitude,
+                )
+
             gps_map: dict[str, Any] = {}
-            if gps is not None:
-                gps_map[self._vin] = gps
+            if guarded_gps is not None:
+                self._last_gps = guarded_gps
+                gps_map[self._vin] = guarded_gps
 
             if not gps_map:
                 raise UpdateFailed(f"GPS fetch failed for {self._vin}")

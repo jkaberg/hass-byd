@@ -84,28 +84,28 @@ SEAT_CLIMATE_DESCRIPTIONS: tuple[BydSeatClimateDescription, ...] = (
     BydSeatClimateDescription(
         key="rear_left_seat_heat",
         icon="mdi:car-seat-heater",
-        param_key="lr_seat_heat",
+        param_key="lr_seat_heat_state",
         hvac_attr="lr_seat_heat_state",
         entity_registry_enabled_default=False,
     ),
     BydSeatClimateDescription(
         key="rear_left_seat_ventilation",
         icon="mdi:car-seat-cooler",
-        param_key="lr_seat_ventilation",
+        param_key="lr_seat_ventilation_state",
         hvac_attr="lr_seat_ventilation_state",
         entity_registry_enabled_default=False,
     ),
     BydSeatClimateDescription(
         key="rear_right_seat_heat",
         icon="mdi:car-seat-heater",
-        param_key="rr_seat_heat",
+        param_key="rr_seat_heat_state",
         hvac_attr="rr_seat_heat_state",
         entity_registry_enabled_default=False,
     ),
     BydSeatClimateDescription(
         key="rear_right_seat_ventilation",
         icon="mdi:car-seat-cooler",
-        param_key="rr_seat_ventilation",
+        param_key="rr_seat_ventilation_state",
         hvac_attr="rr_seat_ventilation_state",
         entity_registry_enabled_default=False,
     ),
@@ -191,8 +191,8 @@ class BydSeatClimateSelect(BydVehicleEntity, SelectEntity):
         # Gather current state and override our specific parameter
         hvac = self._get_hvac_status()
         realtime = self._get_realtime()
-        params = SeatClimateParams.from_current_state(hvac, realtime).model_copy(
-            update={self.entity_description.param_key: level}
+        params = SeatClimateParams.from_current_state(hvac, realtime).with_change(
+            self.entity_description.param_key, level
         )
 
         async def _call(client: Any) -> Any:

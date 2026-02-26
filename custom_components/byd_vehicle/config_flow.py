@@ -137,7 +137,7 @@ async def _validate_input(hass: HomeAssistant, data: dict[str, Any]) -> None:
         await client.get_vehicles()
 
 
-class BydVehicleConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
+class BydVehicleConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for BYD Vehicle."""
 
     VERSION = 1

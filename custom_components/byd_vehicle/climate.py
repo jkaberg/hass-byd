@@ -119,13 +119,17 @@ class BydClimate(BydVehicleEntity, ClimateEntity):
         # After a command, prefer optimistic state until coordinator confirms.
         if self._command_pending:
             return self._last_mode
-        # If the vehicle is off, HVAC cannot be running regardless of
-        # cached data (remote climate start also sets power_gear ON).
-        if not self._is_vehicle_on():
-            return HVACMode.OFF
         hvac = self._get_hvac_status()
         if hvac is not None:
-            return HVACMode.HEAT_COOL if hvac.is_ac_on else HVACMode.OFF
+            if not hvac.is_ac_on:
+                return HVACMode.OFF
+            # ac_on=True: trust unless vehicle is off AND no recent HVAC command
+            # (guards against stale ac_on=True after natural vehicle shutdown).
+            if not self._is_vehicle_on() and not self.coordinator.hvac_command_pending:
+                return HVACMode.OFF
+            return HVACMode.HEAT_COOL
+        if not self._is_vehicle_on():
+            return HVACMode.OFF
         return self._last_mode
 
     @property
@@ -277,7 +281,14 @@ class BydClimate(BydVehicleEntity, ClimateEntity):
             return False
         ac_on = hvac.is_ac_on
         expected_on = self._last_mode != HVACMode.OFF
-        return ac_on == expected_on
+        if ac_on != expected_on:
+            return False
+        # For turn-on: also wait for realtime to confirm vehicle is on before
+        # clearing _command_pending (prevents premature confirmation from
+        # the optimistic HVAC patch).
+        if expected_on and not self._is_vehicle_on():
+            return False
+        return True
 
     _DELAYED_REFRESH_SECONDS = 20
 

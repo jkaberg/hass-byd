@@ -34,6 +34,7 @@ from pybyd.models.realtime import TirePressureUnit
 from .const import DOMAIN
 from .coordinator import BydDataUpdateCoordinator
 from .entity import BydVehicleEntity
+from .value_guard import FieldValidator, keep_previous_when_zero
 
 
 def _normalize_epoch(value: Any) -> datetime | None:
@@ -66,6 +67,7 @@ class BydSensorDescription(SensorEntityDescription):
     source: str = "realtime"
     attr_key: str | None = None
     value_fn: Callable[[Any], Any] | None = None
+    validator_fn: FieldValidator | None = None
 
 
 def _round_int_attr(attr: str) -> Callable[[Any], int | None]:
@@ -90,6 +92,7 @@ SENSOR_DESCRIPTIONS: tuple[BydSensorDescription, ...] = (
         native_unit_of_measurement=PERCENTAGE,
         device_class=SensorDeviceClass.BATTERY,
         state_class=SensorStateClass.MEASUREMENT,
+        validator_fn=keep_previous_when_zero,
     ),
     BydSensorDescription(
         key="endurance_mileage",
@@ -123,7 +126,7 @@ SENSOR_DESCRIPTIONS: tuple[BydSensorDescription, ...] = (
         device_class=SensorDeviceClass.TEMPERATURE,
         state_class=SensorStateClass.MEASUREMENT,
         value_fn=lambda obj: (
-            int(round(obj.temp_in_car)) if obj.temp_in_car is not None else None
+            int(round(obj.temp_in_car)) if obj.temp_in_car is not None else 0
         ),
     ),
     # Tire pressures – unit resolved dynamically from tire_press_unit;
@@ -198,6 +201,7 @@ SENSOR_DESCRIPTIONS: tuple[BydSensorDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         entity_registry_enabled_default=False,
         entity_category=EntityCategory.DIAGNOSTIC,
+        validator_fn=keep_previous_when_zero,
     ),
     BydSensorDescription(
         key="ev_endurance",
@@ -579,13 +583,14 @@ class BydSensor(BydVehicleEntity, SensorEntity):
         self._vin = vin
         self._vehicle = vehicle
         self._attr_unique_id = f"{vin}_{description.source}_{description.key}"
+        self._last_native_value: Any | None = None
 
         # Auto-disable sensors that return no data on first fetch.
         # If the description already disables the entity we leave it alone.
         # Otherwise we probe the initial data: if the car didn't return a
         # usable value the sensor is disabled so it stays out of the way.
         if description.entity_registry_enabled_default is not False:
-            if self._resolve_value() is None:
+            if self._resolve_validated_value() is None:
                 self._attr_entity_registry_enabled_default = False
 
     # ------------------------------------------------------------------
@@ -618,6 +623,16 @@ class BydSensor(BydVehicleEntity, SensorEntity):
             return enum_value
         return value
 
+    def _resolve_validated_value(self) -> Any:
+        """Resolve sensor value and apply optional per-entity validation."""
+        value = self._resolve_value()
+        validator = self.entity_description.validator_fn
+        if validator is not None:
+            value = validator(self._last_native_value, value)
+        if value is not None:
+            self._last_native_value = value
+        return value
+
     # ------------------------------------------------------------------
     # Entity properties
     # ------------------------------------------------------------------
@@ -645,4 +660,4 @@ class BydSensor(BydVehicleEntity, SensorEntity):
     @property
     def native_value(self) -> Any:
         """Return the sensor value."""
-        return self._resolve_value()
+        return self._resolve_validated_value()

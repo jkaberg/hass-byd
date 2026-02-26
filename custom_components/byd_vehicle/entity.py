@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable
 from time import monotonic
-from typing import Any
+from typing import Any, TypeVar
 
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity import DeviceInfo
@@ -26,7 +26,10 @@ _LOGGER = logging.getLogger(__name__)
 _OPTIMISTIC_TTL_SECONDS: float = 300.0
 
 
-class BydVehicleEntity(CoordinatorEntity[DataUpdateCoordinator[dict[str, Any]]]):
+CoordinatorT = TypeVar("CoordinatorT", bound=DataUpdateCoordinator[dict[str, Any]])
+
+
+class BydVehicleEntity(CoordinatorEntity[CoordinatorT]):
     """Mixin providing common properties for BYD vehicle entities.
 
     Subclasses must set ``_vin`` and ``_vehicle`` before calling ``super().__init__``.

@@ -8,7 +8,6 @@ from homeassistant.components.lock import LockEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from pybyd.models.realtime import LockState
 
 from .const import DOMAIN
 from .coordinator import BydApi, BydDataUpdateCoordinator
@@ -57,33 +56,16 @@ class BydLock(BydVehicleEntity, LockEntity):
         self._last_command: str | None = None
         self._last_locked: bool | None = None
 
-    def _get_realtime_locks(self) -> list[bool] | None:
-        realtime_map = self.coordinator.data.get("realtime", {})
-        realtime = realtime_map.get(self._vin)
-        if realtime is None:
-            return None
-
-        lock_values: list[LockState | None] = [
-            getattr(realtime, "left_front_door_lock", None),
-            getattr(realtime, "right_front_door_lock", None),
-            getattr(realtime, "left_rear_door_lock", None),
-            getattr(realtime, "right_rear_door_lock", None),
-        ]
-        parsed: list[bool] = []
-        for value in lock_values:
-            if value is None or value == LockState.UNKNOWN:
-                return None
-            parsed.append(value == LockState.LOCKED)
-        return parsed
-
     @property
     def is_locked(self) -> bool | None:
         """Return True if all doors are locked."""
         if self._command_pending:
             return self._last_locked
-        parsed = self._get_realtime_locks()
-        if parsed is not None:
-            return all(parsed)
+        realtime = self._get_realtime()
+        if realtime is not None:
+            current: bool | None = realtime.is_locked
+            if current is not None:
+                return current
         return self._last_locked
 
     @property
@@ -91,17 +73,28 @@ class BydLock(BydVehicleEntity, LockEntity):
         """Return True when lock state is assumed."""
         if self._command_pending:
             return True
-        parsed = self._get_realtime_locks()
-        return parsed is None
+        realtime = self._get_realtime()
+        return realtime is None or realtime.is_locked is None
 
     def _is_command_confirmed(self) -> bool:
         """Return True when realtime lock data matches the commanded state."""
         if self._last_locked is None:
             return True
-        parsed = self._get_realtime_locks()
-        if parsed is None:
+        realtime = self._get_realtime()
+        if realtime is None:
             return False
-        return all(parsed) == self._last_locked
+        current = realtime.is_locked
+        return current is not None and current == self._last_locked
+
+    def _handle_coordinator_update(self) -> None:
+        """Track real API lock state, then apply standard optimistic update logic."""
+        if not self._command_pending:
+            realtime = self._get_realtime()
+            if realtime is not None:
+                current = realtime.is_locked
+                if current is not None:
+                    self._last_locked = current
+        super()._handle_coordinator_update()
 
     async def async_lock(self, **_: Any) -> None:
         """Lock the vehicle."""

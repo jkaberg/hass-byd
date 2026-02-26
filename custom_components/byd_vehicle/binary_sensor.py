@@ -22,7 +22,6 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from pybyd.models.realtime import (
     ChargingState,
     DoorOpenState,
-    LockState,
     WindowState,
 )
 
@@ -78,14 +77,15 @@ BINARY_SENSOR_DESCRIPTIONS: tuple[BydBinarySensorDescription, ...] = (
         key="is_charging",
         source="realtime",
         device_class=BinarySensorDeviceClass.BATTERY_CHARGING,
-        value_fn=lambda r: r.is_charging,
+        value_fn=lambda r: r.charging_state == ChargingState.CHARGING,
     ),
     BydBinarySensorDescription(
         key="is_charger_connected",
         source="realtime",
         device_class=BinarySensorDeviceClass.PLUG,
-        value_fn=lambda r: r.charging_state
-        in (ChargingState.CONNECTED, ChargingState.CHARGING),
+        value_fn=lambda r: (
+            r.charging_state in (ChargingState.CONNECTED, ChargingState.CHARGING)
+        ),
     ),
     BydBinarySensorDescription(
         key="is_any_door_open",
@@ -104,8 +104,8 @@ BINARY_SENSOR_DESCRIPTIONS: tuple[BydBinarySensorDescription, ...] = (
         source="realtime",
         device_class=BinarySensorDeviceClass.LOCK,
         # is_locked returns True when locked; for BinarySensorDeviceClass.LOCK,
-        # is_on=True means "problem" (unlocked), so invert
-        value_fn=lambda r: not r.is_locked,
+        # is_on=True means "problem" (unlocked), so invert. None propagates as-is.
+        value_fn=lambda r: None if (v := r.is_locked) is None else not v,
     ),
     BydBinarySensorDescription(
         key="sentry_status",
@@ -204,44 +204,6 @@ BINARY_SENSOR_DESCRIPTIONS: tuple[BydBinarySensorDescription, ...] = (
         entity_registry_enabled_default=False,
     ),
     # ====================================
-    # Individual locks (disabled)
-    # ====================================
-    BydBinarySensorDescription(
-        key="left_front_door_lock",
-        source="realtime",
-        device_class=BinarySensorDeviceClass.LOCK,
-        value_fn=_attr_equals("left_front_door_lock", LockState.UNLOCKED),
-        entity_registry_enabled_default=False,
-    ),
-    BydBinarySensorDescription(
-        key="right_front_door_lock",
-        source="realtime",
-        device_class=BinarySensorDeviceClass.LOCK,
-        value_fn=_attr_equals("right_front_door_lock", LockState.UNLOCKED),
-        entity_registry_enabled_default=False,
-    ),
-    BydBinarySensorDescription(
-        key="left_rear_door_lock",
-        source="realtime",
-        device_class=BinarySensorDeviceClass.LOCK,
-        value_fn=_attr_equals("left_rear_door_lock", LockState.UNLOCKED),
-        entity_registry_enabled_default=False,
-    ),
-    BydBinarySensorDescription(
-        key="right_rear_door_lock",
-        source="realtime",
-        device_class=BinarySensorDeviceClass.LOCK,
-        value_fn=_attr_equals("right_rear_door_lock", LockState.UNLOCKED),
-        entity_registry_enabled_default=False,
-    ),
-    BydBinarySensorDescription(
-        key="sliding_door_lock",
-        source="realtime",
-        device_class=BinarySensorDeviceClass.LOCK,
-        value_fn=_attr_equals("sliding_door_lock", LockState.UNLOCKED),
-        entity_registry_enabled_default=False,
-    ),
-    # ====================================
     # Other (disabled)
     # ====================================
     BydBinarySensorDescription(
@@ -311,6 +273,7 @@ class BydBinarySensor(BydVehicleEntity, BinarySensorEntity):
         self._vin = vin
         self._vehicle = vehicle
         self._attr_unique_id = f"{vin}_{description.source}_{description.key}"
+        self._last_is_on: bool | None = None
 
         # Auto-disable binary sensors that return no data on first fetch.
         if description.entity_registry_enabled_default is not False:
@@ -349,5 +312,15 @@ class BydBinarySensor(BydVehicleEntity, BinarySensorEntity):
 
     @property
     def is_on(self) -> bool | None:
-        """Return the binary sensor state."""
-        return self._resolve_value()
+        """Return the binary sensor state, preserving last known when unavailable."""
+        value = self._resolve_value()
+        if value is not None:
+            return value
+        return self._last_is_on
+
+    def _handle_coordinator_update(self) -> None:
+        """Track last known state, then run standard coordinator update."""
+        value = self._resolve_value()
+        if value is not None:
+            self._last_is_on = value
+        super()._handle_coordinator_update()
